@@ -5,7 +5,7 @@
 ```sh
 git clone <repo-url>
 cd rtype
-cmake --preset debug       # also enables the Git hooks
+cmake --preset debug
 cmake --build --preset debug
 ```
 
