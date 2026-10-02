@@ -1,0 +1,30 @@
+name: Mirror to Epitech
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push to the Epitech repository
+        env:
+          SSH_KEY: ${{ secrets.MIRROR_SSH_KEY }}
+          MIRROR_URL: ${{ vars.MIRROR_URL }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_mirror
+          chmod 600 ~/.ssh/id_mirror
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_mirror -o StrictHostKeyChecking=accept-new"
+          git remote add mirror "$MIRROR_URL"
+          git push --force mirror HEAD:refs/heads/main
+          git push --force mirror --tags

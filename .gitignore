@@ -1,0 +1,21 @@
+# Build output
+build/
+out/
+cmake-build-*/
+/r-type_server
+/r-type_client
+*.exe
+*.pdb
+*.ilk
+
+# CPM dependency cache
+.cpm-cache/
+
+# IDEs and editors
+.vscode/
+.idea/
+.vs/
+*.swp
+.DS_Store
+CMakeUserPresets.json
+compile_commands.json

@@ -1,0 +1,8 @@
+# Usage: rtype_set_warnings(<target>)
+function(rtype_set_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion)
+    endif()
+endfunction()

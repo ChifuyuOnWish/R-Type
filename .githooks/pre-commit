@@ -1,0 +1,24 @@
+#!/bin/sh
+# Refuses the commit if staged C++ files are not clang-formatted.
+# Fix with: ./scripts/format.sh
+
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "pre-commit: clang-format not found, skipping format check (CI will still check)."
+    exit 0
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cpp|hpp|h|cc|cxx|hxx|inl)$')
+[ -z "$files" ] && exit 0
+
+bad=""
+for f in $files; do
+    if ! git show ":$f" | clang-format --dry-run --Werror --assume-filename="$f" >/dev/null 2>&1; then
+        bad="$bad\n    $f"
+    fi
+done
+
+if [ -n "$bad" ]; then
+    printf "pre-commit: these files are not formatted:%b\n\n" "$bad"
+    echo "Run ./scripts/format.sh, then git add them again."
+    exit 1
+fi
