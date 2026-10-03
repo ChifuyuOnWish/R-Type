@@ -57,6 +57,7 @@ ctest --preset release
 ## Authors
 
 - TODO: name — role — contact
+- Noah Auroy — lead developer — noah.auroy@epitech.eu
 
 ## License
 

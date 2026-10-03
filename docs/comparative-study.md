@@ -10,7 +10,7 @@ For each choice: the alternatives considered, the comparison, and why we picked 
 | Cross-platform setup | Same on all OSes | Triplets | Profiles |
 | Prebuilt binaries | No (source builds, cached) | Binary caching | Yes (ConanCenter) |
 
-**Choice:** CPM. TODO: finish justification.
+**Choice:** CPM.
 
 ## Graphics library
 

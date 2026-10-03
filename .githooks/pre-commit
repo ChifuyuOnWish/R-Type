@@ -1,6 +1,4 @@
 #!/bin/sh
-# Refuses the commit if staged C++ files are not clang-formatted.
-# Fix with: ./scripts/format.sh
 
 if ! command -v clang-format >/dev/null 2>&1; then
     echo "pre-commit: clang-format not found, skipping format check (CI will still check)."
