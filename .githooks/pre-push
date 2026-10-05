@@ -1,6 +1,4 @@
 #!/bin/sh
-# Refuses to push branches that don't follow the naming convention.
-# Allowed: main, dev, or <type>/<short-description>, e.g. feat/12-udp-socket
 
 pattern='^(main|dev|(feat|fix|docs|refactor|test|ci|chore|build|perf|merge)/[a-z0-9._-]+)$'
 

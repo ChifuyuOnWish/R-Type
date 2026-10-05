@@ -1,11 +1,7 @@
 #!/bin/sh
-# Enforces Conventional Commits: <type>(<optional scope>): <description>
-# Example: feat(server): add client timeout detection
-
 msg_file="$1"
 first_line=$(head -n 1 "$msg_file")
 
-# Let Git's own merge/revert/fixup messages through.
 case "$first_line" in
     Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;;
 esac
