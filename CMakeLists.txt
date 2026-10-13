@@ -35,6 +35,9 @@ include(cmake/CPM.cmake)
 include(cmake/Dependencies.cmake)
 include(cmake/CompilerWarnings.cmake)
 
+add_subdirectory(engine/network)
+add_subdirectory(shared/protocol)
+
 add_subdirectory(server)
 add_subdirectory(client)
 
