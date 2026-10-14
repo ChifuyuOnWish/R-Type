@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Put the two required binaries at the repository root, as the subject expects.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 foreach(config IN ITEMS DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config} ${CMAKE_SOURCE_DIR})
@@ -18,6 +19,7 @@ endforeach()
 
 option(RTYPE_BUILD_TESTS "Build the test suite" ON)
 
+# Point Git at the versioned hooks so nobody has to remember to install them.
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     find_package(Git QUIET)
     if(GIT_FOUND)
@@ -31,12 +33,16 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     endif()
 endif()
 
+# Third-party dependencies are declared in cmake/Dependencies.cmake through CPM.
 include(cmake/CPM.cmake)
 include(cmake/Dependencies.cmake)
 include(cmake/CompilerWarnings.cmake)
 
-add_subdirectory(engine/network)
-add_subdirectory(shared/protocol)
+# Internal targets first, so the executables and tests can link them.
+# network/ also adds network/protocol.
+add_subdirectory(network)
+# add_subdirectory(engine)   # ECS, used by the server
+# add_subdirectory(gui)      # rendering and input, used by the client
 
 add_subdirectory(server)
 add_subdirectory(client)
