@@ -12,7 +12,12 @@ For each choice: the alternatives considered, the comparison, and why we picked 
 
 **Choice:** CPM.
 
-## Graphics library
+## Graphics, audio and input
+
+**Choice:** raylib.
+
+See the [graphics library study](graphics-library-study.md) for the
+requirements, comparison, evaluation results and selection rationale.
 
 ## Networking
 
