@@ -41,7 +41,7 @@ include(cmake/CompilerWarnings.cmake)
 # Internal targets first, so the executables and tests can link them.
 # network/ also adds network/protocol.
 add_subdirectory(network)
-# add_subdirectory(engine)   # ECS, used by the server
+add_subdirectory(engine)   # ECS, used by the server
 add_subdirectory(gui)        # rendering and input, used by the client
 
 add_subdirectory(server)
