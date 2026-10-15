@@ -25,3 +25,15 @@ if(asio_ADDED)
 
     add_library(asio::asio ALIAS asio)
 endif()
+
+# GUI multimedia dependency. Keep examples out of the application build.
+CPMAddPackage(
+    NAME raylib
+    GITHUB_REPOSITORY raysan5/raylib
+    GIT_TAG 5.5
+    OPTIONS
+        "BUILD_EXAMPLES OFF"
+        "PLATFORM Desktop"
+        "GLFW_BUILD_X11 ON"
+        "GLFW_BUILD_WAYLAND OFF"
+)
