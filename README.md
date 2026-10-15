@@ -28,9 +28,7 @@ OpenGL and X11 development packages:
 
 ```sh
 sudo apt-get update
-sudo apt-get install -y build-essential cmake ninja-build git \\
-    libasound2-dev libgl1-mesa-dev libx11-dev libxrandr-dev \\
-    libxi-dev libxcursor-dev libxinerama-dev
+sudo apt-get install -y build-essential cmake ninja-build git libasound2-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
 ```
 
 A graphical session is needed to run the graphical client. Native Wayland
@@ -77,9 +75,9 @@ ctest --preset release
 
 ## Authors
 
-- TODO: name — role — contact
+- TODO: name - role - contact
 - Nathan Genet - lead developer - nathan.genet@epitech.eu
-- Noah Auroy — lead developer — noah.auroy@epitech.eu
+- Noah Auroy - lead developer - noah.auroy@epitech.eu
 - Ilona Dolbec - lead developer - ilona.dolbec@epitech.eu
 
 ## License
