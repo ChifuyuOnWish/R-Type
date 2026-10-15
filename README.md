@@ -57,6 +57,7 @@ ctest --preset release
 ## Authors
 
 - TODO: name — role — contact
+- Nathan Genet - lead developer - nathan.genet@epitech.eu
 - Noah Auroy — lead developer — noah.auroy@epitech.eu
 - Ilona Dolbec - lead developer - ilona.dolbec@epitech.eu
 
