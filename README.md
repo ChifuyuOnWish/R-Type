@@ -19,7 +19,28 @@ graphical clients connect to it over UDP.
 - Git
 
 All third-party libraries are fetched automatically by CMake through [CPM](https://github.com/cpm-cmake/CPM.cmake).
-Nothing has to be installed system-wide.
+Low-level platform development packages must be installed separately.
+
+### Linux (Ubuntu/Debian)
+
+The GUI uses raylib 5.5 with its desktop X11 backend. Install the build tools,
+OpenGL and X11 development packages:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y build-essential cmake ninja-build git \\
+    libasound2-dev libgl1-mesa-dev libx11-dev libxrandr-dev \\
+    libxi-dev libxcursor-dev libxinerama-dev
+```
+
+A graphical session is needed to run the graphical client. Native Wayland
+support is disabled; Wayland sessions need XWayland for the X11 backend.
+
+### Windows
+
+Install Visual Studio 2022 with the Desktop development with C++ workload
+and a Windows SDK. CPM builds raylib from source; no separate raylib SDK
+installation is required.
 
 ## Build
 

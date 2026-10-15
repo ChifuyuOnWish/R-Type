@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 project(rtype
     VERSION 0.1.0
     DESCRIPTION "Networked R-Type clone with a custom game engine"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -42,7 +42,7 @@ include(cmake/CompilerWarnings.cmake)
 # network/ also adds network/protocol.
 add_subdirectory(network)
 # add_subdirectory(engine)   # ECS, used by the server
-# add_subdirectory(gui)      # rendering and input, used by the client
+add_subdirectory(gui)        # rendering and input, used by the client
 
 add_subdirectory(server)
 add_subdirectory(client)
