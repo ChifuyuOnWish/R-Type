@@ -23,6 +23,10 @@ requirements, comparison, evaluation results and selection rationale.
 
 ## Algorithms & data structures
 
+**Choice:** ECS (Entity Component System).
+
+See the [engine architecture and algorithms study](engine-and-algorithms.md)
+
 ## Storage
 
 ## Security
