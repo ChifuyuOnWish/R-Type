@@ -58,6 +58,7 @@ ctest --preset release
 
 - TODO: name — role — contact
 - Noah Auroy — lead developer — noah.auroy@epitech.eu
+- Ilona Dolbec - lead developer - ilona.dolbec@epitech.eu
 
 ## License
 
