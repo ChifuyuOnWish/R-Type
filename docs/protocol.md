@@ -55,6 +55,13 @@ After the header, the datagram holds messages back to back:
 
 Sequence numbers and reliable IDs wrap around. `a` is more recent than `b` when `(int16)(a - b) > 0`, computed on 16 bits. A plain `a > b` comparison is wrong after a wrap.
 
+The implementation MUST use a wrap-safe comparison helper for 16-bit sequence values, for example:
+
+- `sequenceGreater(a, b)` returns true when `a` is newer than `b` across the `0..65535` rollover boundary.
+- `0` and `65535` are adjacent on wrap; a packet with sequence `0` is considered newer than one with sequence `65535` when compared in the correct modulo-16-bit order.
+
+This rule is used for packet ordering and duplicate detection, and it is covered by unit tests for the rollover boundary.
+
 ### 2.3 Acknowledgements and reliability
 
 - There is no separate ACK message: each side acknowledges what it received through `ack` / `ackBits` in the header of its next packet. A side with nothing else to send SHOULD send a packet with no messages within 100 ms so acknowledgements keep flowing.
@@ -215,6 +222,16 @@ The receiver checks each datagram in this order. The first failed check drops th
 3. On the server: the sender is unknown and the first message is not `CONNECT_REQUEST`, or the sender is known but `session` doesn't match its token.
 4. A message header or payload runs past the end of the datagram, `channel` is not `0` or `1`, or `type` is unknown.
 5. A payload doesn't decode to exactly `length` bytes, or a field is out of range: `bool` not 0/1, string empty or over 32 bytes, unknown enum value, reserved bits set, `SNAPSHOT.count` not matching the payload size.
+
+The header decoder MUST reject these cases explicitly:
+
+- `TooShort`: data pointer is null or the datagram is shorter than the 16-byte header.
+- `TooLong`: the datagram is larger than 1200 bytes.
+- `BadMagic`: the first 2 bytes are not `0x5254`.
+- `BadVersion`: the version byte is not `1`.
+- `BadFlags`: the flags byte is not zero.
+
+All header validation happens before any message payload is parsed, and all invalid packets are discarded without partial processing.
 
 Implementation requirements:
 
