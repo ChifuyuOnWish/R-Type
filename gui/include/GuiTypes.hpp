@@ -23,11 +23,11 @@ struct GuiVector2
     float y = 0.0F;
 };
 
-using Position = GuiVector2;
+using GuiPosition = GuiVector2;
 
 struct GuiRectangle
 {
-    Position pos;
+    GuiPosition pos;
     float width = 0.0F;
     float height = 0.0F;
 };
@@ -65,7 +65,7 @@ struct TextDraw
 {
     std::string fontId;
     std::string text;
-    GuiVector2 position;
+    GuiPosition position;
     float fontSize = 20.0F;
     float spacing = 1.0F;
     GuiColor color;
