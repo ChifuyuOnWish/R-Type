@@ -7,6 +7,8 @@ add_library(rtype_network STATIC
     src/NetworkHost.cpp
     src/ByteReader.cpp
     src/ByteWriter.cpp
+    src/PacketHeader.cpp
+    src/Connection.cpp
 )
 add_library(rtype::network ALIAS rtype_network)
 
