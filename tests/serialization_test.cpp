@@ -1,14 +1,14 @@
 // Unit tests for ByteWriter / ByteReader (plain asserts, no framework needed).
 #undef NDEBUG
+#include "ByteReader.hpp"
+#include "ByteWriter.hpp"
+
 #include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <limits>
 #include <string>
 #include <vector>
-
-#include "ByteReader.hpp"
-#include "ByteWriter.hpp"
 
 using namespace rtype::protocol;
 using Bytes = std::vector<std::uint8_t>;
@@ -21,7 +21,8 @@ static void test_exact_layout()
     w.writeU32(0x12345678);
     w.writeI16(-2);
     w.writeI32(-1);
-    const Bytes expected = {0xAB, 0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0xFF, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF};
+    const Bytes expected = {0xAB, 0x12, 0x34, 0x12, 0x34, 0x56, 0x78,
+                            0xFF, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF};
     assert(w.data() == expected);
 
     ByteWriter s;

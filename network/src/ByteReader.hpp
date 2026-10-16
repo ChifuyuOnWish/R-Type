@@ -7,7 +7,8 @@
 
 namespace rtype::protocol {
 
-class ByteReader {
+class ByteReader
+{
 public:
     ByteReader(const std::uint8_t* data, std::size_t size);
 
@@ -27,4 +28,4 @@ private:
     std::size_t m_pos = 0;
 };
 
-}
+} // namespace rtype::protocol

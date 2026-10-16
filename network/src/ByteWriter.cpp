@@ -51,4 +51,4 @@ std::size_t ByteWriter::size() const
     return m_buf.size();
 }
 
-}
+} // namespace rtype::protocol

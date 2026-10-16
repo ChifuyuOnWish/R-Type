@@ -7,7 +7,8 @@
 
 namespace rtype::protocol {
 
-class ByteWriter {
+class ByteWriter
+{
 public:
     void writeU8(std::uint8_t v);
     void writeU16(std::uint16_t v);

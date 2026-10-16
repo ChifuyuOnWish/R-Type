@@ -2,10 +2,7 @@
 
 namespace rtype::protocol {
 
-ByteReader::ByteReader(const std::uint8_t* data, std::size_t size)
-    : m_data(data), m_size(size)
-{
-}
+ByteReader::ByteReader(const std::uint8_t* data, std::size_t size) : m_data(data), m_size(size) {}
 
 std::optional<std::uint8_t> ByteReader::readU8()
 {
@@ -18,8 +15,8 @@ std::optional<std::uint16_t> ByteReader::readU16()
 {
     if (remaining() < 2)
         return std::nullopt;
-    std::uint16_t v = static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(m_data[m_pos]) << 8) | m_data[m_pos + 1]);
+    std::uint16_t v = static_cast<std::uint16_t>((static_cast<std::uint16_t>(m_data[m_pos]) << 8) |
+                                                 m_data[m_pos + 1]);
     m_pos += 2;
     return v;
 }
@@ -28,10 +25,10 @@ std::optional<std::uint32_t> ByteReader::readU32()
 {
     if (remaining() < 4)
         return std::nullopt;
-    std::uint32_t v = (static_cast<std::uint32_t>(m_data[m_pos]) << 24)
-        | (static_cast<std::uint32_t>(m_data[m_pos + 1]) << 16)
-        | (static_cast<std::uint32_t>(m_data[m_pos + 2]) << 8)
-        | static_cast<std::uint32_t>(m_data[m_pos + 3]);
+    std::uint32_t v = (static_cast<std::uint32_t>(m_data[m_pos]) << 24) |
+                      (static_cast<std::uint32_t>(m_data[m_pos + 1]) << 16) |
+                      (static_cast<std::uint32_t>(m_data[m_pos + 2]) << 8) |
+                      static_cast<std::uint32_t>(m_data[m_pos + 3]);
     m_pos += 4;
     return v;
 }
@@ -69,4 +66,4 @@ std::size_t ByteReader::remaining() const
     return m_size - m_pos;
 }
 
-}
+} // namespace rtype::protocol
