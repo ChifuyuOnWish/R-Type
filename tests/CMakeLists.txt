@@ -9,3 +9,8 @@ endforeach()
 add_executable(rtype_smoke_test smoke_test.cpp)
 target_link_libraries(rtype_smoke_test PRIVATE rtype::protocol)
 add_test(NAME smoke COMMAND rtype_smoke_test)
+
+# ByteWriter / ByteReader (issue #3)
+add_executable(rtype_serialization_test serialization_test.cpp)
+target_link_libraries(rtype_serialization_test PRIVATE rtype::network)
+add_test(NAME serialization COMMAND rtype_serialization_test)
