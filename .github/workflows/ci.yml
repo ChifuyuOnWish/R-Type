@@ -56,9 +56,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Ninja (Linux)
+      - name: Install build and GUI dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libasound2-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
 
       - name: Cache CPM dependencies
         uses: actions/cache@v4
