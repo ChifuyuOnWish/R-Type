@@ -20,3 +20,8 @@ add_test(NAME gui_interface COMMAND rtype_gui_interface_test)
 add_executable(rtype_serialization_test serialization_test.cpp)
 target_link_libraries(rtype_serialization_test PRIVATE rtype::network)
 add_test(NAME serialization COMMAND rtype_serialization_test)
+
+# Packet header validation and wrap-safe sequence comparisons.
+add_executable(rtype_packet_header_test packet_header_test.cpp)
+target_link_libraries(rtype_packet_header_test PRIVATE rtype::network)
+add_test(NAME packet_header COMMAND rtype_packet_header_test)
