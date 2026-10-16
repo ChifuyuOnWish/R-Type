@@ -4,6 +4,8 @@
 add_library(rtype_network STATIC
     src/placeholder.cpp
     src/UdpSocket.cpp
+    src/ByteReader.cpp
+    src/ByteWriter.cpp
 )
 add_library(rtype::network ALIAS rtype_network)
 
