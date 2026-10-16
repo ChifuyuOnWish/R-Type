@@ -1,4 +1,4 @@
-#include "engine/Entity.hpp"
+#include "Entity.hpp"
 
 namespace rtype::engine {
 
