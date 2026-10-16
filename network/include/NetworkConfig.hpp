@@ -14,4 +14,7 @@ inline constexpr std::size_t MaxPendingReliable = 256;
 inline constexpr std::chrono::milliseconds ReliableResendInterval{100};
 inline constexpr std::chrono::seconds ReliableTimeout{5};
 
+inline constexpr std::chrono::seconds HeartbeatInterval{1};
+inline constexpr std::chrono::seconds ConnectionTimeout{5};
+
 } // namespace rtype::network

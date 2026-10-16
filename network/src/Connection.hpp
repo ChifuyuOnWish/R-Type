@@ -17,6 +17,8 @@ public:
     using TimePoint = Clock::time_point;
     using Rtt = std::chrono::duration<float, std::milli>;
 
+    explicit Connection(TimePoint now);
+
     struct AckFields
     {
         std::uint16_t sequence;
@@ -56,6 +58,11 @@ public:
     [[nodiscard]] bool reliableTimedOut(TimePoint now) const;
     [[nodiscard]] std::size_t pendingReliable() const;
 
+    [[nodiscard]] bool needsHeartbeat(TimePoint now) const;
+    [[nodiscard]] bool hasDueReliable(TimePoint now) const;
+    [[nodiscard]] bool isTimedOut(TimePoint now) const;
+    [[nodiscard]] bool isDead(TimePoint now) const;
+
 private:
     Receive updateReceived(std::uint16_t sequence);
     void markAcked(std::uint16_t sequence, TimePoint now, std::vector<std::uint16_t>& newlyAcked);
@@ -83,6 +90,7 @@ private:
     bool _hasReceived = false;
     std::array<SentPacket, SentWindow> _sent{};
     TimePoint _lastReceived{};
+    TimePoint _lastSent{};
     Rtt _rtt{0};
     bool _hasRtt = false;
 
