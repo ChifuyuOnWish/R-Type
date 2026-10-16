@@ -23,10 +23,11 @@ struct GuiVector2
     float y = 0.0F;
 };
 
+using Position = GuiVector2;
+
 struct GuiRectangle
 {
-    float x = 0.0F;
-    float y = 0.0F;
+    Position pos;
     float width = 0.0F;
     float height = 0.0F;
 };

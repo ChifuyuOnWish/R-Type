@@ -37,7 +37,7 @@ public:
         require(scene.sprites.size() == 1, "Expected one sprite");
         renderedEntity = scene.sprites.front().entityId;
         renderedTexture = scene.sprites.front().textureId;
-        renderedX = scene.sprites.front().destinationRect.x;
+        renderedX = scene.sprites.front().destinationRect.pos.x;
         renderedOverlay = scene.overlayTexts.front().text;
     }
 
@@ -71,8 +71,8 @@ void presentFrame(rtype::gui::IGui& gui)
     SpriteDraw player;
     player.entityId = {12, 3};
     player.textureId = "player";
-    player.sourceRect = {0.0F, 0.0F, 32.0F, 16.0F};
-    player.destinationRect = {100.0F, 200.0F, 64.0F, 32.0F};
+    player.sourceRect = {{0.0F, 0.0F}, 32.0F, 16.0F};
+    player.destinationRect = {{100.0F, 200.0F}, 64.0F, 32.0F};
     scene.sprites.push_back(player);
 
     TextDraw status;
