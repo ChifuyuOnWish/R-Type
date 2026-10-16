@@ -15,3 +15,8 @@ add_executable(rtype_gui_interface_test GuiInterfaceTest.cpp)
 target_link_libraries(rtype_gui_interface_test PRIVATE rtype::gui)
 rtype_set_warnings(rtype_gui_interface_test)
 add_test(NAME gui_interface COMMAND rtype_gui_interface_test)
+
+# ByteWriter / ByteReader (issue #3)
+add_executable(rtype_serialization_test serialization_test.cpp)
+target_link_libraries(rtype_serialization_test PRIVATE rtype::network)
+add_test(NAME serialization COMMAND rtype_serialization_test)
