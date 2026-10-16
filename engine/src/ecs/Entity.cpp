@@ -1,4 +1,4 @@
-#include "Entity.hpp"
+#include "engine/Entity.hpp"
 
 namespace rtype::engine {
 
@@ -14,6 +14,11 @@ Entity::Index Entity::index() const noexcept
 Entity::Generation Entity::generation() const noexcept
 {
     return _generation;
+}
+
+bool Entity::isNull() const noexcept
+{
+    return _index == NullIndex;
 }
 
 } // namespace rtype::engine
