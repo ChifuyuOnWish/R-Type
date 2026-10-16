@@ -6,10 +6,10 @@
 #include <cstdint>
 #include <vector>
 
-using rtype::protocol::HeaderStatus;
-using rtype::protocol::PacketHeader;
-using rtype::protocol::PacketMagic;
-using rtype::protocol::ProtocolVersion;
+using HeaderStatus = rtype::protocol::HeaderStatus;
+using PacketHeader = rtype::protocol::PacketHeader;
+constexpr auto PacketMagic = rtype::protocol::PacketMagic;
+constexpr auto ProtocolVersion = rtype::protocol::ProtocolVersion;
 
 static std::vector<std::uint8_t> makeValidHeader(std::uint16_t sequence = 7, std::uint16_t ack = 6,
                                                  std::uint32_t ackBits = 0,
