@@ -59,12 +59,18 @@ std::uint16_t NetworkHost::localPort() const
 
 void NetworkHost::handleDatagram(const Endpoint& from, std::span<const std::uint8_t> bytes)
 {
-    if (bytes.size() < HeaderSize) {
+    protocol::PacketHeader header;
+    auto status = protocol::PacketHeader::decode(bytes.data(), bytes.size(), header);
+    if (status == protocol::HeaderStatus::BadVersion) {
+        countDropped();
+        onBadVersion(from, bytes);
+        return;
+    }
+    if (status != protocol::HeaderStatus::Ok) {
         countDropped();
         return;
     }
-    // TODO(#6): decode + validate PacketHeader here
-    onDatagram(from, bytes);
+    onDatagram(from, header, bytes.subspan(HeaderSize));
 }
 
 void NetworkHost::scheduleTick()
@@ -98,6 +104,11 @@ void NetworkHost::countDropped()
 void NetworkHost::enqueueOutgoing(OutgoingMessage msg)
 {
     _outgoing.push(std::move(msg));
+}
+
+void NetworkHost::runOnIoThread(std::function<void()> fn)
+{
+    asio::post(_io, std::move(fn));
 }
 
 } // namespace rtype::network

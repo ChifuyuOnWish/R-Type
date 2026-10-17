@@ -2,12 +2,14 @@
 
 #include "NetworkConfig.hpp"
 #include "NetworkEvent.hpp"
+#include "PacketHeader.hpp"
 #include "ThreadSafeQueue.hpp"
 #include "UdpSocket.hpp"
 
 #include <asio/steady_timer.hpp>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <span>
 #include <system_error>
 #include <thread>
@@ -35,15 +37,19 @@ public:
     [[nodiscard]] std::uint16_t localPort() const;
 
 protected:
-    virtual void onDatagram(const Endpoint& from, std::span<const std::uint8_t> bytes) = 0;
+    virtual void onDatagram(const Endpoint& from, const protocol::PacketHeader& header,
+                            std::span<const std::uint8_t> body) = 0;
     virtual void sendMessage(const OutgoingMessage& msg) = 0;
-    virtual void onTick(TimePoint now) {};
+    virtual void onTick(TimePoint) {}
     virtual void onStop() {}
 
     void pushEvent(NetworkEvent ev);
     std::error_code sendRaw(const Endpoint& to, std::span<const std::uint8_t> bytes);
     void countDropped();
     void enqueueOutgoing(OutgoingMessage msg);
+
+    virtual void onBadVersion(const Endpoint&, std::span<const std::uint8_t>) {}
+    void runOnIoThread(std::function<void()> fn);
 
 private:
     void handleDatagram(const Endpoint& from, std::span<const std::uint8_t> bytes);

@@ -81,13 +81,17 @@ template <typename T> bool SparseSet<T>::has(Entity entity) const noexcept
 
 template <typename T> T& SparseSet<T>::get(Entity entity)
 {
-    assert(has(entity));
+    if (!has(entity)) {
+        throw std::out_of_range("SparseSet::get entity has no such component");
+    }
     return _components[_sparse[entity.index()]];
 }
 
 template <typename T> const T& SparseSet<T>::get(Entity entity) const
 {
-    assert(has(entity));
+    if (!has(entity)) {
+        throw std::out_of_range("SparseSet::get entity has no such component");
+    }
     return _components[_sparse[entity.index()]];
 }
 
