@@ -51,6 +51,8 @@ protected:
     virtual void onBadVersion(const Endpoint&, std::span<const std::uint8_t>) {}
     void runOnIoThread(std::function<void()> fn);
 
+    virtual bool allowDatagram(const Endpoint&) { return true; }
+
 private:
     void handleDatagram(const Endpoint& from, std::span<const std::uint8_t> bytes);
     void scheduleTick();

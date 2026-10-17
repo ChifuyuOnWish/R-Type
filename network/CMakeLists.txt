@@ -10,6 +10,7 @@ add_library(rtype_network STATIC
     src/Connection.cpp
     src/PacketCodec.cpp
     src/NetworkServer.cpp
+    src/RateLimiter.cpp
 )
 add_library(rtype::network ALIAS rtype_network)
 
