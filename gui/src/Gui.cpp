@@ -65,7 +65,10 @@ KeyboardState readKeyboard()
 
 } // namespace
 
-Gui::Gui(std::filesystem::path assetRoot) : _resources(std::move(assetRoot)) {}
+Gui::Gui(std::filesystem::path assetRoot)
+    : _resources(std::move(assetRoot)), _audio(_resources.getAssetRoot())
+{
+}
 
 Gui::~Gui()
 {
@@ -77,11 +80,14 @@ void Gui::open(const GuiConfig& config)
     _window.open(config);
     _background = {};
     _input.reset();
+    if (config.audioEnabled)
+        (void)_audio.open();
 }
 
 void Gui::close() noexcept
 {
     _input.reset();
+    _audio.close();
     _resources.clear();
     _window.close();
 }
@@ -114,17 +120,36 @@ void Gui::render(const RenderScene& scene)
     Renderer(_resources).render(scene, stars);
 }
 
+void Gui::setAudioSettings(const AudioSettings& settings)
+{
+    _audio.setSettings(settings);
+}
+
+bool Gui::isAudioAvailable() const noexcept
+{
+    return _audio.isAvailable();
+}
+
 void Gui::playAudio(std::span<const SoundEvent> events)
 {
     if (!_window.isOpen())
         throw std::logic_error("Cannot play audio before opening the GUI");
-    if (!events.empty())
-        throw std::logic_error("Audio playback is not implemented yet");
+    (void)_audio.play(events);
 }
 
 float Gui::getFrameTime() const
 {
     return _window.getFrameTime();
+}
+
+AudioSystem& Gui::audio() noexcept
+{
+    return _audio;
+}
+
+const AudioSystem& Gui::audio() const noexcept
+{
+    return _audio;
 }
 
 ResourceManager& Gui::resources() noexcept

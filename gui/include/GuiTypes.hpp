@@ -47,6 +47,7 @@ struct GuiConfig
     std::string title = "R-Type";
     int targetFps = 60;
     bool resizable = true;
+    bool audioEnabled = true;
 };
 
 struct SpriteDraw
@@ -138,6 +139,12 @@ struct KeyBindings
 {
     std::array<GuiKey, playerActionCount> keys{GuiKey::Up, GuiKey::Down, GuiKey::Left,
                                                GuiKey::Right, GuiKey::Space};
+};
+
+struct AudioSettings
+{
+    float volume = 1.0F;
+    bool muted = false;
 };
 
 struct SoundEvent
