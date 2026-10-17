@@ -66,3 +66,13 @@ add_executable(rtype_input_mapper_test InputMapperTest.cpp)
 target_link_libraries(rtype_input_mapper_test PRIVATE rtype::gui)
 rtype_set_warnings(rtype_input_mapper_test)
 add_test(NAME input_mapper COMMAND rtype_input_mapper_test)
+
+# Compile the audio implementation against a fake backend, without a physical device.
+add_executable(rtype_audio_test AudioSystemTest.cpp ../gui/src/AudioSystem.cpp)
+target_include_directories(rtype_audio_test PRIVATE ../gui/include ../gui/src)
+target_include_directories(rtype_audio_test SYSTEM PRIVATE
+    $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_compile_features(rtype_audio_test PRIVATE cxx_std_20)
+rtype_set_warnings(rtype_audio_test)
+add_test(NAME audio COMMAND rtype_audio_test)
