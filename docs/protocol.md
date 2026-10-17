@@ -11,6 +11,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 - Byte order: **big-endian** (network byte order) for every multi-byte field. Implementations MUST encode and decode field by field; copying a C/C++ struct to or from the wire is not allowed (padding and host byte order would leak into the format).
 - Versioning: every packet carries a `version` byte, currently **`1`**. Any change to the packet layout or to an existing message increments it. A server MUST refuse a connection whose version differs from its own and MUST drop other packets with a wrong version.
 - Maximum datagram size: **1200 bytes**, header included. This stays below common internet MTUs so packets are never fragmented. Senders MUST NOT exceed it; receivers MUST drop larger datagrams.
+- Client implementation: the repository also ships a `NetworkClient` wrapper around this protocol. It manages the connection state machine, emits `Connected` / `Disconnected` / `ConnectionFailed` events, and is validated by loopback tests against a local server.
 
 ### 1.1 Data types
 

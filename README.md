@@ -70,6 +70,7 @@ ctest --preset release
 ## Documentation
 
 - [Developer documentation](docs/index.md)
+- [Network client](docs/network-client.md)
 - [Network protocol](docs/protocol.md)
 - [Contributing](CONTRIBUTING.md)
 
