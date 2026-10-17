@@ -26,6 +26,20 @@ rtype::gui::TextDraw label(const std::string& text, float x, float y)
     return result;
 }
 
+std::string actionNames(const std::array<bool, rtype::gui::playerActionCount>& actions)
+{
+    constexpr std::array names{"Up", "Down", "Left", "Right", "Fire"};
+    std::string result;
+    for (std::size_t index = 0; index < actions.size(); ++index) {
+        if (!actions[index])
+            continue;
+        if (!result.empty())
+            result += ' ';
+        result += names[index];
+    }
+    return result.empty() ? "none" : result;
+}
+
 rtype::gui::RenderScene makeDemoScene(bool showEnemy)
 {
     rtype::gui::RenderScene scene;
@@ -70,8 +84,17 @@ int main()
         float elapsed = 0.0F;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
-            (void)actions;
-            gui.render(makeDemoScene(elapsed < 5.0F));
+            auto scene = makeDemoScene(elapsed < 5.0F);
+            scene.overlayTexts.push_back(label("Arrows: move | Space: fire", 20.0F, 640.0F));
+            scene.overlayTexts.push_back(
+                label("Held: " + actionNames(actions.heldActions), 20.0F, 670.0F));
+            const auto pressed = actionNames(actions.pressedActions);
+            const auto released = actionNames(actions.releasedActions);
+            if (pressed != "none")
+                std::cout << "Pressed: " << pressed << '\n';
+            if (released != "none")
+                std::cout << "Released: " << released << '\n';
+            gui.render(scene);
             elapsed += gui.getFrameTime();
         }
         gui.close();

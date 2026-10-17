@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IGui.hpp"
+#include "InputMapper.hpp"
 #include "ResourceManager.hpp"
 #include "ScrollingBackground.hpp"
 #include "Window.hpp"
@@ -17,6 +18,7 @@ public:
     void close() noexcept override;
 
     [[nodiscard]] bool shouldClose() const override;
+    void setKeyBindings(const KeyBindings& bindings) override;
     [[nodiscard]] PlayerActions pollActions() override;
     void render(const RenderScene& scene) override;
     void playAudio(std::span<const SoundEvent> events) override;
@@ -29,6 +31,7 @@ private:
     Window _window;
     ResourceManager _resources;
     ScrollingBackground _background;
+    InputMapper _input;
 };
 
 } // namespace rtype::gui
