@@ -7,6 +7,7 @@ namespace rtype::network {
 Connection::AckFields Connection::prepareSend(TimePoint now)
 {
     std::uint16_t seq = _localSequence++;
+    _lastSent = now;
     _sent[seq % SentWindow] = {seq, now, false, true, {}};
     return {seq, _remoteSequence, _receivedBits};
 }
@@ -142,6 +143,31 @@ bool Connection::reliableTimedOut(TimePoint now) const
 std::size_t Connection::pendingReliable() const
 {
     return _pending.size();
+}
+
+Connection::Connection(TimePoint now) : _lastReceived(now), _lastSent(now) {}
+
+bool Connection::needsHeartbeat(TimePoint now) const
+{
+    return now - _lastSent >= HeartbeatInterval;
+}
+
+bool Connection::hasDueReliable(TimePoint now) const
+{
+    for (const auto& m : _pending)
+        if (!m.sent || now - m.lastSentAt >= ReliableResendInterval)
+            return true;
+    return false;
+}
+
+bool Connection::isTimedOut(TimePoint now) const
+{
+    return now - _lastReceived >= ConnectionTimeout;
+}
+
+bool Connection::isDead(TimePoint now) const
+{
+    return isTimedOut(now) || reliableTimedOut(now);
 }
 
 } // namespace rtype::network
