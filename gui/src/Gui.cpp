@@ -1,6 +1,7 @@
 #include "Gui.hpp"
 
-#include <raylib.h>
+#include "Renderer.hpp"
+
 #include <stdexcept>
 #include <utility>
 
@@ -42,13 +43,7 @@ void Gui::render(const RenderScene& scene)
 {
     if (!_window.isOpen())
         throw std::logic_error("Cannot render before opening the GUI");
-    if (!scene.sprites.empty() || !scene.sceneTexts.empty() || !scene.overlayTexts.empty())
-        throw std::logic_error("Sprite and text rendering are not implemented yet");
-
-    const GuiColor& color = scene.clearColor;
-    BeginDrawing();
-    ClearBackground(Color{color.red, color.green, color.blue, color.alpha});
-    EndDrawing();
+    Renderer(_resources).render(scene);
 }
 
 void Gui::playAudio(std::span<const SoundEvent> events)
