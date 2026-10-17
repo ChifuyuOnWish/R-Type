@@ -21,6 +21,12 @@ add_executable(rtype_serialization_test serialization_test.cpp)
 target_link_libraries(rtype_serialization_test PRIVATE rtype::network)
 add_test(NAME serialization COMMAND rtype_serialization_test)
 
+# EntityManager / SparseSet / Registry (issues #36, #37)
+add_executable(rtype_ecs_test ecs_test.cpp)
+target_link_libraries(rtype_ecs_test PRIVATE rtype::engine)
+rtype_set_warnings(rtype_ecs_test)
+add_test(NAME ecs COMMAND rtype_ecs_test)
+
 # Packet header validation and wrap-safe sequence comparisons.
 add_executable(rtype_packet_header_test packet_header_test.cpp)
 target_link_libraries(rtype_packet_header_test PRIVATE rtype::network)
