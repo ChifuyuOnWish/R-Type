@@ -3,6 +3,9 @@ add_library(rtype_engine STATIC
     src/ecs/EntityManager.cpp
     src/ecs/Registry.cpp
     src/core/GameLoop.cpp
+    src/systems/BoundsSystem.cpp
+    src/systems/InputSystem.cpp
+    src/systems/MotionSystem.cpp
 )
 add_library(rtype::engine ALIAS rtype_engine)
 
