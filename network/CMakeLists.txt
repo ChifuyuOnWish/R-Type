@@ -2,13 +2,14 @@
 # the server and the client. Independent of engine/ and gui/; only depends on Asio.
 # Knows nothing about R-Type; game messages live in network/protocol.
 add_library(rtype_network STATIC
-    src/placeholder.cpp
     src/UdpSocket.cpp
     src/NetworkHost.cpp
     src/ByteReader.cpp
     src/ByteWriter.cpp
     src/PacketHeader.cpp
     src/Connection.cpp
+    src/PacketCodec.cpp
+    src/NetworkServer.cpp
 )
 add_library(rtype::network ALIAS rtype_network)
 
