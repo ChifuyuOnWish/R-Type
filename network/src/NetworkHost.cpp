@@ -59,6 +59,10 @@ std::uint16_t NetworkHost::localPort() const
 
 void NetworkHost::handleDatagram(const Endpoint& from, std::span<const std::uint8_t> bytes)
 {
+    if (!allowDatagram(from)) {
+        countDropped();
+        return;
+    }
     protocol::PacketHeader header;
     auto status = protocol::PacketHeader::decode(bytes.data(), bytes.size(), header);
     if (status == protocol::HeaderStatus::BadVersion) {

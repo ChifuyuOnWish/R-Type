@@ -26,4 +26,9 @@ inline constexpr std::size_t MaxPlayers = 4;
 inline constexpr std::size_t MaxNameLength = 32;
 inline constexpr std::uint8_t ServerTickRate = 60;
 
+inline constexpr std::uint32_t MaxPacketsPerSecond = 200;
+inline constexpr std::uint32_t RateLimitStrikes = 3;
+inline constexpr std::size_t MaxTrackedEndpoints = 64;
+inline constexpr std::chrono::seconds RateWindow{1};
+
 } // namespace rtype::network

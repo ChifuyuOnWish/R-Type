@@ -3,6 +3,7 @@
 #include "Connection.hpp"
 #include "NetworkHost.hpp"
 #include "PacketCodec.hpp"
+#include "RateLimiter.hpp"
 #include "TransportMessages.hpp"
 
 #include <map>
@@ -21,6 +22,7 @@ public:
     void broadcast(std::uint8_t type, std::vector<std::uint8_t> payload, bool reliable,
                    PeerId except = NoPeer);
     void kick(PeerId peer);
+    bool allowDatagram(const Endpoint& from) override;
 
 protected:
     void onDatagram(const Endpoint& from, const protocol::PacketHeader& header,
@@ -66,6 +68,8 @@ private:
     std::map<PeerId, ClientSession> _sessions;
     std::map<Endpoint, PeerId> _byEndpoint;
     std::mt19937 _rng{std::random_device{}()};
+
+    RateLimiter _limiter;
 };
 
 } // namespace rtype::network

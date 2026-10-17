@@ -256,4 +256,21 @@ PeerId NetworkServer::freeId() const
     return NoPeer;
 }
 
+bool NetworkServer::allowDatagram(const Endpoint& from)
+{
+    const auto now = std::chrono::steady_clock::now();
+    switch (_limiter.onPacket(from, now)) {
+    case RateVerdict::Allow:
+        return true;
+    case RateVerdict::Drop:
+        return false;
+    case RateVerdict::Kick:
+        break;
+    }
+    auto found = _byEndpoint.find(from);
+    if (found != _byEndpoint.end())
+        kickNow(found->second);
+    return false;
+}
+
 } // namespace rtype::network
