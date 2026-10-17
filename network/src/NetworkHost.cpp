@@ -79,10 +79,14 @@ void NetworkHost::handleDatagram(const Endpoint& from, std::span<const std::uint
 
 void NetworkHost::scheduleTick()
 {
+    if (!_running.load())
+        return;
+
     _timer.expires_after(NetworkTickInterval);
     _timer.async_wait([this](const std::error_code& ec) {
-        if (ec == asio::error::operation_aborted)
+        if (ec == asio::error::operation_aborted || !_running.load())
             return;
+
         for (auto& msg : _outgoing.drain())
             sendMessage(msg);
         onTick(std::chrono::steady_clock::now());

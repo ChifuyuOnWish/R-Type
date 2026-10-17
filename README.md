@@ -70,6 +70,7 @@ ctest --preset release
 ## Documentation
 
 - [Developer documentation](docs/index.md)
+- [Network client](docs/network-client.md)
 - [Network protocol](docs/protocol.md)
 - [Contributing](CONTRIBUTING.md)
 
@@ -79,6 +80,7 @@ ctest --preset release
 - Nathan Genet - lead developer - nathan.genet@epitech.eu
 - Noah Auroy - lead developer - noah.auroy@epitech.eu
 - Ilona Dolbec - lead developer - ilona.dolbec@epitech.eu
+- Alexandre ADIKPETO - lead developer - alexandre.adikpeto@epitech.eu
 
 ## License
 

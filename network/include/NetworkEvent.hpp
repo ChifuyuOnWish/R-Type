@@ -38,7 +38,20 @@ struct Disconnected
     DisconnectReason reason;
 };
 
-using NetworkEvent = std::variant<Connected, MessageReceived, Disconnected>;
+enum class ConnectFailure : std::uint8_t
+{
+    Full,
+    BadVersion,
+    Banned,
+    Timeout,
+};
+
+struct ConnectionFailed
+{
+    ConnectFailure reason;
+};
+
+using NetworkEvent = std::variant<Connected, MessageReceived, Disconnected, ConnectionFailed>;
 
 struct OutgoingMessage
 {

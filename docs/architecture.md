@@ -24,15 +24,26 @@ flowchart LR
 
 ### Rendering
 
-The GUI lives in `gui/` and is exposed through `rtype::gui`.
-`IGui.hpp` defines the client interface, while `GuiTypes.hpp` contains
-presentation data. `Gui` implements the interface and `Window` manages
-window creation and cleanup. Public headers do not expose raylib types.
+The presentation subsystem lives in `gui/`, behind the `IGui` interface.
+Its presentation types are defined in `GuiTypes.hpp` without exposing raylib types.
 
-The client drives the rendering loop. The current implementation displays
-a clear color and handles resizing and closure through Escape or the close
-button. Coordinates use window pixels without automatic scaling.
-Frame duration is provided in seconds.
+The client owns the main loop and supplies a `RenderScene` containing sprites
+and text. The GUI renders this data without handling network packets or
+gameplay rules.
 
-Input mapping, sprite rendering, text and audio playback are implemented
-separately. GUI does not decode network packets or implement gameplay rules.
+`Gui` coordinates window management, rendering and visual resources.
+`Window` manages the window lifecycle and frame timing. `Renderer` draws the
+provided scene, while `ResourceManager` owns textures and fonts and releases
+them before the window closes.
+
+The client can enable and configure a scrolling starfield. The GUI updates its
+visual offset using elapsed time and repeats the background across the current
+window size without scaling entity coordinates.
+
+The GUI samples keyboard input and maps it to player actions through
+`InputMapper`. The client receives action states and can configure bindings
+without raylib key codes. See [controls](controls.md).
+
+The client supplies sound events through `IGui`. `AudioSystem` owns the audio
+device, sound resources and concurrent playback voices. Audio failures do not
+prevent rendering. See [audio](audio.md) for lifecycle and configuration.

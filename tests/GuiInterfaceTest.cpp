@@ -24,6 +24,11 @@ public:
 
     [[nodiscard]] bool shouldClose() const override { return _closed; }
 
+    void setKeyBindings(const rtype::gui::KeyBindings& bindings) override
+    {
+        fireKey = bindings.keys[static_cast<std::size_t>(rtype::gui::PlayerAction::Fire)];
+    }
+
     [[nodiscard]] rtype::gui::PlayerActions pollActions() override
     {
         rtype::gui::PlayerActions actions;
@@ -41,6 +46,13 @@ public:
         renderedOverlay = scene.overlayTexts.front().text;
     }
 
+    void setAudioSettings(const rtype::gui::AudioSettings& settings) override
+    {
+        audioSettings = settings;
+    }
+
+    [[nodiscard]] bool isAudioAvailable() const noexcept override { return !_closed; }
+
     void playAudio(std::span<const rtype::gui::SoundEvent> events) override
     {
         require(events.size() == 1, "Expected one audio event");
@@ -54,6 +66,8 @@ public:
     float renderedX = 0.0F;
     std::string renderedOverlay;
     std::string playedSound;
+    rtype::gui::AudioSettings audioSettings;
+    rtype::gui::GuiKey fireKey = rtype::gui::GuiKey::Space;
 
 private:
     bool _closed = true;
@@ -63,6 +77,9 @@ private:
 void presentFrame(rtype::gui::IGui& gui)
 {
     using namespace rtype::gui;
+    KeyBindings bindings;
+    bindings.keys[static_cast<std::size_t>(PlayerAction::Fire)] = GuiKey::F;
+    gui.setKeyBindings(bindings);
     const PlayerActions actions = gui.pollActions();
     require(actions.heldActions[static_cast<std::size_t>(PlayerAction::Fire)],
             "Expected the injected fire action");
@@ -81,6 +98,8 @@ void presentFrame(rtype::gui::IGui& gui)
     scene.overlayTexts.push_back(status);
     gui.render(scene);
 
+    gui.setAudioSettings({0.25F, true});
+    require(gui.isAudioAvailable(), "Audio status must be accessible through IGui");
     const std::array<SoundEvent, 1> events{{{"shot"}}};
     gui.playAudio(events);
 }
@@ -100,10 +119,14 @@ int main()
     require(gui.renderedTexture == "player", "Texture ID must reach the GUI");
     require(gui.renderedX == 100.0F, "Position must reach the GUI");
     require(gui.renderedOverlay == "Connected", "Overlay must reach the GUI");
+    require(gui.fireKey == rtype::gui::GuiKey::F, "Bindings must reach the GUI through IGui");
     require(gui.playedSound == "shot", "Sound event must reach the GUI");
+    require(gui.audioSettings.volume == 0.25F && gui.audioSettings.muted,
+            "Audio settings must reach the GUI");
     require(gui.getFrameTime() > 0.0F, "Frame time must be positive");
 
     gui.close();
     gui.close();
     require(gui.shouldClose(), "GUI should be closed");
+    require(!gui.isAudioAvailable(), "Closed GUI must report unavailable audio");
 }

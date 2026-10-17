@@ -31,3 +31,54 @@ add_test(NAME ecs COMMAND rtype_ecs_test)
 add_executable(rtype_packet_header_test packet_header_test.cpp)
 target_link_libraries(rtype_packet_header_test PRIVATE rtype::network)
 add_test(NAME packet_header COMMAND rtype_packet_header_test)
+
+# Resource error paths run without a window or audio device.
+add_executable(rtype_resources_test ResourceManagerTest.cpp)
+target_link_libraries(rtype_resources_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_resources_test)
+add_test(NAME resources COMMAND rtype_resources_test)
+
+# Game messages round trips and rejections (issue #14)
+add_executable(rtype_protocol_messages_test protocol_messages_test.cpp)
+target_link_libraries(rtype_protocol_messages_test PRIVATE rtype::protocol)
+add_test(NAME protocol_messages COMMAND rtype_protocol_messages_test)
+
+# Background motion and wrapping run without a graphics context.
+add_executable(rtype_background_test ScrollingBackgroundTest.cpp)
+target_link_libraries(rtype_background_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_background_test)
+add_test(NAME background COMMAND rtype_background_test)
+
+# Engine GameLoop (issue #38)
+add_executable(rtype_engine_gameLoop_test engine_gameLoop_test.cpp)
+target_link_libraries(rtype_engine_gameLoop_test PRIVATE rtype::engine)
+rtype_set_warnings(rtype_engine_gameLoop_test)
+add_test(NAME game_loop COMMAND rtype_engine_gameLoop_test)
+
+# NetworkClient against a NetworkServer on loopback, and failure paths (issue #13)
+add_executable(rtype_network_client_test network_client_test.cpp)
+target_link_libraries(rtype_network_client_test PRIVATE rtype::network)
+rtype_set_warnings(rtype_network_client_test)
+add_test(NAME network_client COMMAND rtype_network_client_test)
+set_tests_properties(network_client PROPERTIES TIMEOUT 30)
+# Engine Motion, Input and Bounds systems (issue #41 and #40)
+add_executable(rtype_engine_systems_test engine_systems_test.cpp)
+target_link_libraries(rtype_engine_systems_test PRIVATE rtype::engine)
+rtype_set_warnings(rtype_engine_systems_test)
+add_test(NAME engine_systems COMMAND rtype_engine_systems_test)
+
+# Action mapping runs on injected keyboard snapshots without a graphics context.
+add_executable(rtype_input_mapper_test InputMapperTest.cpp)
+target_link_libraries(rtype_input_mapper_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_input_mapper_test)
+add_test(NAME input_mapper COMMAND rtype_input_mapper_test)
+
+# Compile the audio implementation against a fake backend, without a physical device.
+add_executable(rtype_audio_test AudioSystemTest.cpp ../gui/src/AudioSystem.cpp)
+target_include_directories(rtype_audio_test PRIVATE ../gui/include ../gui/src)
+target_include_directories(rtype_audio_test SYSTEM PRIVATE
+    $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_compile_features(rtype_audio_test PRIVATE cxx_std_20)
+rtype_set_warnings(rtype_audio_test)
+add_test(NAME audio COMMAND rtype_audio_test)

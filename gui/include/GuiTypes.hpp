@@ -47,6 +47,7 @@ struct GuiConfig
     std::string title = "R-Type";
     int targetFps = 60;
     bool resizable = true;
+    bool audioEnabled = true;
 };
 
 struct SpriteDraw
@@ -90,9 +91,72 @@ struct PlayerActions
     std::array<bool, playerActionCount> releasedActions{};
 };
 
+enum class GuiKey : std::size_t
+{
+    None,
+    Up,
+    Down,
+    Left,
+    Right,
+    Space,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+    Enter,
+    LeftControl,
+    RightControl,
+    LeftShift,
+    RightShift,
+    Count
+};
+
+inline constexpr std::size_t guiKeyCount = static_cast<std::size_t>(GuiKey::Count);
+
+struct KeyBindings
+{
+    std::array<GuiKey, playerActionCount> keys{GuiKey::Up, GuiKey::Down, GuiKey::Left,
+                                               GuiKey::Right, GuiKey::Space};
+};
+
+struct AudioSettings
+{
+    float volume = 1.0F;
+    bool muted = false;
+};
+
 struct SoundEvent
 {
     std::string soundId;
+};
+
+struct BackgroundConfig
+{
+    bool enabled = false;
+    float scrollSpeed = 40.0F; // Pixels per second, scrolling left.
+    GuiColor starColor{180, 190, 210, 255};
 };
 
 struct RenderScene
@@ -101,6 +165,7 @@ struct RenderScene
     std::vector<SpriteDraw> sprites;
     std::vector<TextDraw> sceneTexts;
     std::vector<TextDraw> overlayTexts;
+    BackgroundConfig background;
 };
 
 } // namespace rtype::gui

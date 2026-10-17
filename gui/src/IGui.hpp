@@ -17,9 +17,15 @@ public:
 
     [[nodiscard]] virtual bool shouldClose() const = 0;
 
+    virtual void setKeyBindings(const KeyBindings& bindings) = 0;
+
     [[nodiscard]] virtual PlayerActions pollActions() = 0;
 
     virtual void render(const RenderScene& scene) = 0;
+
+    virtual void setAudioSettings(const AudioSettings& settings) = 0;
+
+    [[nodiscard]] virtual bool isAudioAvailable() const noexcept = 0;
 
     virtual void playAudio(std::span<const SoundEvent> events) = 0;
 
