@@ -25,6 +25,19 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 Floating-point numbers are never sent.
 
+### 1.2 Repository layout for the protocol implementation
+
+The current implementation in this repository is organized around the following files:
+
+- `network/protocol/include/Fixed.hpp`: fixed-point helpers for Q24.8 and Q8.8 values used in coordinates and velocities.
+- `network/protocol/include/MessageType.hpp`: enum values for the message IDs used by the protocol.
+- `network/protocol/src/Messages.hpp`: declarations for the game message payload types and validation helpers.
+- `network/protocol/src/Messages.cpp`: serialization, deserialization and validation logic for each message.
+- `network/protocol/CMakeLists.txt`: builds the protocol module in the project.
+- `tests/protocol_messages_test.cpp`: round-trip and rejection tests covering the message layout and invalid inputs.
+
+This module is the canonical implementation used to validate the wire format described in this document.
+
 ## 2. Packet header
 
 Every datagram starts with this 16-byte header, followed by zero or more messages until the end of the datagram.

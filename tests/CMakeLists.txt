@@ -25,3 +25,8 @@ add_test(NAME serialization COMMAND rtype_serialization_test)
 add_executable(rtype_packet_header_test packet_header_test.cpp)
 target_link_libraries(rtype_packet_header_test PRIVATE rtype::network)
 add_test(NAME packet_header COMMAND rtype_packet_header_test)
+
+# Game messages round trips and rejections (issue #14)
+add_executable(rtype_protocol_messages_test protocol_messages_test.cpp)
+target_link_libraries(rtype_protocol_messages_test PRIVATE rtype::protocol)
+add_test(NAME protocol_messages COMMAND rtype_protocol_messages_test)
