@@ -36,3 +36,11 @@ Frame duration is provided in seconds.
 
 Input mapping, sprite rendering, text and audio playback are implemented
 separately. GUI does not decode network packets or implement gameplay rules.
+
+Visual assets are owned by `ResourceManager`, accessed through `Gui::resources()`.
+Textures and fonts use separate ID namespaces. Repeated loads with the same ID,
+path and font size reuse the resource; conflicting registrations throw.
+Resource errors include the ID and resolved path. raylib's default font is not
+accepted as a successful custom-font load or unloaded by the manager.
+`Gui::close()` clears resources before closing the window. See
+[asset sources and licenses](../assets/README.md).

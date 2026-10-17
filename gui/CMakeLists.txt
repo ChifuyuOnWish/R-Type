@@ -1,6 +1,7 @@
 add_library(rtype_gui STATIC
     src/Window.cpp
     src/Gui.cpp
+    src/ResourceManager.cpp
 )
 add_library(rtype::gui ALIAS rtype_gui)
 
