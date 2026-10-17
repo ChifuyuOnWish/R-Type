@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 
 namespace rtype::network {
 
@@ -16,5 +17,9 @@ inline constexpr std::chrono::seconds ReliableTimeout{5};
 
 inline constexpr std::chrono::seconds HeartbeatInterval{1};
 inline constexpr std::chrono::seconds ConnectionTimeout{5};
+
+inline constexpr std::size_t MaxPlayers = 4;
+inline constexpr std::size_t MaxNameLength = 32;
+inline constexpr std::uint8_t ServerTickRate = 60;
 
 } // namespace rtype::network

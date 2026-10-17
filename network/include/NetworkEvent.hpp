@@ -1,12 +1,16 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <variant>
 #include <vector>
 
 namespace rtype::network {
 
 using PeerId = std::uint32_t;
+
+inline constexpr PeerId NoPeer = 0;
+inline constexpr PeerId AllPeers = 0xFFFFFFFF;
 
 enum class DisconnectReason : std::uint8_t
 {
@@ -18,6 +22,7 @@ enum class DisconnectReason : std::uint8_t
 struct Connected
 {
     PeerId peerId;
+    std::string name;
 };
 
 struct MessageReceived
@@ -41,6 +46,7 @@ struct OutgoingMessage
     std::uint8_t type;
     std::vector<std::uint8_t> payload;
     bool reliable;
+    PeerId except = NoPeer;
 };
 
 } // namespace rtype::network
