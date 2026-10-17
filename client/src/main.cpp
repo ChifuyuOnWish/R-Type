@@ -1,8 +1,11 @@
 #include "Gui.hpp"
 
+#include <charconv>
 #include <exception>
 #include <iostream>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace {
 
@@ -40,6 +43,28 @@ std::string actionNames(const std::array<bool, rtype::gui::playerActionCount>& a
     return result.empty() ? "none" : result;
 }
 
+void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
+                   rtype::gui::AudioSettings& settings)
+{
+    for (int index = 1; index < argc; ++index) {
+        const std::string_view argument(argv[index]);
+        if (argument == "--no-audio") {
+            config.audioEnabled = false;
+        } else if (argument == "--mute") {
+            settings.muted = true;
+        } else if (argument == "--volume" && index + 1 < argc) {
+            const std::string_view value(argv[++index]);
+            const auto result =
+                std::from_chars(value.data(), value.data() + value.size(), settings.volume);
+            if (result.ec != std::errc{} || result.ptr != value.data() + value.size())
+                throw std::invalid_argument("Volume must be a number between 0 and 1");
+        } else {
+            throw std::invalid_argument(
+                "Usage: r-type_client [--no-audio] [--mute] [--volume 0..1]");
+        }
+    }
+}
+
 rtype::gui::RenderScene makeDemoScene(bool showEnemy)
 {
     rtype::gui::RenderScene scene;
@@ -69,11 +94,23 @@ rtype::gui::RenderScene makeDemoScene(bool showEnemy)
 
 } // namespace
 
-int main()
+int main(int argc, char** argv)
 {
     try {
+        rtype::gui::GuiConfig config;
+        rtype::gui::AudioSettings audioSettings{0.5F, false};
+        configureDemo(argc, argv, config, audioSettings);
         rtype::gui::Gui gui;
-        gui.open({});
+        gui.setAudioSettings(audioSettings);
+        gui.open(config);
+        if (config.audioEnabled && !gui.isAudioAvailable())
+            std::cerr << gui.audio().getLastError() << '\n';
+        if (gui.isAudioAvailable()) {
+            if (!gui.audio().loadSound("demo-shot", "audio/demo-shot.wav"))
+                std::cerr << gui.audio().getLastError() << '\n';
+            if (!gui.audio().loadSound("demo-hit", "audio/demo-hit.wav"))
+                std::cerr << gui.audio().getLastError() << '\n';
+        }
         auto& resources = gui.resources();
         resources.loadTexture("players", "player/ship-variants.gif");
         resources.loadTexture("player-weapons", "player/ship-and-effects.gif");
@@ -82,8 +119,22 @@ int main()
 
         // Temporary local rendering fixture, replaced by client game state at integration.
         float elapsed = 0.0F;
+        bool enemyRemovalReported = false;
+        float fireCueRemaining = 0.0F;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
+            const bool firePressed =
+                actions.pressedActions[static_cast<std::size_t>(rtype::gui::PlayerAction::Fire)];
+            std::vector<rtype::gui::SoundEvent> soundEvents;
+            if (firePressed) {
+                fireCueRemaining = 0.25F;
+                soundEvents.push_back({"demo-shot"});
+            }
+            if (elapsed >= 5.0F && !enemyRemovalReported) {
+                enemyRemovalReported = true;
+                soundEvents.push_back({"demo-hit"});
+            }
+            gui.playAudio(soundEvents);
             auto scene = makeDemoScene(elapsed < 5.0F);
             scene.overlayTexts.push_back(label("Arrows: move | Space: fire", 20.0F, 640.0F));
             scene.overlayTexts.push_back(
@@ -94,7 +145,16 @@ int main()
                 std::cout << "Pressed: " << pressed << '\n';
             if (released != "none")
                 std::cout << "Released: " << released << '\n';
+            const std::string audioStatus = !gui.isAudioAvailable() ? "unavailable"
+                                            : audioSettings.muted   ? "muted"
+                                                                    : "enabled";
+            scene.overlayTexts.push_back(label("Audio: " + audioStatus, 20.0F, 50.0F));
+            if (fireCueRemaining > 0.0F)
+                scene.overlayTexts.push_back(label("Fire input", 350.0F, 80.0F));
+            if (enemyRemovalReported)
+                scene.overlayTexts.push_back(label("Enemy removed", 850.0F, 270.0F));
             gui.render(scene);
+            fireCueRemaining -= gui.getFrameTime();
             elapsed += gui.getFrameTime();
         }
         gui.close();

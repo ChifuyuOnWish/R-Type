@@ -61,3 +61,24 @@ target_link_libraries(rtype_network_client_test PRIVATE rtype::network)
 rtype_set_warnings(rtype_network_client_test)
 add_test(NAME network_client COMMAND rtype_network_client_test)
 set_tests_properties(network_client PROPERTIES TIMEOUT 30)
+# Engine Motion, Input and Bounds systems (issue #41 and #40)
+add_executable(rtype_engine_systems_test engine_systems_test.cpp)
+target_link_libraries(rtype_engine_systems_test PRIVATE rtype::engine)
+rtype_set_warnings(rtype_engine_systems_test)
+add_test(NAME engine_systems COMMAND rtype_engine_systems_test)
+
+# Action mapping runs on injected keyboard snapshots without a graphics context.
+add_executable(rtype_input_mapper_test InputMapperTest.cpp)
+target_link_libraries(rtype_input_mapper_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_input_mapper_test)
+add_test(NAME input_mapper COMMAND rtype_input_mapper_test)
+
+# Compile the audio implementation against a fake backend, without a physical device.
+add_executable(rtype_audio_test AudioSystemTest.cpp ../gui/src/AudioSystem.cpp)
+target_include_directories(rtype_audio_test PRIVATE ../gui/include ../gui/src)
+target_include_directories(rtype_audio_test SYSTEM PRIVATE
+    $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_compile_features(rtype_audio_test PRIVATE cxx_std_20)
+rtype_set_warnings(rtype_audio_test)
+add_test(NAME audio COMMAND rtype_audio_test)

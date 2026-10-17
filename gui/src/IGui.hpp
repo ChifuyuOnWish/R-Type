@@ -23,6 +23,10 @@ public:
 
     virtual void render(const RenderScene& scene) = 0;
 
+    virtual void setAudioSettings(const AudioSettings& settings) = 0;
+
+    [[nodiscard]] virtual bool isAudioAvailable() const noexcept = 0;
+
     virtual void playAudio(std::span<const SoundEvent> events) = 0;
 
     [[nodiscard]] virtual float getFrameTime() const = 0;
