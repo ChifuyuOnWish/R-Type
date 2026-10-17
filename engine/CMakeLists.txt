@@ -2,6 +2,7 @@ add_library(rtype_engine STATIC
     src/ecs/Entity.cpp
     src/ecs/EntityManager.cpp
     src/ecs/Registry.cpp
+    src/core/GameLoop.cpp
 )
 add_library(rtype::engine ALIAS rtype_engine)
 
