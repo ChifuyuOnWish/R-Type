@@ -7,7 +7,8 @@ namespace rtype::network {
 Connection::AckFields Connection::prepareSend(TimePoint now)
 {
     std::uint16_t seq = _localSequence++;
-    _sent[seq % SentWindow] = {seq, now, false, true};
+    _lastSent = now;
+    _sent[seq % SentWindow] = {seq, now, false, true, {}};
     return {seq, _remoteSequence, _receivedBits};
 }
 
@@ -77,6 +78,9 @@ void Connection::markAcked(std::uint16_t sequence, TimePoint now,
     } else {
         _rtt += (sample - _rtt) * 0.1f;
     }
+    for (std::uint16_t id : slot.reliableIds)
+        std::erase_if(_pending, [id](const ReliableMessage& m) { return m.id == id; });
+    slot.reliableIds.clear();
     newlyAcked.push_back(sequence);
 }
 
@@ -88,6 +92,82 @@ Connection::Rtt Connection::rtt() const
 Connection::TimePoint Connection::lastReceived() const
 {
     return _lastReceived;
+}
+
+bool Connection::queueReliable(std::uint8_t type, std::vector<std::uint8_t> payload, TimePoint now)
+{
+    if (_pending.size() >= MaxPendingReliable)
+        return false;
+    if (ReliableMessageOverhead + payload.size() > MaxDatagramSize - HeaderSize)
+        return false;
+    _pending.push_back({_nextReliableId++, type, std::move(payload), now, {}, false});
+    return true;
+}
+
+std::vector<const Connection::ReliableMessage*>
+Connection::takeDueReliable(std::uint16_t sequence, TimePoint now, std::size_t budget)
+{
+    std::vector<const ReliableMessage*> out;
+    SentPacket& slot = _sent[sequence % SentWindow];
+    if (!slot.valid || slot.sequence != sequence)
+        return out;
+    for (auto& m : _pending) {
+        if (m.sent && now - m.lastSentAt < ReliableResendInterval)
+            continue;
+        std::size_t size = ReliableMessageOverhead + m.payload.size();
+        if (size > budget)
+            continue;
+        budget -= size;
+        m.sent = true;
+        m.lastSentAt = now;
+        slot.reliableIds.push_back(m.id);
+        out.push_back(&m);
+    }
+    return out;
+}
+
+bool Connection::acceptReliable(std::uint16_t id)
+{
+    ReceivedReliable& slot = _received[id % ReceivedWindow];
+    if (slot.valid && slot.id == id)
+        return false;
+    slot = {id, true};
+    return true;
+}
+
+bool Connection::reliableTimedOut(TimePoint now) const
+{
+    return !_pending.empty() && now - _pending.front().queuedAt >= ReliableTimeout;
+}
+
+std::size_t Connection::pendingReliable() const
+{
+    return _pending.size();
+}
+
+Connection::Connection(TimePoint now) : _lastReceived(now), _lastSent(now) {}
+
+bool Connection::needsHeartbeat(TimePoint now) const
+{
+    return now - _lastSent >= HeartbeatInterval;
+}
+
+bool Connection::hasDueReliable(TimePoint now) const
+{
+    for (const auto& m : _pending)
+        if (!m.sent || now - m.lastSentAt >= ReliableResendInterval)
+            return true;
+    return false;
+}
+
+bool Connection::isTimedOut(TimePoint now) const
+{
+    return now - _lastReceived >= ConnectionTimeout;
+}
+
+bool Connection::isDead(TimePoint now) const
+{
+    return isTimedOut(now) || reliableTimedOut(now);
 }
 
 } // namespace rtype::network

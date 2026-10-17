@@ -26,3 +26,8 @@ add_executable(rtype_ecs_test ecs_test.cpp)
 target_link_libraries(rtype_ecs_test PRIVATE rtype::engine)
 rtype_set_warnings(rtype_ecs_test)
 add_test(NAME ecs COMMAND rtype_ecs_test)
+
+# Packet header validation and wrap-safe sequence comparisons.
+add_executable(rtype_packet_header_test packet_header_test.cpp)
+target_link_libraries(rtype_packet_header_test PRIVATE rtype::network)
+add_test(NAME packet_header COMMAND rtype_packet_header_test)
