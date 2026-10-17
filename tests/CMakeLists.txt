@@ -37,3 +37,8 @@ add_executable(rtype_resources_test ResourceManagerTest.cpp)
 target_link_libraries(rtype_resources_test PRIVATE rtype::gui)
 rtype_set_warnings(rtype_resources_test)
 add_test(NAME resources COMMAND rtype_resources_test)
+
+# Game messages round trips and rejections (issue #14)
+add_executable(rtype_protocol_messages_test protocol_messages_test.cpp)
+target_link_libraries(rtype_protocol_messages_test PRIVATE rtype::protocol)
+add_test(NAME protocol_messages COMMAND rtype_protocol_messages_test)
