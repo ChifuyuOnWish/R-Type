@@ -17,6 +17,8 @@ public:
 
     [[nodiscard]] virtual bool shouldClose() const = 0;
 
+    virtual void setKeyBindings(const KeyBindings& bindings) = 0;
+
     [[nodiscard]] virtual PlayerActions pollActions() = 0;
 
     virtual void render(const RenderScene& scene) = 0;

@@ -54,3 +54,9 @@ add_executable(rtype_engine_gameLoop_test engine_gameLoop_test.cpp)
 target_link_libraries(rtype_engine_gameLoop_test PRIVATE rtype::engine)
 rtype_set_warnings(rtype_engine_gameLoop_test)
 add_test(NAME game_loop COMMAND rtype_engine_gameLoop_test)
+
+# Action mapping runs on injected keyboard snapshots without a graphics context.
+add_executable(rtype_input_mapper_test InputMapperTest.cpp)
+target_link_libraries(rtype_input_mapper_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_input_mapper_test)
+add_test(NAME input_mapper COMMAND rtype_input_mapper_test)
