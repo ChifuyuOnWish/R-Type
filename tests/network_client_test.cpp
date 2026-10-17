@@ -261,6 +261,16 @@ void test_rejected_by_fake_server()
     assert(client.state() == ClientState::Disconnected);
 }
 
+void test_start_stop_roundtrip()
+{
+    for (int i = 0; i < 25; ++i) {
+        NetworkServer server;
+        assert(!server.start(0));
+        std::this_thread::sleep_for(5ms);
+        server.stop();
+    }
+}
+
 void test_invalid_arguments()
 {
     NetworkClient client;
@@ -279,6 +289,7 @@ void test_invalid_arguments()
 
 int main()
 {
+    test_start_stop_roundtrip();
     test_invalid_arguments();
     test_connect_and_exchange();
     test_disconnect_then_reconnect();
