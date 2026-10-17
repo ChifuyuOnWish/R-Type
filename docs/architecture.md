@@ -40,4 +40,8 @@ The client can enable and configure a scrolling starfield. The GUI updates its
 visual offset using elapsed time and repeats the background across the current
 window size without scaling entity coordinates.
 
-Input mapping and audio playback are not implemented yet.
+The GUI samples keyboard input and maps it to player actions through
+`InputMapper`. The client receives action states and can configure bindings
+without raylib key codes. See [controls](controls.md).
+
+Audio playback is not implemented yet.
