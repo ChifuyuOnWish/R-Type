@@ -43,6 +43,12 @@ add_executable(rtype_protocol_messages_test protocol_messages_test.cpp)
 target_link_libraries(rtype_protocol_messages_test PRIVATE rtype::protocol)
 add_test(NAME protocol_messages COMMAND rtype_protocol_messages_test)
 
+# Background motion and wrapping run without a graphics context.
+add_executable(rtype_background_test ScrollingBackgroundTest.cpp)
+target_link_libraries(rtype_background_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_background_test)
+add_test(NAME background COMMAND rtype_background_test)
+
 # Engine GameLoop (issue #38)
 add_executable(rtype_engine_gameLoop_test engine_gameLoop_test.cpp)
 target_link_libraries(rtype_engine_gameLoop_test PRIVATE rtype::engine)

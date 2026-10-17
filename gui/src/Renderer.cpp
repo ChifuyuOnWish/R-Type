@@ -70,7 +70,7 @@ void drawTexts(const std::vector<PreparedText>& texts)
 
 Renderer::Renderer(const ResourceManager& resources) : _resources(resources) {}
 
-void Renderer::render(const RenderScene& scene) const
+void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> backgroundStars) const
 {
     if (!IsWindowReady())
         throw std::logic_error("Rendering requires an open window");
@@ -117,6 +117,10 @@ void Renderer::render(const RenderScene& scene) const
 
     BeginDrawing();
     ClearBackground(color(scene.clearColor));
+    if (scene.background.enabled) {
+        for (const auto& star : backgroundStars)
+            DrawRectangleRec({star.x, star.y, 2.0F, 2.0F}, color(scene.background.starColor));
+    }
     for (const auto& sprite : sprites) {
         const auto& value = *sprite.draw;
         DrawTexturePro(sprite.texture, rectangle(value.sourceRect),
