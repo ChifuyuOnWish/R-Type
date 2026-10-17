@@ -32,6 +32,12 @@ add_executable(rtype_packet_header_test packet_header_test.cpp)
 target_link_libraries(rtype_packet_header_test PRIVATE rtype::network)
 add_test(NAME packet_header COMMAND rtype_packet_header_test)
 
+# Resource error paths run without a window or audio device.
+add_executable(rtype_resources_test ResourceManagerTest.cpp)
+target_link_libraries(rtype_resources_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_resources_test)
+add_test(NAME resources COMMAND rtype_resources_test)
+
 # Game messages round trips and rejections (issue #14)
 add_executable(rtype_protocol_messages_test protocol_messages_test.cpp)
 target_link_libraries(rtype_protocol_messages_test PRIVATE rtype::protocol)

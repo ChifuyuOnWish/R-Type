@@ -2,8 +2,16 @@
 
 #include <raylib.h>
 #include <stdexcept>
+#include <utility>
 
 namespace rtype::gui {
+
+Gui::Gui(std::filesystem::path assetRoot) : _resources(std::move(assetRoot)) {}
+
+Gui::~Gui()
+{
+    close();
+}
 
 void Gui::open(const GuiConfig& config)
 {
@@ -12,6 +20,7 @@ void Gui::open(const GuiConfig& config)
 
 void Gui::close() noexcept
 {
+    _resources.clear();
     _window.close();
 }
 
@@ -53,6 +62,16 @@ void Gui::playAudio(std::span<const SoundEvent> events)
 float Gui::getFrameTime() const
 {
     return _window.getFrameTime();
+}
+
+ResourceManager& Gui::resources() noexcept
+{
+    return _resources;
+}
+
+const ResourceManager& Gui::resources() const noexcept
+{
+    return _resources;
 }
 
 } // namespace rtype::gui
