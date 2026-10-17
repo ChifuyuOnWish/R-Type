@@ -44,4 +44,6 @@ The GUI samples keyboard input and maps it to player actions through
 `InputMapper`. The client receives action states and can configure bindings
 without raylib key codes. See [controls](controls.md).
 
-Audio playback is not implemented yet.
+The client supplies sound events through `IGui`. `AudioSystem` owns the audio
+device, sound resources and concurrent playback voices. Audio failures do not
+prevent rendering. See [audio](audio.md) for lifecycle and configuration.
