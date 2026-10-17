@@ -1,10 +1,11 @@
 #include "ResourceManager.hpp"
 
+#include "detail/ResourceManagerData.hpp"
+
 #include <fstream>
 #include <limits>
 #include <raylib.h>
 #include <stdexcept>
-#include <unordered_map>
 #include <utility>
 
 namespace rtype::gui {
@@ -50,47 +51,7 @@ struct ImageOwner
     }
 };
 
-struct TextureOwner
-{
-    Texture2D value{};
-    std::filesystem::path path;
-
-    ~TextureOwner()
-    {
-        if (value.id != 0)
-            UnloadTexture(value);
-    }
-};
-
-struct FontOwner
-{
-    Font value{};
-    std::filesystem::path path;
-    int requestedSize = 0;
-    bool owned = false;
-
-    ~FontOwner()
-    {
-        if (owned)
-            UnloadFont(value);
-    }
-};
-
 } // namespace
-
-struct ResourceManager::Impl
-{
-    std::filesystem::path root;
-    std::unordered_map<std::string, std::unique_ptr<TextureOwner>> textures;
-    std::unordered_map<std::string, std::unique_ptr<FontOwner>> fonts;
-
-    [[nodiscard]] std::filesystem::path resolve(const std::filesystem::path& path) const
-    {
-        if (path.empty())
-            throw std::invalid_argument("Resource path must not be empty");
-        return (path.is_absolute() ? path : root / path).lexically_normal();
-    }
-};
 
 ResourceManager::ResourceManager(std::filesystem::path assetRoot) : _impl(std::make_unique<Impl>())
 {
@@ -133,7 +94,7 @@ void ResourceManager::loadTexture(const std::string& id, const std::filesystem::
     if (!IsWindowReady())
         throw loadError(id, resolved, "an open window is required");
 
-    auto texture = std::make_unique<TextureOwner>();
+    auto texture = std::make_unique<detail::TextureOwner>();
     texture->path = resolved;
     texture->value = LoadTextureFromImage(image.value);
     if (!IsTextureValid(texture->value))
@@ -156,7 +117,7 @@ void ResourceManager::loadFont(const std::string& id, const std::filesystem::pat
     if (!IsWindowReady())
         throw loadError(id, resolved, "an open window is required");
 
-    auto font = std::make_unique<FontOwner>();
+    auto font = std::make_unique<detail::FontOwner>();
     font->path = resolved;
     font->requestedSize = size;
     const auto extension = resolved.extension().string();

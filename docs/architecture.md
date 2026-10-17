@@ -24,23 +24,16 @@ flowchart LR
 
 ### Rendering
 
-The GUI lives in `gui/` and is exposed through `rtype::gui`.
-`IGui.hpp` defines the client interface, while `GuiTypes.hpp` contains
-presentation data. `Gui` implements the interface and `Window` manages
-window creation and cleanup. Public headers do not expose raylib types.
+The presentation subsystem lives in `gui/`, behind the `IGui` interface.
+Its presentation types are defined in `GuiTypes.hpp` without exposing raylib types.
 
-The client drives the rendering loop. The current implementation displays
-a clear color and handles resizing and closure through Escape or the close
-button. Coordinates use window pixels without automatic scaling.
-Frame duration is provided in seconds.
+The client owns the main loop and supplies a `RenderScene` containing sprites
+and text. The GUI renders this data without handling network packets or
+gameplay rules.
 
-Input mapping, sprite rendering, text and audio playback are implemented
-separately. GUI does not decode network packets or implement gameplay rules.
+`Gui` coordinates window management, rendering and visual resources.
+`Window` manages the window lifecycle and frame timing. `Renderer` draws the
+provided scene, while `ResourceManager` owns textures and fonts and releases
+them before the window closes.
 
-Visual assets are owned by `ResourceManager`, accessed through `Gui::resources()`.
-Textures and fonts use separate ID namespaces. Repeated loads with the same ID,
-path and font size reuse the resource; conflicting registrations throw.
-Resource errors include the ID and resolved path. raylib's default font is not
-accepted as a successful custom-font load or unloaded by the manager.
-`Gui::close()` clears resources before closing the window. See
-[asset sources and licenses](../assets/README.md).
+Input mapping and audio playback are not implemented yet.
