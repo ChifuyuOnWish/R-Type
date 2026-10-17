@@ -90,6 +90,56 @@ struct PlayerActions
     std::array<bool, playerActionCount> releasedActions{};
 };
 
+enum class GuiKey : std::size_t
+{
+    None,
+    Up,
+    Down,
+    Left,
+    Right,
+    Space,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+    Enter,
+    LeftControl,
+    RightControl,
+    LeftShift,
+    RightShift,
+    Count
+};
+
+inline constexpr std::size_t guiKeyCount = static_cast<std::size_t>(GuiKey::Count);
+
+struct KeyBindings
+{
+    std::array<GuiKey, playerActionCount> keys{GuiKey::Up, GuiKey::Down, GuiKey::Left,
+                                               GuiKey::Right, GuiKey::Space};
+};
+
 struct SoundEvent
 {
     std::string soundId;
