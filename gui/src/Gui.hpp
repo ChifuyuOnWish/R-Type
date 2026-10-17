@@ -2,6 +2,7 @@
 
 #include "IGui.hpp"
 #include "ResourceManager.hpp"
+#include "ScrollingBackground.hpp"
 #include "Window.hpp"
 
 namespace rtype::gui {
@@ -27,6 +28,7 @@ public:
 private:
     Window _window;
     ResourceManager _resources;
+    ScrollingBackground _background;
 };
 
 } // namespace rtype::gui

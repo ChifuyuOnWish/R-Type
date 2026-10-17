@@ -36,4 +36,8 @@ gameplay rules.
 provided scene, while `ResourceManager` owns textures and fonts and releases
 them before the window closes.
 
+The client can enable and configure a scrolling starfield. The GUI updates its
+visual offset using elapsed time and repeats the background across the current
+window size without scaling entity coordinates.
+
 Input mapping and audio playback are not implemented yet.

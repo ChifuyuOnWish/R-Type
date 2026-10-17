@@ -30,6 +30,8 @@ rtype::gui::RenderScene makeDemoScene(bool showEnemy)
 {
     rtype::gui::RenderScene scene;
     scene.clearColor = {20, 24, 32, 255};
+    scene.background.enabled = true;
+    scene.background.scrollSpeed = 40.0F;
 
     for (std::uint32_t index = 0; index < 4; ++index) {
         const float y = 100.0F + static_cast<float>(index) * 130.0F;

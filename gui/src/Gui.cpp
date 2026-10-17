@@ -17,6 +17,7 @@ Gui::~Gui()
 void Gui::open(const GuiConfig& config)
 {
     _window.open(config);
+    _background = {};
 }
 
 void Gui::close() noexcept
@@ -43,7 +44,10 @@ void Gui::render(const RenderScene& scene)
 {
     if (!_window.isOpen())
         throw std::logic_error("Cannot render before opening the GUI");
-    Renderer(_resources).render(scene);
+    _background.update(scene.background, _window.getFrameTime());
+    const auto stars = scene.background.enabled ? _background.getStars(_window.getSize())
+                                                : std::vector<GuiPosition>{};
+    Renderer(_resources).render(scene, stars);
 }
 
 void Gui::playAudio(std::span<const SoundEvent> events)

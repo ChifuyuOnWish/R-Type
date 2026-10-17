@@ -95,12 +95,20 @@ struct SoundEvent
     std::string soundId;
 };
 
+struct BackgroundConfig
+{
+    bool enabled = false;
+    float scrollSpeed = 40.0F; // Pixels per second, scrolling left.
+    GuiColor starColor{180, 190, 210, 255};
+};
+
 struct RenderScene
 {
     GuiColor clearColor{0, 0, 0, 255};
     std::vector<SpriteDraw> sprites;
     std::vector<TextDraw> sceneTexts;
     std::vector<TextDraw> overlayTexts;
+    BackgroundConfig background;
 };
 
 } // namespace rtype::gui
