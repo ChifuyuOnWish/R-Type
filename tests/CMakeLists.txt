@@ -103,3 +103,45 @@ add_executable(rtype_engine_events_test engine_events_test.cpp)
 target_link_libraries(rtype_engine_events_test PRIVATE rtype::engine)
 rtype_set_warnings(rtype_engine_events_test)
 add_test(NAME engine_events COMMAND rtype_engine_events_test)
+
+add_executable(rtype_gui_settings_test GuiSettingsTest.cpp)
+target_link_libraries(rtype_gui_settings_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_gui_settings_test)
+add_test(NAME gui_settings COMMAND rtype_gui_settings_test)
+
+add_executable(rtype_gui_settings_integration_test
+    GuiSettingsIntegrationTest.cpp
+    ../gui/src/Gui.cpp
+    ../gui/src/Window.cpp
+    ../gui/src/InputReader.cpp
+    ../gui/src/InputMapper.cpp
+    ../gui/src/SettingsMenu.cpp
+    ../gui/src/SettingsStore.cpp
+    ../gui/src/StatusPresenter.cpp
+    ../gui/src/ScrollingBackground.cpp
+)
+target_include_directories(rtype_gui_settings_integration_test PRIVATE ../gui/include ../gui/src)
+target_include_directories(rtype_gui_settings_integration_test SYSTEM PRIVATE
+    $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_compile_features(rtype_gui_settings_integration_test PRIVATE cxx_std_20)
+rtype_set_warnings(rtype_gui_settings_integration_test)
+add_test(NAME gui_settings_integration COMMAND rtype_gui_settings_integration_test)
+
+add_executable(rtype_renderer_tint_test RendererTintTest.cpp ../gui/src/Renderer.cpp)
+target_include_directories(rtype_renderer_tint_test PRIVATE ../gui/include ../gui/src)
+target_include_directories(rtype_renderer_tint_test SYSTEM PRIVATE
+    $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_compile_features(rtype_renderer_tint_test PRIVATE cxx_std_20)
+rtype_set_warnings(rtype_renderer_tint_test)
+add_test(NAME renderer_tint COMMAND rtype_renderer_tint_test)
+
+
+
+add_executable(rtype_client_world_test ClientWorldTest.cpp)
+target_include_directories(rtype_client_world_test PRIVATE ../client/src)
+target_link_libraries(rtype_client_world_test PRIVATE rtype::protocol)
+rtype_set_warnings(rtype_client_world_test)
+add_test(NAME client_world COMMAND rtype_client_world_test)
+

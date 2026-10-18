@@ -48,6 +48,7 @@ struct GuiConfig
     int targetFps = 60;
     bool resizable = true;
     bool audioEnabled = true;
+    std::string settingsPath;
 };
 
 struct SpriteDraw
@@ -147,6 +148,36 @@ struct AudioSettings
     bool muted = false;
 };
 
+enum class TintMode
+{
+    Off,
+    Red,
+    Green,
+    Blue,
+    Amber
+};
+
+struct VisualSettings
+{
+    bool backgroundMotion = true;
+    float textScale = 1.0F;
+    TintMode tint = TintMode::Off;
+    float tintOpacity = 0.15F;
+};
+
+struct GuiPreferences
+{
+    KeyBindings keyboard;
+    AudioSettings audio{0.5F, false};
+    VisualSettings visuals;
+};
+
+struct RectangleDraw
+{
+    GuiRectangle bounds;
+    GuiColor color;
+};
+
 struct SoundEvent
 {
     std::string soundId;
@@ -182,6 +213,8 @@ struct RenderScene
     std::vector<TextDraw> overlayTexts;
     BackgroundConfig background;
     StatusFeedback feedback;
+    GuiColor sceneTint{0, 0, 0, 0};
+    std::vector<RectangleDraw> rectangles;
 };
 
 } // namespace rtype::gui

@@ -123,11 +123,14 @@ std::size_t columnsFor(float width, float fontSize)
 
 } // namespace
 
-RenderScene StatusPresenter::makeScene(const StatusFeedback& feedback, GuiVector2 viewport)
+RenderScene StatusPresenter::makeScene(const StatusFeedback& feedback, GuiVector2 viewport,
+                                       float textScale)
 {
     if (!std::isfinite(viewport.x) || !std::isfinite(viewport.y) || viewport.x < 0.0F ||
         viewport.y < 0.0F)
         throw std::invalid_argument("Status viewport must be finite and non-negative");
+    if (!std::isfinite(textScale) || textScale < 1.0F || textScale > 1.5F)
+        throw std::invalid_argument("UI text scale must be between 1 and 1.5");
     RenderScene scene;
     scene.clearColor = {16, 20, 28, 255};
     if (feedback.status == GuiStatus::None || viewport.x == 0.0F || viewport.y == 0.0F)
@@ -137,10 +140,10 @@ RenderScene StatusPresenter::makeScene(const StatusFeedback& feedback, GuiVector
     const float margin = std::min(24.0F, std::min(viewport.x, viewport.y) / 8.0F);
     const float width = std::min(900.0F, viewport.x - 2.0F * margin);
     const float x = (viewport.x - width) / 2.0F;
-    const float titleSize = std::clamp(viewport.x / 20.0F, 16.0F, 32.0F);
-    const float bodySize = std::clamp(viewport.x / 28.0F, 14.0F, 24.0F);
-    const float hintSize = std::clamp(viewport.x / 36.0F, 12.0F, 18.0F);
-    float y = margin;
+    const float titleSize = std::clamp(viewport.x / 20.0F, 16.0F, 32.0F) * textScale;
+    const float bodySize = std::clamp(viewport.x / 28.0F, 14.0F, 24.0F) * textScale;
+    const float hintSize = std::clamp(viewport.x / 36.0F, 12.0F, 18.0F) * textScale;
+    float y = margin + 50.0F * textScale;
     const auto titles = wrap(description.title, columnsFor(width, titleSize));
     for (const auto& title : titles) {
         if (y + titleSize > viewport.y - margin)
@@ -150,7 +153,7 @@ RenderScene StatusPresenter::makeScene(const StatusFeedback& feedback, GuiVector
     }
     y += 16.0F;
 
-    const auto hints = wrap("Escape: close window", columnsFor(width, hintSize));
+    const auto hints = wrap("F1 / Esc: settings", columnsFor(width, hintSize));
     const float hintY = viewport.y - margin - static_cast<float>(hints.size()) * (hintSize + 8.0F);
     const bool showHint = hintY >= y;
     const float bodyEnd = showHint ? hintY - 16.0F : viewport.y - margin;

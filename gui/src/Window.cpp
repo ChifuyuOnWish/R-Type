@@ -28,7 +28,8 @@ void Window::open(const GuiConfig& config)
         throw std::runtime_error("Failed to initialize the GUI window");
 
     _open = true;
-    SetExitKey(KEY_ESCAPE);
+    SetExitKey(KEY_NULL);
+    SetWindowMinSize(640, 360);
     SetTargetFPS(config.targetFps);
 }
 

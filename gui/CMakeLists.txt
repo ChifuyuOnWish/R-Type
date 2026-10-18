@@ -7,6 +7,9 @@ add_library(rtype_gui STATIC
     src/InputMapper.cpp
     src/AudioSystem.cpp
     src/StatusPresenter.cpp
+    src/InputReader.cpp
+    src/SettingsMenu.cpp
+    src/SettingsStore.cpp
 )
 add_library(rtype::gui ALIAS rtype_gui)
 
@@ -18,3 +21,4 @@ target_compile_features(rtype_gui PUBLIC cxx_std_20)
 target_link_libraries(rtype_gui PRIVATE raylib)
 
 rtype_set_warnings(rtype_gui)
+

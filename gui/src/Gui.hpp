@@ -3,8 +3,10 @@
 #include "AudioSystem.hpp"
 #include "IGui.hpp"
 #include "InputMapper.hpp"
+#include "InputReader.hpp"
 #include "ResourceManager.hpp"
 #include "ScrollingBackground.hpp"
+#include "SettingsMenu.hpp"
 #include "Window.hpp"
 
 namespace rtype::gui {
@@ -21,6 +23,8 @@ public:
     [[nodiscard]] bool shouldClose() const override;
     void setKeyBindings(const KeyBindings& bindings) override;
     [[nodiscard]] PlayerActions pollActions() override;
+    [[nodiscard]] bool isSettingsOpen() const noexcept override;
+    [[nodiscard]] const GuiPreferences& getPreferences() const noexcept override;
     void render(const RenderScene& scene) override;
     void setAudioSettings(const AudioSettings& settings) override;
     [[nodiscard]] bool isAudioAvailable() const noexcept override;
@@ -34,11 +38,21 @@ public:
     [[nodiscard]] const ResourceManager& resources() const noexcept;
 
 private:
+    void applyPreferences(const GuiPreferences& preferences);
     Window _window;
     ResourceManager _resources;
     AudioSystem _audio;
     ScrollingBackground _background;
     InputMapper _input;
+    InputReader _reader;
+    SettingsMenu _menu;
+    GuiPreferences _preferences;
+    std::filesystem::path _settingsPath;
+    std::string _settingsNotice;
+    bool _keyOverride = false;
+    bool _audioOverride = false;
+    bool _quitRequested = false;
+    bool _waitForNeutral = true;
 };
 
 } // namespace rtype::gui

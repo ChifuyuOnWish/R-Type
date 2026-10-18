@@ -108,3 +108,10 @@ without raylib key codes. See [controls](controls.md).
 The client supplies sound events through `IGui`. `AudioSystem` owns the audio
 device, sound resources and concurrent playback voices. Audio failures do not
 prevent rendering. See [audio](audio.md) for lifecycle and configuration.
+
+The GUI owns its Settings menu and local preferences for keyboard bindings,
+audio, text size and presentation. It suppresses gameplay actions while the
+menu is open without stopping the client loop. An optional transparent
+rectangle tints the game scene before UI overlays are drawn. See
+[Settings](settings.md) for behavior and persistence.
+

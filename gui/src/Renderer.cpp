@@ -115,6 +115,12 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
     const auto sceneTexts = prepareTexts(scene.sceneTexts);
     const auto overlays = prepareTexts(scene.overlayTexts);
 
+    for (const auto& draw : scene.rectangles) {
+        const auto& bounds = draw.bounds;
+        if (!finite({bounds.pos.x, bounds.pos.y, bounds.width, bounds.height}) ||
+            bounds.width < 0 || bounds.height < 0)
+            throw std::invalid_argument("Invalid UI rectangle");
+    }
     BeginDrawing();
     ClearBackground(color(scene.clearColor));
     if (scene.background.enabled) {
@@ -128,6 +134,12 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
                        value.rotation, color(value.tint));
     }
     drawTexts(sceneTexts);
+    if (scene.sceneTint.alpha > 0)
+        DrawRectangleRec(
+            {0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())},
+            color(scene.sceneTint));
+    for (const auto& draw : scene.rectangles)
+        DrawRectangleRec(rectangle(draw.bounds), color(draw.color));
     drawTexts(overlays);
     EndDrawing();
 }

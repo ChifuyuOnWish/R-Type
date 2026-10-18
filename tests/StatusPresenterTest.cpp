@@ -61,7 +61,7 @@ void checkStatuses()
             const auto text = combinedText(scene);
             require(text.find(titles[index]) != std::string::npos,
                     "Status must be identified by an explicit title");
-            require(text.find("Escape: close window") != std::string::npos,
+            require(text.find("F1 / Esc: settings") != std::string::npos,
                     "Status must provide the window closure hint");
             require(scene.sprites.empty() && scene.sceneTexts.empty() && !scene.background.enabled,
                     "Status pages must not contain gameplay entities, labels or animation");

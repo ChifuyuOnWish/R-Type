@@ -6,3 +6,5 @@
 - [Technical & comparative study](comparative-study.md): why we chose each technology
 - [Accessibility](accessibility.md): what we do for players with disabilities
 - [How-tos](how-to/README.md): step-by-step guides for common tasks
+- [Settings](settings.md): interactive keyboard, audio, text and presentation settings
+
