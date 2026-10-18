@@ -53,6 +53,8 @@ enum class EntityType : std::uint8_t
     Player,
     Enemy,
     Projectile,
+    Effect,
+    Decor,
 };
 
 struct NetType
