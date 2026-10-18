@@ -274,6 +274,8 @@ int main(int argc, char** argv)
         std::size_t messagesReceived = 0;
         std::size_t snapshotsReceived = 0;
         std::uint32_t clientTick = 0;
+        std::uint32_t lastServerTick = 0;
+        bool hasServerTick = false;
         RemoteWorld remoteWorld;
 
         if (networkOptions.enabled) {
@@ -324,21 +326,25 @@ int main(int argc, char** argv)
             network.registerHandler(
                 proto::MessageType::Snapshot, [&](std::span<const std::uint8_t> payload) {
                     ++messagesReceived;
-                    ++snapshotsReceived;
                     proto::ByteReader reader(payload.data(), payload.size());
                     const auto snap = proto::SnapshotMessage::deserialize(reader);
                     if (!snap)
                         return;
-                    RemoteWorld next;
+                    if (hasServerTick && snap->serverTick < lastServerTick)
+                        return;
+                    hasServerTick = true;
+                    lastServerTick = snap->serverTick;
+                    ++snapshotsReceived;
                     for (const auto& entry : snap->entries) {
+                        auto it = remoteWorld.find(entry.entityId);
                         WorldEntity entity;
                         entity.entityId = entry.entityId;
-                        entity.entityType = 0;
+                        if (it != remoteWorld.end())
+                            entity.entityType = it->second.entityType;
                         entity.x = entry.x.toFloat();
                         entity.y = entry.y.toFloat();
-                        next.emplace(entry.entityId, entity);
+                        remoteWorld[entry.entityId] = entity;
                     }
-                    remoteWorld.swap(next);
                 });
             for (const auto type : {proto::MessageType::PlayerJoined,
                                     proto::MessageType::PlayerLeft, proto::MessageType::GameEvent})
