@@ -28,6 +28,11 @@ struct Health
     int max = 1;
 };
 
+struct Hit
+{
+    int amount = 0;
+};
+
 struct Damage
 {
     int value = 0;
