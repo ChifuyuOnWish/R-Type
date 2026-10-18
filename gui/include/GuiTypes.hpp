@@ -214,6 +214,7 @@ struct RenderScene
     StatusFeedback feedback;
     GuiColor sceneTint{0, 0, 0, 0};
     std::vector<RectangleDraw> rectangles;
+    GuiVector2 worldSize;
 };
 
 } // namespace rtype::gui

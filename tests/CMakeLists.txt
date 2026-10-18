@@ -145,3 +145,7 @@ target_link_libraries(rtype_client_world_test PRIVATE rtype::protocol)
 rtype_set_warnings(rtype_client_world_test)
 add_test(NAME client_world COMMAND rtype_client_world_test)
 
+
+target_include_directories(rtype_gui_settings_integration_test SYSTEM PRIVATE
+    $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>
+)

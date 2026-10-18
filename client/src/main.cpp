@@ -14,12 +14,16 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace {
 
 namespace net = rtype::network;
 namespace proto = rtype::protocol;
+
+using PlayerNames = std::unordered_map<std::uint32_t, std::string>;
 
 struct NetworkOptions
 {
@@ -102,7 +106,8 @@ void configureClient(int argc, char** argv, rtype::gui::GuiConfig& config,
     }
 }
 
-void addWorldSprites(rtype::gui::RenderScene& scene, const rtype::client::ClientWorld& world)
+void addWorldSprites(rtype::gui::RenderScene& scene, const rtype::client::ClientWorld& world,
+                     const PlayerNames& playerNames)
 {
     for (const auto& [entityId, entity] : world.entities()) {
         const auto type = static_cast<std::uint16_t>(entity.type);
@@ -113,8 +118,9 @@ void addWorldSprites(rtype::gui::RenderScene& scene, const rtype::client::Client
             const float sourceY = 2.0F + static_cast<float>(index) * 17.0F;
             scene.sprites.push_back(sprite("players", {{67.0F, sourceY}, 32.0F, 15.0F},
                                            {{entity.x, entity.y}, 96.0F, 45.0F}, entityId, 10));
-            scene.sceneTexts.push_back(
-                label("P" + std::to_string(index + 1), entity.x - 20.0F, entity.y - 45.0F));
+            const auto name = playerNames.find(index + 1);
+            scene.sceneTexts.push_back(label(name != playerNames.end() ? name->second : "Player",
+                                             entity.x - 48.0F, entity.y - 45.0F));
         } else if (type == static_cast<std::uint16_t>(proto::EntityType::EnemyBasic)) {
             scene.sprites.push_back(sprite("enemy", {{5.0F, 6.0F}, 21.0F, 24.0F},
                                            {{entity.x, entity.y}, 63.0F, 72.0F}, entityId, 10));
@@ -128,13 +134,15 @@ void addWorldSprites(rtype::gui::RenderScene& scene, const rtype::client::Client
     }
 }
 
-rtype::gui::RenderScene makeScene(const rtype::client::ClientWorld& world, bool online)
+rtype::gui::RenderScene makeScene(const rtype::client::ClientWorld& world,
+                                  const PlayerNames& playerNames, bool online)
 {
     rtype::gui::RenderScene scene;
     scene.clearColor = {20, 24, 32, 255};
+    scene.worldSize = {1920.0F, 1080.0F};
     scene.background.enabled = true;
     scene.background.scrollSpeed = 40.0F;
-    addWorldSprites(scene, world);
+    addWorldSprites(scene, world, playerNames);
     scene.overlayTexts.push_back(label("R-Type", 20.0F, 20.0F));
     if (!online)
         scene.overlayTexts.push_back(
@@ -193,6 +201,8 @@ int main(int argc, char** argv)
 {
     try {
         rtype::gui::GuiConfig config;
+        config.width = 1920;
+        config.height = 1080;
         rtype::gui::AudioSettings audioSettings{0.5F, false};
         rtype::gui::StatusFeedback feedback;
         NetworkOptions networkOptions;
@@ -204,6 +214,16 @@ int main(int argc, char** argv)
         gui.open(config);
         if (config.audioEnabled && !gui.isAudioAvailable())
             std::cerr << gui.audio().getLastError() << '\n';
+        bool shotLoaded = false;
+        bool hitLoaded = false;
+        if (gui.isAudioAvailable()) {
+            shotLoaded = gui.audio().loadSound("shot", "audio/demo-shot.wav");
+            if (!shotLoaded)
+                std::cerr << gui.audio().getLastError() << '\n';
+            hitLoaded = gui.audio().loadSound("hit", "audio/demo-hit.wav");
+            if (!hitLoaded)
+                std::cerr << gui.audio().getLastError() << '\n';
+        }
         if (feedback.status == rtype::gui::GuiStatus::None) {
             try {
                 auto& resources = gui.resources();
@@ -221,12 +241,15 @@ int main(int argc, char** argv)
         rtype::client::ClientNetwork network;
         std::uint32_t clientTick = 1;
         rtype::client::ClientWorld remoteWorld;
+        PlayerNames playerNames;
+        std::vector<rtype::gui::SoundEvent> soundEvents;
 
         if (networkOptions.enabled && feedback.status == rtype::gui::GuiStatus::None) {
             feedback.status = rtype::gui::GuiStatus::Connecting;
             feedback.message = "Connecting to " + networkOptions.host + ":" +
                                std::to_string(networkOptions.port) + "...";
-            network.onConnected([&](net::PeerId id, const std::string&) {
+            network.onConnected([&](net::PeerId id, const std::string& name) {
+                playerNames[id] = name;
                 feedback.status = rtype::gui::GuiStatus::None;
                 feedback.message.clear();
                 std::cout << "Connected as client " << id << '\n';
@@ -242,6 +265,18 @@ int main(int argc, char** argv)
                 std::cout << "Disconnected: " << disconnectText(reason) << '\n';
             });
 
+            network.registerHandler(
+                proto::MessageType::PlayerJoined, [&](std::span<const std::uint8_t> payload) {
+                    proto::ByteReader reader(payload.data(), payload.size());
+                    if (const auto joined = proto::PlayerJoinedMessage::deserialize(reader))
+                        playerNames[joined->clientId] = joined->name;
+                });
+            network.registerHandler(
+                proto::MessageType::PlayerLeft, [&](std::span<const std::uint8_t> payload) {
+                    proto::ByteReader reader(payload.data(), payload.size());
+                    if (const auto left = proto::PlayerLeftMessage::deserialize(reader))
+                        playerNames.erase(left->clientId);
+                });
             network.registerHandler(
                 proto::MessageType::EntitySpawn, [&](std::span<const std::uint8_t> payload) {
                     proto::ByteReader reader(payload.data(), payload.size());
@@ -266,6 +301,35 @@ int main(int argc, char** argv)
                         return;
                     remoteWorld.applySnapshot(*snap);
                 });
+            network.registerHandler(
+                proto::MessageType::GameEvent, [&](std::span<const std::uint8_t> payload) {
+                    proto::ByteReader reader(payload.data(), payload.size());
+                    const auto event = proto::GameEventMessage::deserialize(reader);
+                    if (!event || gui.isSettingsOpen() ||
+                        feedback.status != rtype::gui::GuiStatus::None)
+                        return;
+                    const char* soundId = nullptr;
+                    switch (event->event) {
+                    case proto::GameEventType::Shoot:
+                        if (shotLoaded)
+                            soundId = "shot";
+                        break;
+                    case proto::GameEventType::Hit:
+                        if (hitLoaded)
+                            soundId = "hit";
+                        break;
+                    case proto::GameEventType::Kill:
+                        if (hitLoaded)
+                            soundId = "hit";
+                        break;
+                    case proto::GameEventType::PlayerDeath:
+                        if (hitLoaded)
+                            soundId = "hit";
+                        break;
+                    }
+                    if (soundId != nullptr)
+                        soundEvents.push_back({soundId});
+                });
             if (const auto ec = network.connect(networkOptions.host, networkOptions.port,
                                                 networkOptions.name)) {
                 feedback.status = rtype::gui::GuiStatus::Error;
@@ -274,17 +338,35 @@ int main(int argc, char** argv)
             }
         }
 
+        float fpsElapsed = 0.0F;
+        unsigned fpsFrames = 0;
+        unsigned displayedFps = 0;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
 
+            soundEvents.clear();
             network.update();
+            gui.playAudio(soundEvents);
             if (network.isConnected())
                 network.sendUnreliable(proto::MessageType::Input,
                                        encodeInput(clientTick, actions.heldActions));
 
-            auto scene = makeScene(remoteWorld, networkOptions.enabled);
+            auto scene = makeScene(remoteWorld, playerNames, networkOptions.enabled);
             scene.feedback = feedback;
+            if (displayedFps != 0) {
+                auto fpsLabel = label("FPS: " + std::to_string(displayedFps), 20.0F, 52.0F);
+                fpsLabel.fontSize = 14.0F;
+                scene.overlayTexts.push_back(std::move(fpsLabel));
+            }
             gui.render(scene);
+            fpsElapsed += gui.getFrameTime();
+            ++fpsFrames;
+            if (fpsElapsed >= 0.5F) {
+                displayedFps =
+                    static_cast<unsigned>(std::lround(static_cast<float>(fpsFrames) / fpsElapsed));
+                fpsElapsed = 0.0F;
+                fpsFrames = 0;
+            }
         }
         gui.close();
         return 0;

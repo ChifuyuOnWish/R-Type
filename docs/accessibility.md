@@ -15,9 +15,10 @@ Holding Fire is reported continuously; client/game systems own firing behavior.
 ## Audio and visual access
 
 Settings provides volume, mute and text sizes of 100%, 125% and 150%.
-Audio failures leave input and rendering operational. Gameplay sound events
-are not connected in the current client; visual equivalents must accompany
-future sound feedback.
+Audio failures leave input and rendering operational. Server game events
+trigger sound effects. No equivalent text or dedicated visual cue is currently
+provided when audio is muted or unavailable; this remains an accessibility
+limitation.
 
 Player labels P1 to P4 supplement the colors of server-controlled ships.
 Connection statuses use explicit headings and messages instead of color or

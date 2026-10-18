@@ -40,7 +40,9 @@ or a simulation of a color-vision deficiency.
 
 Text size scales menu text, connection status text and the scene/overlay text
 submitted by the client. The GUI scales the font size and character spacing;
-client-supplied positions remain unchanged. The client must choose suitable
+overlay positions remain in window pixels. When RenderScene::worldSize is set,
+sprite destinations, origins and scene text are scaled to fit that world in
+the window; overlay text and Settings keep their screen-space layout. The client must choose suitable
 HUD positions and wrapping for larger text.
 
 Disabling background motion freezes the starfield. It does not pause gameplay,
@@ -129,16 +131,18 @@ To check movement against the authoritative server, use two terminals:
 ```
 
 Only server entities are rendered. No local fixture ships, projectiles or
-scheduled enemy removals are created. World positions currently use window
-pixels; resizing does not scale the 1920 x 1080 server world.
+scheduled enemy removals are created. The client opens at 1920 x 1080. Its
+1920 x 1080 world fits the current window with uniform scaling and centered
+placement, preserving its aspect ratio.
 
 1. Open and close Settings with F1, Escape and the mouse.
 2. Rebind an action, apply, close Settings and verify movement in the connected game.
 3. Assign an already used key and check that the bindings are exchanged.
 4. Hold Fire, open the menu and verify that gameplay actions are released.
    After closing, release the key before testing Fire again.
-5. Change volume and mute, apply, restart and verify the saved values.
-   The client currently does not load or trigger gameplay sounds.
+5. While connected, fire and check server-confirmed shot sounds. Change volume
+   and mute, apply, restart and verify the saved values. Mute and --no-audio must
+   suppress sound without preventing movement or rendering.
 6. Disable background motion and check that the stars stop scrolling.
 7. Apply each tint and change its opacity. The scene changes color while
    Settings and overlay text remain readable.
@@ -151,4 +155,5 @@ Automated tests cover draft edits, binding swaps, persistence/error paths,
 menu transitions, text scaling and tint drawing order using fake native
 boundaries. These tests do not validate actual window rendering or audio
 hardware. Record manual results on supported platforms before merging.
+
 

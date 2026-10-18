@@ -1,5 +1,7 @@
 #include "Window.hpp"
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 #include <raylib.h>
 #include <stdexcept>
 
@@ -30,6 +32,14 @@ void Window::open(const GuiConfig& config)
     _open = true;
     SetExitKey(KEY_NULL);
     SetWindowMinSize(640, 360);
+    if (config.resizable) {
+        if (auto* window = glfwGetCurrentContext())
+            glfwSetWindowAspectRatio(window, 16, 9);
+        else {
+            close();
+            throw std::runtime_error("Could not access the window context to set its aspect ratio");
+        }
+    }
     SetTargetFPS(config.targetFps);
 }
 
