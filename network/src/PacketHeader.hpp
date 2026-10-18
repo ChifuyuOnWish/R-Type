@@ -7,7 +7,7 @@
 
 namespace rtype::protocol {
 
-inline constexpr std::uint16_t PacketMagic = 0x5254; // "RT"
+inline constexpr std::uint16_t PacketMagic = 0x5254;
 inline constexpr std::uint8_t ProtocolVersion = 1;
 
 enum class HeaderStatus

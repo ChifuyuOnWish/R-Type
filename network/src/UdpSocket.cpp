@@ -66,9 +66,11 @@ bool UdpSocket::isOpen() const
 
 void UdpSocket::doReceive()
 {
+    if (!_socket.is_open())
+        return;
     _socket.async_receive_from(
         asio::buffer(_buffer), _sender, [this](const std::error_code& ec, std::size_t n) {
-            if (ec == asio::error::operation_aborted)
+            if (ec == asio::error::operation_aborted || !_socket.is_open())
                 return;
             if (ec) {
                 if (ec == asio::error::connection_reset || ec == asio::error::connection_refused ||

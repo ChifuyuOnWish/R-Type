@@ -1,4 +1,3 @@
-// Unit tests for ByteWriter / ByteReader (plain asserts, no framework needed).
 #undef NDEBUG
 #include "ByteReader.hpp"
 #include "ByteWriter.hpp"
@@ -45,7 +44,7 @@ static void test_round_trip()
     w.writeI32(std::numeric_limits<std::int32_t>::min());
     w.writeI32(std::numeric_limits<std::int32_t>::max());
     w.writeString("");
-    w.writeString("h\xC3\xA9llo"); // UTF-8 "héllo"
+    w.writeString("h\xC3\xA9llo");
 
     ByteReader r(w.data().data(), w.size());
     assert(r.readU8() == 0);
@@ -88,7 +87,7 @@ static void test_string_too_long()
     assert(w.writeString(std::string(255, 'x')));
     const std::size_t before = w.size();
     assert(!w.writeString(std::string(256, 'x')));
-    assert(w.size() == before); // nothing written on failure
+    assert(w.size() == before);
 }
 
 int main()

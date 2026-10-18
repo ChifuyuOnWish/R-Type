@@ -17,7 +17,6 @@
 
 using namespace rtype::engine;
 
-// Components must be plain, copyable data.
 static_assert(std::is_trivially_copyable_v<Position>);
 static_assert(std::is_trivially_copyable_v<Velocity>);
 static_assert(std::is_trivially_copyable_v<Hitbox>);
@@ -98,7 +97,7 @@ static void test_motion_moves_entities_with_velocity()
 
     assert(reg.getComponent<Position>(moving).x == 1.F);
     assert(reg.getComponent<Position>(moving).y == -2.F);
-    assert(reg.getComponent<Position>(still).x == 5.F); // no Velocity: untouched
+    assert(reg.getComponent<Position>(still).x == 5.F);
     assert(reg.getComponent<Position>(still).y == 5.F);
 }
 
@@ -117,7 +116,7 @@ static void test_input_sets_velocity_from_keys()
     assert(reg.getComponent<Velocity>(e).dx == 100.F);
     assert(reg.getComponent<Velocity>(e).dy == -100.F);
 
-    reg.getComponent<Controllable>(e) = Controllable{}; // all keys released
+    reg.getComponent<Controllable>(e) = Controllable{};
     input.update(reg, 0.1F);
     assert(reg.getComponent<Velocity>(e).dx == 0.F);
     assert(reg.getComponent<Velocity>(e).dy == 0.F);
@@ -159,13 +158,13 @@ static void test_bounds_destroys_entities_far_outside()
     const Entity inside = reg.createEntity();
     reg.addComponent(inside, Position{50.F, 25.F});
     const Entity inMargin = reg.createEntity();
-    reg.addComponent(inMargin, Position{105.F, 25.F}); // outside but within the margin
+    reg.addComponent(inMargin, Position{105.F, 25.F});
     const Entity gone = reg.createEntity();
     reg.addComponent(gone, Position{200.F, 25.F});
 
     BoundsSystem bounds(BoundsArea{0.F, 0.F, 100.F, 50.F}, 10.F);
     bounds.update(reg, 0.1F);
-    assert(reg.isAlive(gone)); // destruction is deferred
+    assert(reg.isAlive(gone));
     reg.flushDestroyed();
 
     assert(reg.isAlive(inside));
@@ -281,7 +280,7 @@ static void test_lifetime_destroys_expired_entities()
     assert(reg.isAlive(e));
 
     lifetime.update(reg, 0.1F);
-    assert(reg.isAlive(e)); // destruction is deferred
+    assert(reg.isAlive(e));
     reg.flushDestroyed();
     assert(!reg.isAlive(e));
 }
@@ -323,11 +322,11 @@ static void test_weapon_fires_with_cooldown()
         shots++;
     });
 
-    weapon.update(reg, 0.25F); // timer is 0: fires
+    weapon.update(reg, 0.25F);
     assert(shots == 1);
-    weapon.update(reg, 0.25F); // 0.25 left: waits
+    weapon.update(reg, 0.25F);
     assert(shots == 1);
-    weapon.update(reg, 0.25F); // cooldown over: fires
+    weapon.update(reg, 0.25F);
     assert(shots == 2);
     assert(lastOrigin.x == 10.F && lastOrigin.y == 20.F);
     assert(lastType == 7);

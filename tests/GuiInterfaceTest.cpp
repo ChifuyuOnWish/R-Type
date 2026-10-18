@@ -80,7 +80,6 @@ private:
     bool _closed = true;
 };
 
-// A client-facing path depending only on the GUI contract, not raylib or ECS.
 void presentFrame(rtype::gui::IGui& gui)
 {
     using namespace rtype::gui;

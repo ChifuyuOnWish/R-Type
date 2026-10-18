@@ -48,7 +48,7 @@ public:
     }
 };
 
-constexpr double Margin = 0.001; // keeps float rounding away from step boundaries
+constexpr double Margin = 0.001;
 
 } // namespace
 
@@ -121,10 +121,10 @@ static void test_catch_up_is_capped_and_lost_time_dropped()
     CountingSystem* ptr = system.get();
     loop.addSystem(std::move(system));
 
-    time += 10.0; // 600 steps of lag
+    time += 10.0;
     assert(loop.tick() == Update::MaxCatchUpSteps);
     assert(ptr->calls == static_cast<int>(Update::MaxCatchUpSteps));
-    assert(loop.tick() == 0); // the remaining debt was dropped
+    assert(loop.tick() == 0);
 }
 
 static void test_first_tick_ignores_time_before_construction()
@@ -152,7 +152,6 @@ static void test_deferred_destruction_is_flushed_each_tick()
 
 static void test_server_runs_without_any_client_system()
 {
-    // The server only adds its own systems; the engine needs nothing else.
     Registry reg;
     double time = 0.0;
     Update loop(reg, [&] { return time; });
