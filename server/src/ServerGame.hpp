@@ -1,8 +1,8 @@
 #pragma once
 
-#include "GameLoop.hpp"
 #include "NetworkServer.hpp"
 #include "Registry.hpp"
+#include "Update.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -47,7 +47,7 @@ private:
 
     network::NetworkServer& _net;
     engine::Registry _registry;
-    engine::GameLoop _loop{_registry};
+    engine::Update _loop{_registry};
     std::map<network::PeerId, Player> _players;
     std::map<std::uint32_t, Synced> _synced;
     std::uint32_t _nextNetId = 1;
