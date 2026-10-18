@@ -61,6 +61,15 @@ target_link_libraries(rtype_network_client_test PRIVATE rtype::network)
 rtype_set_warnings(rtype_network_client_test)
 add_test(NAME network_client COMMAND rtype_network_client_test)
 set_tests_properties(network_client PROPERTIES TIMEOUT 30)
+
+# ClientNetwork wrapper dispatches callbacks and routes typed messages to handlers.
+add_executable(rtype_client_network_test client_network_test.cpp ../client/src/ClientNetwork.cpp)
+target_link_libraries(rtype_client_network_test PRIVATE rtype::protocol rtype::network)
+target_include_directories(rtype_client_network_test PRIVATE ../client/src)
+rtype_set_warnings(rtype_client_network_test)
+add_test(NAME client_network COMMAND rtype_client_network_test)
+set_tests_properties(client_network PROPERTIES TIMEOUT 30)
+
 # Engine Motion, Input and Bounds systems (issue #41 and #40)
 add_executable(rtype_engine_systems_test engine_systems_test.cpp)
 target_link_libraries(rtype_engine_systems_test PRIVATE rtype::engine)
