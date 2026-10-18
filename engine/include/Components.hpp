@@ -59,6 +59,8 @@ struct NetType
 {
     std::uint32_t entityId = 0;
     EntityType entityType = EntityType::Player;
+    float x = 0.F;
+    float y = 0.F;
 };
 
 struct Controllable
