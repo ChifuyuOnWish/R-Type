@@ -2,17 +2,21 @@
 
 > Keep it high level: subsystems and how they interact, not every class.
 
+The GUI supplies actions to client coordination, which builds scenes and sound
+events from server state. Client and server network layers exchange UDP
+messages; gameplay decisions remain in the server simulation.
+
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph Client
-        Input --> ClientNet[Networking]
-        ClientNet --> Render[Rendering]
+        GUI["GUI"] -->|actions|Coord["Client coordination"]
+        Coord -->|scenes and sound events|GUI
+        Coord <-->|messages|ClientNet["Networking"]
     end
     subgraph Server
-        ServerNet[Networking] --> Logic[Game logic]
-        Logic --> ServerNet
+        ServerNet["Networking"] <-->|inputs and state|Logic["Game logic"]
     end
-    ClientNet <-- UDP --> ServerNet
+    ClientNet <-->|UDP|ServerNet
 ```
 
 ## Subsystems
@@ -24,6 +28,10 @@ The networking layer is split between the generic UDP transport and the R-Type p
 This structure keeps the transport state machine and socket I/O off the main simulation thread. `NetworkHost` owns the UDP socket and the periodic tick timer, receives datagrams as they arrive, and dispatches them to `NetworkServer` or `NetworkClient`. In turn, those classes decide whether to accept a session, reject a handshake, queue a reliable message, or forward incoming game data to the rest of the project. See [protocol.md](protocol.md) and [network-client.md](network-client.md).
 
 `NetworkHost` also owns the two thread-safe queues used by the game thread: one for incoming `NetworkEvent`s and one for outbound `OutgoingMessage`s. The network thread drains the outgoing queue and flushes packets on a 10 ms tick, while the game thread drains events with `poll()` and sends commands with `send()` or `broadcast()`. The generic packet framing helpers are `PacketHeader`, `PacketCodec`, and the byte reader/writer pair, which handle endianness and bounds checks before the game layer sees any payload.
+
+The class diagram below shows shared transport ownership: both endpoints
+inherit from NetworkHost, while each active connection tracks reliability state.
+Queues connect the network and game threads.
 
 ```mermaid
 classDiagram
@@ -62,6 +70,10 @@ classDiagram
     NetworkClient *-- Connection
 ```
 
+The following flow separates threads: outgoing commands are drained by the
+network tick, while incoming events wait in a queue until the game loop polls.
+The game loop does not perform socket I/O directly.
+
 ```mermaid
 flowchart LR
     subgraph Game[Game thread]
@@ -81,45 +93,18 @@ One sentence on helpers: `PacketHeader` defines the 16-byte UDP header, `PacketC
 
 ### Game logic
 
+See [ECS architecture](ecs-architecture.md) for components and systems, and
+[engine and algorithms](engine-and-algorithms.md) for implementation choices.
+
 ### Rendering
 
-The presentation subsystem lives in `gui/`, behind the `IGui` interface.
-Its presentation types are defined in `GuiTypes.hpp` without exposing raylib types.
+The presentation subsystem lives in `gui/`, behind `IGui` and native-independent
+types in `GuiTypes.hpp`. Client coordination decodes server state and submits
+complete scenes and sound events. The GUI owns window management, rendering,
+resources, local input, audio and Settings without deciding gameplay results.
 
-The client owns the main loop and supplies a `RenderScene` containing sprites
-and text, with optional status feedback. The GUI renders this data without
-handling network packets or
-gameplay rules.
-
-`Gui` coordinates window management, rendering and visual resources.
-`Window` manages the window lifecycle and frame timing. `Renderer` draws the
-provided scene. `StatusPresenter` builds status pages that replace the game view.
-`ResourceManager` owns textures and fonts and releases
-them before the window closes.
-
-The client can enable and configure a scrolling starfield. The GUI updates its
-visual offset using elapsed time and repeats the background across the current
-window size. A scene may declare its world dimensions through
-`RenderScene::worldSize`; the GUI then fits sprites and scene text to the
-current window with uniform scaling and centered placement. Texture regions
-and overlay coordinates are unchanged. A zero world size keeps pixel coordinates.
-
-The GUI samples keyboard input and maps it to player actions through
-`InputMapper`. The client receives action states and can configure bindings
-without raylib key codes. See [controls](controls.md).
-
-The client supplies sound events through `IGui`. `AudioSystem` owns the audio
-device, sound resources and concurrent playback voices. Audio failures do not
-prevent rendering. See [audio](audio.md) for lifecycle and configuration.
-
-The GUI owns its Settings menu and local preferences for keyboard bindings,
-audio, text size and presentation. It suppresses gameplay actions while the
-menu is open without stopping the client loop. An optional transparent
-rectangle tints the game scene before UI overlays are drawn. See
-[Settings](settings.md) for behavior and persistence.
-
-
-The network client opens at 1920 x 1080 and declares a 1920 x 1080 world.
-Its HUD displays an average frame rate refreshed approximately twice per second,
-computed from the frame durations returned by the GUI.
-
+The client requests a 1920 x 1080 window. The native window preserves 16:9,
+and the GUI scales the logical world to fit while keeping HUD coordinates in
+window pixels. See [GUI and client presentation](gui.md) for responsibilities,
+code locations, frame order and resource lifecycle, and the
+[GUI how-to](how-to/use-gui.md) for practical integration.

@@ -56,10 +56,22 @@ The binaries `r-type_server` and `r-type_client` are produced at the repository 
 
 ## Run
 
+Start the server in one terminal:
+
 ```sh
-./r-type_server
-./r-type_client
+./r-type_server 4242
 ```
+
+Then connect a client from another terminal:
+
+```sh
+./r-type_client --connect 127.0.0.1:4242 --name Player
+```
+
+On Windows, use `.\\r-type_server.exe` and `.\\r-type_client.exe` with the same
+arguments. Without `--connect`, the client shows a background and Settings.
+Press F1 or Escape, or click Settings, to configure controls, audio and visuals.
+See [use the GUI](docs/how-to/use-gui.md) for platform commands.
 
 ## Tests
 
@@ -70,6 +82,8 @@ ctest --preset release
 ## Documentation
 
 - [Developer documentation](docs/index.md)
+- [GUI and client presentation](docs/gui.md)
+- [Add a GUI resource](docs/how-to/add-gui-resource.md)
 - [Network client](docs/network-client.md)
 - [Network protocol](docs/protocol.md)
 - [Contributing](CONTRIBUTING.md)
