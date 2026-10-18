@@ -48,19 +48,17 @@ struct Invincibility
     float remaining = 0.F;
 };
 
-struct Sprite
+enum class EntityType : std::uint8_t
 {
-    unsigned textureId = 0;
-    float scale = 1.F;
-    int layer = 0;
+    Player,
+    Enemy,
+    Projectile,
 };
 
-struct Animation
+struct NetType
 {
-    unsigned currentFrame = 0;
-    float frameDuration = 0.1F;
-    unsigned frameCount = 1;
-    bool loop = true;
+    std::uint32_t entityId = 0;
+    EntityType entityType = EntityType::Player;
 };
 
 struct Controllable
