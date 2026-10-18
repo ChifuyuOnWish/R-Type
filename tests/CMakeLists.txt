@@ -49,11 +49,11 @@ target_link_libraries(rtype_background_test PRIVATE rtype::gui)
 rtype_set_warnings(rtype_background_test)
 add_test(NAME background COMMAND rtype_background_test)
 
-# Engine GameLoop (issue #38)
-add_executable(rtype_engine_gameLoop_test engine_gameLoop_test.cpp)
-target_link_libraries(rtype_engine_gameLoop_test PRIVATE rtype::engine)
-rtype_set_warnings(rtype_engine_gameLoop_test)
-add_test(NAME game_loop COMMAND rtype_engine_gameLoop_test)
+# Engine Update (issue #38)
+add_executable(rtype_engine_update_test engine_update_test.cpp)
+target_link_libraries(rtype_engine_update_test PRIVATE rtype::engine)
+rtype_set_warnings(rtype_engine_update_test)
+add_test(NAME game_loop COMMAND rtype_engine_update_test)
 
 # NetworkClient against a NetworkServer on loopback, and failure paths (issue #13)
 add_executable(rtype_network_client_test network_client_test.cpp)
@@ -91,6 +91,12 @@ target_include_directories(rtype_audio_test SYSTEM PRIVATE
 target_compile_features(rtype_audio_test PRIVATE cxx_std_20)
 rtype_set_warnings(rtype_audio_test)
 add_test(NAME audio COMMAND rtype_audio_test)
+
+# Status layouts and message handling do not require a graphics context.
+add_executable(rtype_status_presenter_test StatusPresenterTest.cpp)
+target_link_libraries(rtype_status_presenter_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_status_presenter_test)
+add_test(NAME status_presenter COMMAND rtype_status_presenter_test)
 
 # Engine EventDispatcher (issue #39)
 add_executable(rtype_engine_events_test engine_events_test.cpp)

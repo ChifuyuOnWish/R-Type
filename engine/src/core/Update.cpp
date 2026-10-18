@@ -1,4 +1,4 @@
-#include "GameLoop.hpp"
+#include "Update.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -16,21 +16,21 @@ double steadyNow()
 
 } // namespace
 
-GameLoop::GameLoop(Registry& registry, ClockFn clock)
+Update::Update(Registry& registry, ClockFn clock)
     : _registry(registry), _clock(clock ? std::move(clock) : ClockFn(steadyNow)),
       _lastTime(_clock())
 {
 }
 
-void GameLoop::addSystem(std::unique_ptr<ISystem> system)
+void Update::addSystem(std::unique_ptr<ISystem> system)
 {
     if (!system) {
-        throw std::invalid_argument("GameLoop::addSystem: null system");
+        throw std::invalid_argument("Update::addSystem: null system");
     }
     _systems.push_back(std::move(system));
 }
 
-unsigned GameLoop::tick()
+unsigned Update::tick()
 {
     const double current = _clock();
     const double frameTime = current - _lastTime;

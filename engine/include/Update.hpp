@@ -11,13 +11,13 @@ namespace rtype::engine {
 
 using ClockFn = std::function<double()>;
 
-class GameLoop
+class Update
 {
 public:
     static constexpr double Step = 1.0 / 60.0;
     static constexpr unsigned MaxCatchUpSteps = 5;
 
-    explicit GameLoop(Registry& registry, ClockFn clock = ClockFn());
+    explicit Update(Registry& registry, ClockFn clock = ClockFn());
     void addSystem(std::unique_ptr<ISystem> system);
     unsigned tick();
 
