@@ -7,73 +7,74 @@ namespace rtype::engine {
 
 namespace {
 
-NetType makeNet(EntityType type, const SpawnParams& p)
+NetType makeNet(EntityType type, const ComponentParams& p)
 {
-    return NetType{p.netId, type, p.x, p.y};
+    return NetType{p.netId, type, p.position.x, p.position.y};
 }
 
-Entity buildPlayer(Registry& r, const SpawnParams& p)
+Entity buildPlayer(Registry& r, const ComponentParams& p)
 {
     const Entity e = r.createEntity();
-    r.addComponent(e, Position{p.x, p.y});
-    r.addComponent(e, Velocity{});
-    r.addComponent(e, Health{});
-    r.addComponent(e, Hitbox{});
+    r.addComponent(e, p.position);
+    r.addComponent(e, p.velocity);
+    r.addComponent(e, p.health);
+    r.addComponent(e, p.hitbox);
     r.addComponent(e, Controllable{});
     r.addComponent(e, PlayerOwner{p.playerId});
-    r.addComponent(e, Weapon{});
-    r.addComponent(e, Score{});
-    r.addComponent(e, Invincibility{});
+    r.addComponent(e, p.weapon);
+    r.addComponent(e, p.score);
+    r.addComponent(e, p.invincibility);
     r.addComponent(e, makeNet(EntityType::Player, p));
     return e;
 }
 
-Entity buildEnemy(Registry& r, const SpawnParams& p, EnemyPattern pattern)
+Entity buildEnemy(Registry& r, const ComponentParams& p, EnemyPattern defaultPattern)
 {
-    const Entity e = r.createEntity();
     EnemyBehavior behavior;
-    behavior.pattern = pattern;
-
-    r.addComponent(e, Position{p.x, p.y});
-    r.addComponent(e, Velocity{});
-    r.addComponent(e, Health{});
-    r.addComponent(e, Damage{});
-    r.addComponent(e, Hitbox{});
+    if (p.behavior) {
+        behavior = *p.behavior;
+    } else {
+        behavior.pattern = defaultPattern;
+    }
+    const Entity e = r.createEntity();
+    r.addComponent(e, p.position);
+    r.addComponent(e, p.velocity);
+    r.addComponent(e, p.health);
+    r.addComponent(e, p.damage);
+    r.addComponent(e, p.hitbox);
     r.addComponent(e, behavior);
-    r.addComponent(e, Weapon{});
-    r.addComponent(e, Score{});
+    r.addComponent(e, p.weapon);
+    r.addComponent(e, p.score);
     r.addComponent(e, makeNet(EntityType::Enemy, p));
     return e;
 }
 
-Entity buildMissile(Registry& r, const SpawnParams& p)
+Entity buildMissile(Registry& r, const ComponentParams& p)
 {
     const Entity e = r.createEntity();
-    r.addComponent(e, Position{p.x, p.y});
-    r.addComponent(e, Velocity{});
-    r.addComponent(e, Damage{});
-    r.addComponent(e, Hitbox{});
-    Projectile projectile;
-    projectile.owner = p.owner;
-    r.addComponent(e, projectile);
-    r.addComponent(e, Lifetime{});
+    r.addComponent(e, p.position);
+    r.addComponent(e, p.velocity);
+    r.addComponent(e, p.damage);
+    r.addComponent(e, p.hitbox);
+    r.addComponent(e, Projectile{p.owner, p.lifetime.remaining, p.pierceCount});
+    r.addComponent(e, p.lifetime);
     return e;
 }
 
-Entity buildExplosion(Registry& r, const SpawnParams& p)
+Entity buildExplosion(Registry& r, const ComponentParams& p)
 {
     const Entity e = r.createEntity();
-    r.addComponent(e, Position{p.x, p.y});
+    r.addComponent(e, p.position);
     r.addComponent(e, makeNet(EntityType::Effect, p));
-    r.addComponent(e, Lifetime{});
+    r.addComponent(e, p.lifetime);
     return e;
 }
 
-Entity buildBackground(Registry& r, const SpawnParams& p)
+Entity buildBackground(Registry& r, const ComponentParams& p)
 {
     const Entity e = r.createEntity();
-    r.addComponent(e, Position{p.x, p.y});
-    r.addComponent(e, Velocity{});
+    r.addComponent(e, p.position);
+    r.addComponent(e, p.velocity);
     r.addComponent(e, makeNet(EntityType::Decor, p));
     return e;
 }
@@ -83,13 +84,13 @@ Entity buildBackground(Registry& r, const SpawnParams& p)
 EntityFactory::EntityFactory(Registry& registry) : _registry(registry)
 {
     registerArchetype("player", buildPlayer);
-    registerArchetype("enemy_basic", [](Registry& r, const SpawnParams& p) {
+    registerArchetype("enemy_basic", [](Registry& r, const ComponentParams& p) {
         return buildEnemy(r, p, EnemyPattern::Straight);
     });
-    registerArchetype("enemy_sine", [](Registry& r, const SpawnParams& p) {
+    registerArchetype("enemy_sine", [](Registry& r, const ComponentParams& p) {
         return buildEnemy(r, p, EnemyPattern::Sine);
     });
-    registerArchetype("enemy_chase", [](Registry& r, const SpawnParams& p) {
+    registerArchetype("enemy_chase", [](Registry& r, const ComponentParams& p) {
         return buildEnemy(r, p, EnemyPattern::Chase);
     });
     registerArchetype("player_missile", buildMissile);
@@ -108,7 +109,7 @@ bool EntityFactory::has(const std::string& name) const
     return _builders.find(name) != _builders.end();
 }
 
-Entity EntityFactory::create(const std::string& name, const SpawnParams& params) const
+Entity EntityFactory::create(const std::string& name, const ComponentParams& params) const
 {
     const auto it = _builders.find(name);
     if (it == _builders.end()) {

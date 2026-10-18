@@ -5,29 +5,40 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
 namespace rtype::engine {
 
-struct SpawnParams
+struct ComponentParams
 {
-    float x = 0.F;
-    float y = 0.F;
+    Position position{};
+    Velocity velocity{};
+    Health health{};
+    Hitbox hitbox{};
+    Damage damage{};
+    Weapon weapon{};
+    std::optional<EnemyBehavior> behavior;
+    Lifetime lifetime{};
+    Invincibility invincibility{};
+    Score score{};
+
     unsigned playerId = 0;
     Entity owner{};
+    unsigned pierceCount = 0;
     std::uint32_t netId = 0;
 };
 
 class EntityFactory
 {
 public:
-    using Builder = std::function<Entity(Registry&, const SpawnParams&)>;
+    using Builder = std::function<Entity(Registry&, const ComponentParams&)>;
 
     explicit EntityFactory(Registry& registry);
     void registerArchetype(std::string name, Builder builder);
     bool has(const std::string& name) const;
-    Entity create(const std::string& name, const SpawnParams& params = {}) const;
+    Entity create(const std::string& name, const ComponentParams& params = {}) const;
 
 private:
     Registry& _registry;
