@@ -23,8 +23,15 @@ void BoundsSystem::update(Registry& registry, float)
 {
     registry.each<Position>([this, &registry](const Entity& entity, Position& position) {
         if (registry.hasComponent<Controllable>(entity)) {
-            position.x = std::clamp(position.x, _area.minX, _area.maxX);
-            position.y = std::clamp(position.y, _area.minY, _area.maxY);
+            // Positions are centres: keep the whole hitbox on screen.
+            float halfW = 0.F;
+            float halfH = 0.F;
+            if (registry.hasComponent<Hitbox>(entity)) {
+                halfW = registry.getComponent<Hitbox>(entity).width / 2.F;
+                halfH = registry.getComponent<Hitbox>(entity).height / 2.F;
+            }
+            position.x = std::clamp(position.x, _area.minX + halfW, _area.maxX - halfW);
+            position.y = std::clamp(position.y, _area.minY + halfH, _area.maxY - halfH);
             return;
         }
         if (isOutside(position, _area, _margin)) {

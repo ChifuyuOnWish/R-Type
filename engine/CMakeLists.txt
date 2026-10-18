@@ -2,6 +2,7 @@ add_library(rtype_engine STATIC
     src/ecs/Entity.cpp
     src/ecs/EntityManager.cpp
     src/ecs/Registry.cpp
+    src/ecs/EntityFactory.cpp
     src/core/Update.cpp
     src/core/EventDispatcher.cpp
     src/systems/BoundsSystem.cpp

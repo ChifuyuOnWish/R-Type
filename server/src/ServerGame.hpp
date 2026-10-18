@@ -1,5 +1,9 @@
 #pragma once
 
+#include "EntityFactory.hpp"
+#include "EventDispatcher.hpp"
+#include "Events.hpp"
+#include "Messages.hpp"
 #include "NetworkServer.hpp"
 #include "Registry.hpp"
 #include "Update.hpp"
@@ -8,6 +12,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace rtype::server {
 
@@ -23,6 +28,7 @@ private:
         std::string name;
         engine::Entity ship;
         std::uint32_t lastInputTick = 0;
+        bool hasInput = false;
     };
     struct Synced
     {
@@ -32,24 +38,36 @@ private:
         float y;
     };
 
+    void step();
     void handleNetworkEvents();
     void onConnected(const network::Connected& ev);
     void onDisconnected(const network::Disconnected& ev);
     void onMessage(const network::MessageReceived& ev);
     engine::Entity spawnPlayerShip(network::PeerId id);
+    void spawnProjectile(engine::Registry& registry, engine::Entity shooter, engine::Position from,
+                         unsigned type);
+
+    void onDamage(const engine::DamageEvent& ev);
+    void onDied(const engine::EntityDiedEvent& ev);
+    std::uint32_t wireId(engine::Entity entity) const;
+    bool isShip(engine::Entity entity) const;
 
     template <typename M>
     void broadcast(const M& msg, bool reliable, network::PeerId except = network::NoPeer);
     template <typename M> void sendTo(network::PeerId peer, const M& msg, bool reliable);
 
     void syncEntities();
+    void sendGameEvents();
     void sendSnapshot();
 
     network::NetworkServer& _net;
     engine::Registry _registry;
+    engine::EntityFactory _factory{_registry};
+    engine::EventDispatcher _dispatcher;
     engine::Update _loop{_registry};
     std::map<network::PeerId, Player> _players;
     std::map<std::uint32_t, Synced> _synced;
+    std::vector<protocol::GameEventMessage> _gameEvents;
     std::uint32_t _nextNetId = 1;
     std::uint32_t _serverTick = 0;
     unsigned _stepsSinceSnapshot = 0;

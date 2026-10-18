@@ -7,11 +7,6 @@ namespace rtype::engine {
 
 namespace {
 
-NetType makeNet(EntityType type, const ComponentParams& p)
-{
-    return NetType{p.netId, type, p.position.x, p.position.y};
-}
-
 Entity buildPlayer(Registry& r, const ComponentParams& p)
 {
     const Entity e = r.createEntity();
@@ -24,7 +19,8 @@ Entity buildPlayer(Registry& r, const ComponentParams& p)
     r.addComponent(e, p.weapon);
     r.addComponent(e, p.score);
     r.addComponent(e, p.invincibility);
-    r.addComponent(e, makeNet(EntityType::Player, p));
+    r.addComponent(e, p.damage);
+    r.addComponent(e, Team{p.team});
     return e;
 }
 
@@ -45,7 +41,7 @@ Entity buildEnemy(Registry& r, const ComponentParams& p, EnemyPattern defaultPat
     r.addComponent(e, behavior);
     r.addComponent(e, p.weapon);
     r.addComponent(e, p.score);
-    r.addComponent(e, makeNet(EntityType::Enemy, p));
+    r.addComponent(e, Team{p.team});
     return e;
 }
 
@@ -58,6 +54,7 @@ Entity buildMissile(Registry& r, const ComponentParams& p)
     r.addComponent(e, p.hitbox);
     r.addComponent(e, Projectile{p.owner, p.lifetime.remaining, p.pierceCount});
     r.addComponent(e, p.lifetime);
+    r.addComponent(e, Team{p.team});
     return e;
 }
 
@@ -65,7 +62,6 @@ Entity buildExplosion(Registry& r, const ComponentParams& p)
 {
     const Entity e = r.createEntity();
     r.addComponent(e, p.position);
-    r.addComponent(e, makeNet(EntityType::Effect, p));
     r.addComponent(e, p.lifetime);
     return e;
 }
@@ -75,7 +71,6 @@ Entity buildBackground(Registry& r, const ComponentParams& p)
     const Entity e = r.createEntity();
     r.addComponent(e, p.position);
     r.addComponent(e, p.velocity);
-    r.addComponent(e, makeNet(EntityType::Decor, p));
     return e;
 }
 

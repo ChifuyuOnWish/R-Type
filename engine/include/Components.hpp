@@ -2,6 +2,8 @@
 
 #include "Entity.hpp"
 
+#include <cstdint>
+
 namespace rtype::engine {
 
 struct Position
@@ -31,6 +33,7 @@ struct Health
 struct Hit
 {
     int amount = 0;
+    Entity source{};
 };
 
 struct Damage
@@ -48,21 +51,9 @@ struct Invincibility
     float remaining = 0.F;
 };
 
-enum class EntityType : std::uint8_t
+struct Team
 {
-    Player,
-    Enemy,
-    Projectile,
-    Effect,
-    Decor,
-};
-
-struct NetType
-{
-    std::uint32_t entityId = 0;
-    EntityType entityType = EntityType::Player;
-    float x = 0.F;
-    float y = 0.F;
+    std::uint8_t id = 0;
 };
 
 struct Controllable
@@ -100,6 +91,7 @@ struct Weapon
     float timer = 0.F;
     unsigned projectileType = 0;
     float rate = 1.F;
+    bool automatic = false;
 };
 
 struct Projectile
