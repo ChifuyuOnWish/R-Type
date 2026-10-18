@@ -9,10 +9,8 @@ For each choice: the alternatives considered, the comparison, and why we picked 
    - [2.1 ECS component storage](#21-ecs-component-storage)
    - [2.2 Collision detection](#22-collision-detection)
    - [2.3 Game loop](#23-game-loop)
-   - [2.4 Thread-safe queues](#24-thread-safe-queues-network-to-game)
-   - [2.5 Random generation and spawning](#25-random-generation-and-spawning)
-   - [2.6 Communication between systems](#26-communication-between-systems)
-   - [2.7 Summary](#27-summary)
+   - [2.4 Communication between systems](#25-communication-between-systems)
+   - [2.5 Summary](#26-summary)
 3. [Decision and implementation consequences](#3-decision-and-implementation-consequences)
 4. [References](#4-references)
 
@@ -64,9 +62,9 @@ Once ECS is chosen, there is a second question: do we write the core ourselves, 
 | EnTT (sparse-set based, header-only) | Mature and heavily tested; same storage model as our choice | The team would learn the library instead of designing the engine; part of the engine architecture would be hidden behind a third-party API |
 | flecs (archetype based) | Rich features (queries, relationships, tooling) | Heavier and more complex; archetype model rejected for this project (see 2.1) |
 
-**Choice:** write our own small ECS core, using the same storage model as EnTT (sparse sets), and keep it behind a narrow interface (`Registry`, views, systems).
+**Choice:** write our own small ECS core, using the same storage model as EnTT (sparse sets), and keep it behind a narrow interface (`Registry`, `ISystem`, `Update`).
 
-**Why:** the subject asks for a game engine of our own design, and the Advanced Architecture track evaluates the quality of its abstractions and its reusability. The size of the core is small (entities, sparse sets, views, scheduler), so the cost is acceptable. Because the interface is narrow, replacing our core with a library later would not change the game code.
+**Why:** the subject asks for a game engine of our own design, and the Advanced Architecture track evaluates the quality of its abstractions and its reusability. The size of the core is small (entities, sparse sets, registry, fixed-step loop, event dispatcher, entity factory), so the cost is acceptable. Because the interface is narrow, replacing our core with a library later would not change the game code.
 
 ---
 
@@ -134,13 +132,13 @@ flowchart LR
 **Choice:** fixed timestep of 1/60 s (60 updates per second), measured with `std::chrono::steady_clock`.
 
 **Why:**
-- The subject forbids tying the game to CPU speed. With a fixed timestep, the same inputs give the same result on every machine.
+- The game must not depend on CPU speed. With a fixed timestep, the same inputs give the same result on every machine.
 - Network reasoning is easier: everything is counted in updates.
 - On the client, drawing is separate from the simulation.
 
 **How it works:** at each iteration, the real time that passed is added to a pending time. While the pending time is at least 1/60 s, the game runs one update and removes 1/60 s from it.
 
-**Limit:** after a long freeze, making up all the lost time would take even longer. So the number of updates per iteration is capped, and the remaining time is dropped. The game slows down for a moment instead of freezing.
+**Limit:** after a long freeze, making up all the lost time would take even longer. So the number of updates per iteration is capped, and the remaining time is dropped. The game slows down for a moment instead of freezing. In the code, the cap is `Update::MaxCatchUpSteps` (5 updates per iteration), and the clock can be replaced for tests.
 
 ```mermaid
 flowchart TD
@@ -155,18 +153,7 @@ flowchart TD
 
 *Text description: each iteration adds the real time that passed to the pending time. While there is at least one update of time, the game runs an update. When there is not enough time left, or the maximum is reached, the loop draws or waits, then starts again. If the maximum was reached, the extra time is dropped.*
 
-## 2.4 Random generation and spawning
-
-| Option | Note |
-|---|---|
-| `rand()` | Global, poor quality |
-| **`std::mt19937`** | Good quality, seedable |
-
-**Choice:** one `std::mt19937` per game instance, with the seed logged. Monsters spawn on the right of the screen at a random height, driven by a timer (not by frames).
-
-**Why:** the same seed gives the same game, which helps debugging. Each game instance has its own generator, so there is no shared state between games.
-
-## 2.5 Communication between systems
+## 2.4 Communication between systems
 
 Systems must react to each other (a collision leads to damage, damage to death, death to score) without knowing each other.
 
@@ -178,9 +165,9 @@ Systems must react to each other (a collision leads to damage, damage to death, 
 
 **Choice:** typed events sent to a queue, and flushed at a defined point of the tick.
 
-**Why:** it keeps systems decoupled (the subject recommends a Mediator-style approach), and the order stays easy to reason about. The same events (entity spawned, entity died) are used to build network messages, so replication does not need a second mechanism. Together with deferred destruction at the end of the tick, it also avoids destroying an entity while a system is iterating over it.
+**Why:** it keeps systems decoupled (a Mediator-style approach), and the order stays easy to reason about. The same events (entity spawned, entity died) are used to build network messages, so replication does not need a second mechanism. Together with deferred destruction at the end of the tick, it also avoids destroying an entity while a system is iterating over it.
 
-## 2.6 Summary
+## 2.5 Summary
 
 | Topic | Choice |
 |---|---|
@@ -199,9 +186,10 @@ We select an ECS with our own small core, sparse-set storage, a fixed-timestep l
 
 We accept the limits listed in section 1 (indirection, harder debugging, explicit system order) and we reduce them with the rules below.
 
-- Keep the engine independent from the game: nothing in `engine/` includes R-Type code, so it can be reused for a second game.
-- Run one registry, one scheduler and one event queue per game instance, with no shared state between games.
-- Separate server systems from client systems: Render, Audio and Animation exist only on the client, and the server builds and runs without any graphics library.
+- Keep the engine independent from the rest of the project: `engine/` contains no networking or rendering code. It currently ships the components and archetypes of this game (for example `Weapon`, `EnemyBehavior`); for a second game, these game-specific parts would be moved out while the ECS core (entities, registry, sparse sets, loop, events) stays unchanged.
+- Keep gameplay values out of the engine: the entity factory decides which components an entity has, and the caller gives their values (health, speed, hitbox...) through `ComponentParams`.
+- Run one registry, one update loop and one event dispatcher per game instance, with no shared state between games.
+- Separate server code from client code: rendering, audio and input mapping live in `gui/` and exist only on the client, and the server builds and runs without any graphics library.
 - Define the execution order of systems explicitly (input, behavior, weapons, motion, collision, damage, death, cleanup, spawn).
 - Destroy entities in one place, at the end of the tick, so no system iterates over a destroyed entity.
 - Store relations between entities as IDs with a generation counter, and reject stale IDs received from the network.
