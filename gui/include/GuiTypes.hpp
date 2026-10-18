@@ -159,6 +159,21 @@ struct BackgroundConfig
     GuiColor starColor{180, 190, 210, 255};
 };
 
+enum class GuiStatus
+{
+    None,
+    Connecting,
+    Rejected,
+    Disconnected,
+    Error
+};
+
+struct StatusFeedback
+{
+    GuiStatus status = GuiStatus::None;
+    std::string message;
+};
+
 struct RenderScene
 {
     GuiColor clearColor{0, 0, 0, 255};
@@ -166,6 +181,7 @@ struct RenderScene
     std::vector<TextDraw> sceneTexts;
     std::vector<TextDraw> overlayTexts;
     BackgroundConfig background;
+    StatusFeedback feedback;
 };
 
 } // namespace rtype::gui
