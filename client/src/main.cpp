@@ -1,6 +1,8 @@
 #include "ClientNetwork.hpp"
+#include "EntityType.hpp"
 #include "Gui.hpp"
 #include "MessageType.hpp"
+#include "Messages.hpp"
 
 #include <array>
 #include <charconv>
@@ -10,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace {
@@ -124,7 +127,41 @@ void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
     }
 }
 
-rtype::gui::RenderScene makeDemoScene(bool showEnemy)
+struct WorldEntity
+{
+    std::uint32_t entityId = 0;
+    std::uint16_t entityType = 0;
+    float x = 0.0F;
+    float y = 0.0F;
+};
+
+using RemoteWorld = std::unordered_map<std::uint32_t, WorldEntity>;
+
+void addWorldSprites(rtype::gui::RenderScene& scene, const RemoteWorld& world)
+{
+    for (const auto& [entityId, entity] : world) {
+        const auto type = static_cast<std::uint16_t>(entity.entityType);
+        if (type >= static_cast<std::uint16_t>(proto::EntityType::Player1) &&
+            type <= static_cast<std::uint16_t>(proto::EntityType::Player4)) {
+            const std::uint32_t index =
+                type - static_cast<std::uint16_t>(proto::EntityType::Player1);
+            const float sourceY = 2.0F + static_cast<float>(index) * 17.0F;
+            scene.sprites.push_back(sprite("players", {{67.0F, sourceY}, 32.0F, 15.0F},
+                                           {{entity.x, entity.y}, 96.0F, 45.0F}, entityId, 10));
+        } else if (type == static_cast<std::uint16_t>(proto::EntityType::EnemyBasic)) {
+            scene.sprites.push_back(sprite("enemy", {{5.0F, 6.0F}, 21.0F, 24.0F},
+                                           {{entity.x, entity.y}, 63.0F, 72.0F}, entityId, 10));
+        } else if (type == static_cast<std::uint16_t>(proto::EntityType::PlayerMissile)) {
+            scene.sprites.push_back(sprite("player-weapons", {{215.0F, 85.0F}, 16.0F, 12.0F},
+                                           {{entity.x, entity.y}, 48.0F, 36.0F}, entityId, 20));
+        } else if (type == static_cast<std::uint16_t>(proto::EntityType::EnemyMissile)) {
+            scene.sprites.push_back(sprite("enemy-weapons", {{136.0F, 6.0F}, 7.0F, 6.0F},
+                                           {{entity.x, entity.y}, 21.0F, 18.0F}, entityId, 20));
+        }
+    }
+}
+
+rtype::gui::RenderScene makeDemoScene(const RemoteWorld& world, bool showEnemy)
 {
     rtype::gui::RenderScene scene;
     scene.clearColor = {20, 24, 32, 255};
@@ -147,6 +184,7 @@ rtype::gui::RenderScene makeDemoScene(bool showEnemy)
         scene.sprites.push_back(sprite("enemy", {{5.0F, 6.0F}, 21.0F, 24.0F},
                                        {{850.0F, 300.0F}, 63.0F, 72.0F}, 12, 10));
 
+    addWorldSprites(scene, world);
     scene.overlayTexts.push_back(label("R-Type", 20.0F, 20.0F));
     return scene;
 }
@@ -181,16 +219,19 @@ std::string disconnectText(net::DisconnectReason reason)
     return "disconnected";
 }
 
-// TEMPORARY payload: one bit per PlayerAction (Up, Down, Left, Right, Fire).
-// TODO: replace with the Input encoder from protocol/src/Messages.hpp once the
-// server-side decoder is the reference (same bytes on both sides).
-std::vector<std::uint8_t> encodeInput(const std::array<bool, rtype::gui::playerActionCount>& held)
+std::vector<std::uint8_t> encodeInput(std::uint32_t& clientTick,
+                                      const std::array<bool, rtype::gui::playerActionCount>& held)
 {
     std::uint8_t mask = 0;
     for (std::size_t index = 0; index < held.size(); ++index)
         if (held[index])
             mask = static_cast<std::uint8_t>(mask | (1U << index));
-    return {mask};
+
+    proto::InputMessage message{clientTick++, mask};
+    proto::ByteWriter writer;
+    if (!message.serialize(writer))
+        throw std::runtime_error("failed to encode input message");
+    return writer.data();
 }
 
 } // namespace
@@ -228,59 +269,103 @@ int main(int argc, char** argv)
             }
         }
 
-        // --- network (issue #16) ---
         rtype::client::ClientNetwork network;
         std::string networkStatus = "offline";
         std::size_t messagesReceived = 0;
         std::size_t snapshotsReceived = 0;
+        std::uint32_t clientTick = 0;
+        RemoteWorld remoteWorld;
 
         if (networkOptions.enabled) {
+            feedback.status = rtype::gui::GuiStatus::Connecting;
+            feedback.message = "Connecting to " + networkOptions.host + ":" +
+                               std::to_string(networkOptions.port) + "...";
             network.onConnected([&](net::PeerId id, const std::string&) {
                 networkStatus = "connected (id " + std::to_string(id) + ")";
+                feedback.status = rtype::gui::GuiStatus::None;
+                feedback.message.clear();
                 std::cout << "Connected as client " << id << '\n';
             });
             network.onConnectionFailed([&](net::ConnectFailure reason) {
                 networkStatus = "connection failed: " + failureText(reason);
+                feedback.status = rtype::gui::GuiStatus::Rejected;
+                feedback.message = "Connection failed: " + failureText(reason);
                 std::cerr << "Connection failed: " << failureText(reason) << '\n';
             });
             network.onDisconnected([&](net::PeerId, net::DisconnectReason reason) {
                 networkStatus = disconnectText(reason);
+                feedback.status = rtype::gui::GuiStatus::Disconnected;
+                feedback.message = disconnectText(reason);
                 std::cout << "Disconnected: " << disconnectText(reason) << '\n';
             });
 
-            // Server -> client messages. For now they are only counted;
-            // the game state integration will replace these handlers.
-            for (const auto type :
-                 {proto::MessageType::PlayerJoined, proto::MessageType::PlayerLeft,
-                  proto::MessageType::EntitySpawn, proto::MessageType::EntityDestroy,
-                  proto::MessageType::GameEvent})
+            network.registerHandler(
+                proto::MessageType::EntitySpawn, [&](std::span<const std::uint8_t> payload) {
+                    ++messagesReceived;
+                    proto::ByteReader reader(payload.data(), payload.size());
+                    const auto spawn = proto::EntitySpawnMessage::deserialize(reader);
+                    if (!spawn)
+                        return;
+                    auto& entity = remoteWorld[spawn->entityId];
+                    entity.entityId = spawn->entityId;
+                    entity.entityType = spawn->entityType;
+                    entity.x = spawn->x.toFloat();
+                    entity.y = spawn->y.toFloat();
+                });
+            network.registerHandler(
+                proto::MessageType::EntityDestroy, [&](std::span<const std::uint8_t> payload) {
+                    ++messagesReceived;
+                    proto::ByteReader reader(payload.data(), payload.size());
+                    const auto destroy = proto::EntityDestroyMessage::deserialize(reader);
+                    if (!destroy)
+                        return;
+                    remoteWorld.erase(destroy->entityId);
+                });
+            network.registerHandler(
+                proto::MessageType::Snapshot, [&](std::span<const std::uint8_t> payload) {
+                    ++messagesReceived;
+                    ++snapshotsReceived;
+                    proto::ByteReader reader(payload.data(), payload.size());
+                    const auto snap = proto::SnapshotMessage::deserialize(reader);
+                    if (!snap)
+                        return;
+                    RemoteWorld next;
+                    for (const auto& entry : snap->entries) {
+                        WorldEntity entity;
+                        entity.entityId = entry.entityId;
+                        entity.entityType = 0;
+                        entity.x = entry.x.toFloat();
+                        entity.y = entry.y.toFloat();
+                        next.emplace(entry.entityId, entity);
+                    }
+                    remoteWorld.swap(next);
+                });
+            for (const auto type : {proto::MessageType::PlayerJoined,
+                                    proto::MessageType::PlayerLeft, proto::MessageType::GameEvent})
                 network.registerHandler(type,
                                         [&](std::span<const std::uint8_t>) { ++messagesReceived; });
-            network.registerHandler(proto::MessageType::Snapshot,
-                                    [&](std::span<const std::uint8_t>) {
-                                        ++messagesReceived;
-                                        ++snapshotsReceived;
-                                    });
 
             if (const auto ec = network.connect(networkOptions.host, networkOptions.port,
                                                 networkOptions.name)) {
                 networkStatus = "connect error: " + ec.message();
+                feedback.status = rtype::gui::GuiStatus::Error;
+                feedback.message = "Connect error: " + ec.message();
                 std::cerr << "connect: " << ec.message() << '\n';
             } else {
                 networkStatus = "connecting...";
             }
         }
 
-        // Temporary local rendering fixture, replaced by client game state at integration.
         float elapsed = 0.0F;
         bool enemyRemovalReported = false;
         float fireCueRemaining = 0.0F;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
 
-            network.update(); // drain network events once per frame, before game logic
+            network.update();
             if (network.isConnected())
-                network.sendUnreliable(proto::MessageType::Input, encodeInput(actions.heldActions));
+                network.sendUnreliable(proto::MessageType::Input,
+                                       encodeInput(clientTick, actions.heldActions));
 
             const bool showGame = feedback.status == rtype::gui::GuiStatus::None;
             const bool firePressed =
@@ -296,7 +381,7 @@ int main(int argc, char** argv)
                 soundEvents.push_back({"demo-hit"});
             }
             gui.playAudio(soundEvents);
-            auto scene = makeDemoScene(elapsed < 5.0F);
+            auto scene = makeDemoScene(remoteWorld, elapsed < 5.0F);
             scene.feedback = feedback;
             scene.overlayTexts.push_back(label("Arrows: move | Space: fire", 20.0F, 640.0F));
             scene.overlayTexts.push_back(
