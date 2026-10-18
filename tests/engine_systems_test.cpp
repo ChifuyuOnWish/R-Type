@@ -1,9 +1,11 @@
 #undef NDEBUG
-#include "BoundsSystem.hpp"
 #include "Components.hpp"
-#include "InputSystem.hpp"
-#include "MotionSystem.hpp"
 #include "Registry.hpp"
+#include "systems/BoundsSystem.hpp"
+#include "systems/CollisionSystem.hpp"
+#include "systems/DamageSystem.hpp"
+#include "systems/InputSystem.hpp"
+#include "systems/MotionSystem.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -17,6 +19,7 @@ static_assert(std::is_trivially_copyable_v<Velocity>);
 static_assert(std::is_trivially_copyable_v<Hitbox>);
 static_assert(std::is_trivially_copyable_v<Health>);
 static_assert(std::is_trivially_copyable_v<Damage>);
+static_assert(std::is_trivially_copyable_v<Hit>);
 static_assert(std::is_trivially_copyable_v<Lifetime>);
 static_assert(std::is_trivially_copyable_v<Invincibility>);
 static_assert(std::is_trivially_copyable_v<Sprite>);
@@ -35,6 +38,7 @@ static void test_defaults()
     assert(Hitbox{}.width == 0.F);
     assert(Health{}.current == 1 && Health{}.max == 1);
     assert(Damage{}.value == 0);
+    assert(Hit{}.amount == 0);
     assert(Lifetime{}.remaining == 0.F);
     assert(Invincibility{}.remaining == 0.F);
     assert(Sprite{}.scale == 1.F && Sprite{}.layer == 0);
@@ -169,17 +173,120 @@ static void test_bounds_destroys_entities_far_outside()
     assert(!reg.isAlive(gone));
 }
 
+static Entity makeBox(Registry& reg, float x, float y, float w, float h)
+{
+    const Entity e = reg.createEntity();
+    reg.addComponent(e, Position{x, y});
+    reg.addComponent(e, Hitbox{w, h});
+    return e;
+}
+
+static void test_overlap_gives_hit_to_the_one_with_health()
+{
+    Registry reg;
+    const Entity shot = makeBox(reg, 0.F, 0.F, 4.F, 4.F);
+    reg.addComponent(shot, Damage{2});
+    const Entity enemy = makeBox(reg, 1.F, 0.F, 10.F, 10.F);
+    reg.addComponent(enemy, Health{3, 3});
+
+    CollisionSystem collision;
+    collision.update(reg, 0.1F);
+    assert(reg.hasComponent<Hit>(enemy));
+    assert(reg.getComponent<Hit>(enemy).amount == 2);
+    assert(!reg.hasComponent<Hit>(shot));
+}
+
+static void test_separate_and_touching_boxes_do_not_collide()
+{
+    Registry reg;
+    const Entity shot = makeBox(reg, 0.F, 0.F, 10.F, 10.F);
+    reg.addComponent(shot, Damage{1});
+    const Entity far = makeBox(reg, 50.F, 0.F, 10.F, 10.F);
+    reg.addComponent(far, Health{3, 3});
+    const Entity touching = makeBox(reg, 10.F, 0.F, 10.F, 10.F);
+    reg.addComponent(touching, Health{3, 3});
+
+    CollisionSystem collision;
+    collision.update(reg, 0.1F);
+    assert(!reg.hasComponent<Hit>(far));
+    assert(!reg.hasComponent<Hit>(touching));
+}
+
+static void test_two_shots_add_up()
+{
+    Registry reg;
+    const Entity enemy = makeBox(reg, 0.F, 0.F, 10.F, 10.F);
+    reg.addComponent(enemy, Health{10, 10});
+    for (int i = 0; i < 2; i++) {
+        const Entity shot = makeBox(reg, 1.F, 0.F, 2.F, 2.F);
+        reg.addComponent(shot, Damage{3});
+    }
+
+    CollisionSystem collision;
+    collision.update(reg, 0.1F);
+    assert(reg.getComponent<Hit>(enemy).amount == 6);
+}
+
+static void test_hit_is_applied_then_removed()
+{
+    Registry reg;
+    const Entity e = reg.createEntity();
+    reg.addComponent(e, Health{5, 5});
+    reg.addComponent(e, Hit{2});
+
+    DamageSystem damage;
+    damage.update(reg, 0.1F);
+    assert(reg.getComponent<Health>(e).current == 3);
+    assert(!reg.hasComponent<Hit>(e));
+}
+
+static void test_damage_is_clamped_at_zero()
+{
+    Registry reg;
+    const Entity e = reg.createEntity();
+    reg.addComponent(e, Health{3, 3});
+    reg.addComponent(e, Hit{10});
+
+    DamageSystem damage;
+    damage.update(reg, 0.1F);
+    assert(reg.getComponent<Health>(e).current == 0);
+}
+
+static void test_collision_then_damage_pipeline()
+{
+    Registry reg;
+    const Entity shot = makeBox(reg, 0.F, 0.F, 4.F, 4.F);
+    reg.addComponent(shot, Damage{2});
+    const Entity enemy = makeBox(reg, 1.F, 0.F, 10.F, 10.F);
+    reg.addComponent(enemy, Health{3, 3});
+
+    CollisionSystem collision;
+    DamageSystem damage;
+    collision.update(reg, 0.1F);
+    damage.update(reg, 0.1F);
+    assert(reg.getComponent<Health>(enemy).current == 1);
+    assert(!reg.hasComponent<Hit>(enemy));
+}
+
 int main()
 {
     test_defaults();
     test_components_can_be_stored_in_registry();
     test_components_are_independent_per_entity();
-    std::cout << "engine components: all tests passed\n";
+
     test_motion_moves_entities_with_velocity();
     test_input_sets_velocity_from_keys();
     test_input_opposite_keys_cancel();
     test_bounds_clamps_controllable_entities();
     test_bounds_destroys_entities_far_outside();
-    std::cout << "engine systems: all tests passed\n";
+
+    test_overlap_gives_hit_to_the_one_with_health();
+    test_separate_and_touching_boxes_do_not_collide();
+    test_two_shots_add_up();
+    test_hit_is_applied_then_removed();
+    test_damage_is_clamped_at_zero();
+    test_collision_then_damage_pipeline();
+
+    std::cout << "engine: all tests passed\n";
     return 0;
 }
