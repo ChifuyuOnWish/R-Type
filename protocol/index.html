@@ -1,0 +1,2033 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://chifuyuonwish.github.io/R-Type/protocol/">
+      
+      
+        <link rel="prev" href="../network-client/">
+      
+      
+        <link rel="next" href="../settings/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>R-Type network protocol - R-Type</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#r-type-network-protocol" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="R-Type" class="md-header__button md-logo" aria-label="R-Type" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            R-Type
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              R-Type network protocol
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="R-Type" class="md-nav__button md-logo" aria-label="R-Type" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    R-Type
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    R-Type developer documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accessibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../comparative-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical &amp; comparative study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controls
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ecs-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ECS architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine-and-algorithms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical &amp; comparative study: engine architecture and algorithms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../graphics-library-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graphics, audio and input library study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GUI and client presentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../network-client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    R-Type network protocol
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    R-Type network protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Data types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-repository-layout-for-the-protocol-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Repository layout for the protocol implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-packet-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Packet header
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Packet header">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-message-framing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Message framing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-sequence-numbers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Sequence numbers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-acknowledgements-and-reliability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Acknowledgements and reliability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Messages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Messages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-client-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Client → Server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1 Client → Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#0x01-connect_request-unreliable-resent-by-the-client-see-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x01 CONNECT_REQUEST (unreliable, resent by the client, see §4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x04-disconnect-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x04 DISCONNECT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x05-ping-unreliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x05 PING (unreliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x06-pong-unreliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x06 PONG (unreliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x10-input-unreliable-every-client-tick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x10 INPUT (unreliable, every client tick)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-server-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Server → Client
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2 Server → Client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#0x02-connect_accept-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x02 CONNECT_ACCEPT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x03-connect_reject-unreliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x03 CONNECT_REJECT (unreliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x11-player_joined-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x11 PLAYER_JOINED (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x12-player_left-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x12 PLAYER_LEFT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x13-entity_spawn-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x13 ENTITY_SPAWN (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x14-entity_destroy-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x14 ENTITY_DESTROY (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x15-snapshot-unreliable-about-20-per-second" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x15 SNAPSHOT (unreliable, about 20 per second)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x16-game_event-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x16 GAME_EVENT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-connection-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Connection lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How to
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-tos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/add-dependency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add a third-party dependency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/add-gui-resource/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add a GUI resource
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/use-gui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use the GUI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Data types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-repository-layout-for-the-protocol-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Repository layout for the protocol implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-packet-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Packet header
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Packet header">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-message-framing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Message framing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-sequence-numbers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Sequence numbers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-acknowledgements-and-reliability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Acknowledgements and reliability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Messages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Messages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-client-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Client → Server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.1 Client → Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#0x01-connect_request-unreliable-resent-by-the-client-see-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x01 CONNECT_REQUEST (unreliable, resent by the client, see §4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x04-disconnect-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x04 DISCONNECT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x05-ping-unreliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x05 PING (unreliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x06-pong-unreliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x06 PONG (unreliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x10-input-unreliable-every-client-tick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x10 INPUT (unreliable, every client tick)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-server-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Server → Client
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3.2 Server → Client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#0x02-connect_accept-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x02 CONNECT_ACCEPT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x03-connect_reject-unreliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x03 CONNECT_REJECT (unreliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x11-player_joined-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x11 PLAYER_JOINED (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x12-player_left-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x12 PLAYER_LEFT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x13-entity_spawn-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x13 ENTITY_SPAWN (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x14-entity_destroy-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x14 ENTITY_DESTROY (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x15-snapshot-unreliable-about-20-per-second" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x15 SNAPSHOT (unreliable, about 20 per second)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#0x16-game_event-reliable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0x16 GAME_EVENT (reliable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-connection-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Connection lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="r-type-network-protocol">R-Type network protocol<a class="headerlink" href="#r-type-network-protocol" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Written so that someone could implement a new client from this document alone.</p>
+</blockquote>
+<p>The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.</p>
+<h2 id="1-overview">1. Overview<a class="headerlink" href="#1-overview" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Transport: UDP. One socket per side, all traffic (connection, inputs, world updates, events) goes through it. The server listens on a port given on its command line.</li>
+<li>Model: the server is authoritative. Clients send their inputs; the server simulates the game and sends back what happened.</li>
+<li>Byte order: <strong>big-endian</strong> (network byte order) for every multi-byte field. Implementations MUST encode and decode field by field; copying a C/C++ struct to or from the wire is not allowed (padding and host byte order would leak into the format).</li>
+<li>Versioning: every packet carries a <code>version</code> byte, currently <strong><code>1</code></strong>. Any change to the packet layout or to an existing message increments it. A server MUST refuse a connection whose version differs from its own and MUST drop other packets with a wrong version.</li>
+<li>Maximum datagram size: <strong>1200 bytes</strong>, header included. This stays below common internet MTUs so packets are never fragmented. Senders MUST NOT exceed it; receivers MUST drop larger datagrams.</li>
+<li>Client implementation: the repository also ships a <code>NetworkClient</code> wrapper around this protocol. It manages the connection state machine, emits <code>Connected</code> / <code>Disconnected</code> / <code>ConnectionFailed</code> events, and is validated by loopback tests against a local server.</li>
+</ul>
+<h3 id="11-data-types">1.1 Data types<a class="headerlink" href="#11-data-types" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Size</th>
+<th>Encoding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>u8</code> / <code>u16</code> / <code>u32</code></td>
+<td>1 / 2 / 4</td>
+<td>Unsigned integer, big-endian.</td>
+</tr>
+<tr>
+<td><code>i16</code> / <code>i32</code></td>
+<td>2 / 4</td>
+<td>Signed integer, two's complement, big-endian.</td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td>1</td>
+<td><code>0</code> or <code>1</code>. Any other value makes the message invalid.</td>
+</tr>
+<tr>
+<td><code>string</code></td>
+<td>1 + n</td>
+<td><code>u8</code> length <code>n</code>, then <code>n</code> bytes of UTF-8. No terminator.</td>
+</tr>
+<tr>
+<td><code>fixed</code></td>
+<td>4</td>
+<td><code>i32</code> in Q24.8: the value multiplied by 256. Used for positions (world units).</td>
+</tr>
+<tr>
+<td><code>fixed16</code></td>
+<td>2</td>
+<td><code>i16</code> in Q8.8: the value multiplied by 256. Used for velocities (world units per tick).</td>
+</tr>
+</tbody>
+</table>
+<p>Floating-point numbers are never sent.</p>
+<h3 id="12-repository-layout-for-the-protocol-implementation">1.2 Repository layout for the protocol implementation<a class="headerlink" href="#12-repository-layout-for-the-protocol-implementation" title="Permanent link">&para;</a></h3>
+<p>The current implementation in this repository is organized around the following files:</p>
+<ul>
+<li><code>network/protocol/include/Fixed.hpp</code>: fixed-point helpers for Q24.8 and Q8.8 values used in coordinates and velocities.</li>
+<li><code>network/protocol/include/MessageType.hpp</code>: enum values for the message IDs used by the protocol.</li>
+<li><code>network/protocol/src/Messages.hpp</code>: declarations for the game message payload types and validation helpers.</li>
+<li><code>network/protocol/src/Messages.cpp</code>: serialization, deserialization and validation logic for each message.</li>
+<li><code>network/protocol/CMakeLists.txt</code>: builds the protocol module in the project.</li>
+<li><code>tests/protocol_messages_test.cpp</code>: round-trip and rejection tests covering the message layout and invalid inputs.</li>
+</ul>
+<p>The generic UDP transport layer lives in <code>network/include</code> and <code>network/src</code>; the protocol module above is the R-Type message layer used by that transport. The file list above matches the current repository layout and is kept in sync with the implementation.</p>
+<h2 id="2-packet-header">2. Packet header<a class="headerlink" href="#2-packet-header" title="Permanent link">&para;</a></h2>
+<p>Every datagram starts with this 16-byte header, followed by zero or more messages until the end of the datagram.</p>
+<table>
+<thead>
+<tr>
+<th>Offset</th>
+<th>Size</th>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>2</td>
+<td><code>magic</code></td>
+<td>Always <code>0x5254</code> (ASCII "RT").</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1</td>
+<td><code>version</code></td>
+<td>Protocol version, <code>1</code>.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>1</td>
+<td><code>flags</code></td>
+<td>Reserved. MUST be <code>0</code>.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>4</td>
+<td><code>session</code></td>
+<td>Session token received in <code>CONNECT_ACCEPT</code>. <code>0</code> in <code>CONNECT_REQUEST</code>.</td>
+</tr>
+<tr>
+<td>8</td>
+<td>2</td>
+<td><code>sequence</code></td>
+<td>Sequence number of this packet, incremented by the sender for every packet, wraps from 65535 to 0.</td>
+</tr>
+<tr>
+<td>10</td>
+<td>2</td>
+<td><code>ack</code></td>
+<td>Most recent <code>sequence</code> received from the peer.</td>
+</tr>
+<tr>
+<td>12</td>
+<td>4</td>
+<td><code>ackBits</code></td>
+<td>Bit <code>n</code> set means packet <code>ack - 1 - n</code> was also received (covers the 32 packets before <code>ack</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="21-message-framing">2.1 Message framing<a class="headerlink" href="#21-message-framing" title="Permanent link">&para;</a></h3>
+<p>After the header, the datagram holds messages back to back:</p>
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>type</code></td>
+<td>Message type (§3).</td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>channel</code></td>
+<td><code>0</code> unreliable, <code>1</code> reliable. Any other value: invalid.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>reliableId</code></td>
+<td>Present <strong>only</strong> when <code>channel</code> is <code>1</code>. Identifies the message for deduplication; incremented by the sender for every new reliable message, wraps at 65535.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>length</code></td>
+<td>Payload size in bytes.</td>
+</tr>
+<tr>
+<td><code>length</code></td>
+<td>payload</td>
+<td>Layout depends on <code>type</code> (§3).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-sequence-numbers">2.2 Sequence numbers<a class="headerlink" href="#22-sequence-numbers" title="Permanent link">&para;</a></h3>
+<p>Sequence numbers and reliable IDs wrap around. <code>a</code> is more recent than <code>b</code> when <code>(int16)(a - b) &gt; 0</code>, computed on 16 bits. A plain <code>a &gt; b</code> comparison is wrong after a wrap.</p>
+<p>The implementation MUST use a wrap-safe comparison helper for 16-bit sequence values, for example:</p>
+<ul>
+<li><code>sequenceGreater(a, b)</code> returns true when <code>a</code> is newer than <code>b</code> across the <code>0..65535</code> rollover boundary.</li>
+<li><code>0</code> and <code>65535</code> are adjacent on wrap; a packet with sequence <code>0</code> is considered newer than one with sequence <code>65535</code> when compared in the correct modulo-16-bit order.</li>
+</ul>
+<p>This rule is used for packet ordering and duplicate detection, and it is covered by unit tests for the rollover boundary.</p>
+<h3 id="23-acknowledgements-and-reliability">2.3 Acknowledgements and reliability<a class="headerlink" href="#23-acknowledgements-and-reliability" title="Permanent link">&para;</a></h3>
+<ul>
+<li>There is no separate ACK message: each side acknowledges what it received through <code>ack</code> / <code>ackBits</code> in the header of its next packet. A side with nothing else to send SHOULD send a packet with no messages within 100 ms so acknowledgements keep flowing.</li>
+<li>The current implementation does not send this as a dedicated empty datagram on a fixed 100 ms timer. The client sends a lightweight packet on the next 10 ms network tick when it has nothing else to send; the server only acknowledges in the next outgoing packet (for example, a snapshot or a heartbeat after the 1 second idle period).</li>
+<li><strong>Unreliable</strong> messages are sent once. Losing one is harmless because a newer one replaces it (<code>INPUT</code>, <code>SNAPSHOT</code>, <code>PING</code>).</li>
+<li><strong>Reliable</strong> messages are kept by the sender and copied into new packets until a packet containing them is acknowledged. If one stays unacknowledged for 5 seconds, the sender considers the peer disconnected.</li>
+<li>The receiver MUST process each <code>reliableId</code> only once and drop repeats.</li>
+<li>Reliable messages are <strong>not</strong> guaranteed to arrive in order. A client receiving a <code>SNAPSHOT</code> entry or <code>ENTITY_DESTROY</code> for an entity it doesn't know yet MUST ignore it.</li>
+<li>Because <code>entityId</code>s are never reused, a client SHOULD remember recently destroyed IDs and ignore an <code>ENTITY_SPAWN</code> that arrives after the matching <code>ENTITY_DESTROY</code>.</li>
+</ul>
+<h2 id="3-messages">3. Messages<a class="headerlink" href="#3-messages" title="Permanent link">&para;</a></h2>
+<p>Types <code>0x01</code>–<code>0x0F</code> are connection messages, <code>0x10</code> and up are game messages. Unknown types make the datagram invalid (§5).</p>
+<p>Every payload MUST be exactly <code>length</code> bytes: a payload that is too short <strong>or</strong> has bytes left over is invalid.</p>
+<h3 id="31-client-server">3.1 Client → Server<a class="headerlink" href="#31-client-server" title="Permanent link">&para;</a></h3>
+<h4 id="0x01-connect_request-unreliable-resent-by-the-client-see-4"><code>0x01</code> CONNECT_REQUEST (unreliable, resent by the client, see §4)<a class="headerlink" href="#0x01-connect_request-unreliable-resent-by-the-client-see-4" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>Player name, 1 to 32 bytes.</td>
+</tr>
+</tbody>
+</table>
+<p>Sent with <code>session = 0</code>.</p>
+<h4 id="0x04-disconnect-reliable"><code>0x04</code> DISCONNECT (reliable)<a class="headerlink" href="#0x04-disconnect-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reason</code></td>
+<td><code>u8</code></td>
+<td><code>0</code> quit (also used when the server shuts down), <code>1</code> timed out, <code>2</code> kicked. Any unknown value is treated as quit by the client.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x05-ping-unreliable"><code>0x05</code> PING (unreliable)<a class="headerlink" href="#0x05-ping-unreliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>u32</code></td>
+<td>Sender's clock in milliseconds. A receiver SHOULD answer with <code>PONG</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>A receiver SHOULD answer with <code>PONG</code>. In the current implementation, the client does so for server <code>PING</code>s, but the server currently ignores <code>PING</code> and does not yet send <code>PONG</code>, so server-side round-trip timing is not implemented yet.</p>
+<h4 id="0x06-pong-unreliable"><code>0x06</code> PONG (unreliable)<a class="headerlink" href="#0x06-pong-unreliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>u32</code></td>
+<td>The <code>timestamp</code> of the <code>PING</code> being answered.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x10-input-unreliable-every-client-tick"><code>0x10</code> INPUT (unreliable, every client tick)<a class="headerlink" href="#0x10-input-unreliable-every-client-tick" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clientTick</code></td>
+<td><code>u32</code></td>
+<td>Client tick counter, increasing. The server ignores inputs older than the last one it applied.</td>
+</tr>
+<tr>
+<td><code>buttons</code></td>
+<td><code>u8</code></td>
+<td>Bit 0 up, bit 1 down, bit 2 left, bit 3 right, bit 4 shoot. Bits 5–7 MUST be <code>0</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The client sends the current state of its controls, not key presses. A lost <code>INPUT</code> is replaced by the next one.</p>
+<h3 id="32-server-client">3.2 Server → Client<a class="headerlink" href="#32-server-client" title="Permanent link">&para;</a></h3>
+<p><code>DISCONNECT</code>, <code>PING</code> and <code>PONG</code> are also sent by the server, with the same layout as in §3.1. A server <code>DISCONNECT</code> uses reason <code>0</code> for quit (also used when the server shuts down), <code>1</code> for timeout and <code>2</code> for kicked. A client treats any unknown value as quit.</p>
+<h4 id="0x02-connect_accept-reliable"><code>0x02</code> CONNECT_ACCEPT (reliable)<a class="headerlink" href="#0x02-connect_accept-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clientId</code></td>
+<td><code>u8</code></td>
+<td>Identifier of this player for the rest of the game.</td>
+</tr>
+<tr>
+<td><code>sessionToken</code></td>
+<td><code>u32</code></td>
+<td>Random, non-zero. The client MUST put it in the <code>session</code> field of every later packet.</td>
+</tr>
+<tr>
+<td><code>tickRate</code></td>
+<td><code>u8</code></td>
+<td>Server simulation rate in ticks per second.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x03-connect_reject-unreliable"><code>0x03</code> CONNECT_REJECT (unreliable)<a class="headerlink" href="#0x03-connect_reject-unreliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reason</code></td>
+<td><code>u8</code></td>
+<td><code>1</code> server full, <code>2</code> version mismatch, <code>3</code> banned.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x11-player_joined-reliable"><code>0x11</code> PLAYER_JOINED (reliable)<a class="headerlink" href="#0x11-player_joined-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clientId</code></td>
+<td><code>u8</code></td>
+<td>The player who joined.</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td>Their name.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x12-player_left-reliable"><code>0x12</code> PLAYER_LEFT (reliable)<a class="headerlink" href="#0x12-player_left-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clientId</code></td>
+<td><code>u8</code></td>
+<td>The player who left.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td><code>u8</code></td>
+<td><code>0</code> quit, <code>1</code> timed out (crash or network loss), <code>2</code> kicked.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x13-entity_spawn-reliable"><code>0x13</code> ENTITY_SPAWN (reliable)<a class="headerlink" href="#0x13-entity_spawn-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entityId</code></td>
+<td><code>u32</code></td>
+<td>Unique for the lifetime of the game.</td>
+</tr>
+<tr>
+<td><code>entityType</code></td>
+<td><code>u16</code></td>
+<td>Kind of entity (player ship, enemy type, missile…), see the game's entity list.</td>
+</tr>
+<tr>
+<td><code>x</code>, <code>y</code></td>
+<td><code>fixed</code>, <code>fixed</code></td>
+<td>Initial position.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>entityType</th>
+<th>Entity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–4</td>
+<td>Player ship, owned by the client with that clientId</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Basic enemy</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Player missile</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Enemy missile</td>
+</tr>
+</tbody>
+</table>
+<p>World: 1920 × 1080 units, (0, 0) top-left, x/y are the centre of the entity. Snapshot velocities are in units per server tick (1/60 s).</p>
+<h4 id="0x14-entity_destroy-reliable"><code>0x14</code> ENTITY_DESTROY (reliable)<a class="headerlink" href="#0x14-entity_destroy-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entityId</code></td>
+<td><code>u32</code></td>
+<td>Entity to remove.</td>
+</tr>
+<tr>
+<td><code>cause</code></td>
+<td><code>u8</code></td>
+<td><code>0</code> left the screen, <code>1</code> killed, <code>2</code> other.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="0x15-snapshot-unreliable-about-20-per-second"><code>0x15</code> SNAPSHOT (unreliable, about 20 per second)<a class="headerlink" href="#0x15-snapshot-unreliable-about-20-per-second" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>serverTick</code></td>
+<td><code>u32</code></td>
+<td>Server tick of this snapshot. A client MUST ignore a snapshot older than the last one it applied.</td>
+</tr>
+<tr>
+<td><code>count</code></td>
+<td><code>u16</code></td>
+<td>Number of entries that follow.</td>
+</tr>
+<tr>
+<td>entries</td>
+<td><code>count</code> × 16 bytes</td>
+<td>Each: <code>entityId u32</code>, <code>x fixed</code>, <code>y fixed</code>, <code>vx fixed16</code>, <code>vy fixed16</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>count</code> MUST match the payload size exactly (<code>6 + 16 × count</code> bytes). If the world doesn't fit in one datagram, the server sends several <code>SNAPSHOT</code> messages with the same <code>serverTick</code>.</p>
+<h4 id="0x16-game_event-reliable"><code>0x16</code> GAME_EVENT (reliable)<a class="headerlink" href="#0x16-game_event-reliable" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td><code>u8</code></td>
+<td><code>0</code> shoot, <code>1</code> hit, <code>2</code> kill, <code>3</code> player death.</td>
+</tr>
+<tr>
+<td><code>sourceId</code></td>
+<td><code>u32</code></td>
+<td>Entity causing the event.</td>
+</tr>
+<tr>
+<td><code>targetId</code></td>
+<td><code>u32</code></td>
+<td>Entity affected, or <code>0</code> if none.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-connection-lifecycle">4. Connection lifecycle<a class="headerlink" href="#4-connection-lifecycle" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C-&gt;&gt;S: CONNECT_REQUEST(name), session = 0
+    Note over C: resent every 500 ms, gives up after 10 tries
+    alt accepted
+        S--&gt;&gt;C: CONNECT_ACCEPT(clientId, sessionToken, tickRate)
+        S--&gt;&gt;C: ENTITY_SPAWN for every existing entity
+        S--)C: PLAYER_JOINED (to the other players)
+    else refused
+        S--&gt;&gt;C: CONNECT_REJECT(reason)
+    end
+    loop while connected
+        C-&gt;&gt;S: INPUT, every client tick
+        S--&gt;&gt;C: SNAPSHOT, about 20 per second
+        S--&gt;&gt;C: ENTITY_SPAWN / ENTITY_DESTROY / GAME_EVENT as they happen
+    end
+    C-&gt;&gt;S: DISCONNECT(quit)
+    S--)C: PLAYER_LEFT(quit) (to the other players)
+    Note over S: no packet from a client for 5 s
+    S--)C: PLAYER_LEFT(timed out) (to the other players)</code></pre>
+<ol>
+<li><strong>Connecting.</strong> The client sends <code>CONNECT_REQUEST</code> with <code>session = 0</code> and repeats it every 500 ms until it gets an answer, up to 10 times. A server receiving a repeated <code>CONNECT_REQUEST</code> from an already accepted endpoint ignores it; the reliable <code>CONNECT_ACCEPT</code> is resent on the normal reliability resend cadence until the client acknowledges it.</li>
+<li><strong>Session.</strong> After <code>CONNECT_ACCEPT</code>, every packet in both directions carries the <code>sessionToken</code>. The server identifies a client by its address, port <strong>and</strong> token; packets that don't match an existing session are dropped. This prevents someone from injecting packets for another player by faking their address.</li>
+<li><strong>Keep-alive.</strong> A side that has sent nothing for 1 second SHOULD send a <code>PING</code>. The client does this; the server currently ignores <code>PING</code> and does not yet send <code>PONG</code>, so server-side round-trip time is not measured yet.</li>
+<li><strong>Leaving.</strong> A client that quits sends <code>DISCONNECT</code> and stops after it is acknowledged or after 3 attempts. The server tells the other players with <code>PLAYER_LEFT(quit)</code>.</li>
+<li><strong>Timeout.</strong> If the server receives nothing from a client for 5 seconds (crash, network loss), it removes that client and sends <code>PLAYER_LEFT(timed out)</code> to the others. The game continues for the remaining players. A client that hears nothing from the server for 5 seconds considers itself disconnected.</li>
+</ol>
+<h2 id="5-error-handling">5. Error handling<a class="headerlink" href="#5-error-handling" title="Permanent link">&para;</a></h2>
+<p>How malformed, truncated or oversized packets are handled.</p>
+<p>The receiver checks each datagram in this order. The first failed check drops the <strong>whole datagram</strong> silently: no reply, no partial processing.</p>
+<ol>
+<li>Size below 16 bytes or above 1200 bytes.</li>
+<li><code>magic</code> is not <code>0x5254</code>, <code>flags</code> is not <code>0</code>, or <code>version</code> is not <code>1</code>. Exception: a <code>CONNECT_REQUEST</code> with a wrong version gets a <code>CONNECT_REJECT(version mismatch)</code> if the rest of it can be read.</li>
+<li>On the server: the sender is unknown and the first message is not <code>CONNECT_REQUEST</code>, or the sender is known but <code>session</code> doesn't match its token.</li>
+<li>A message header or payload runs past the end of the datagram, <code>channel</code> is not <code>0</code> or <code>1</code>, or the message type is unknown. Message types below <code>0x10</code> are ignored by the transport layer if they are not recognized; message types at or above <code>0x10</code> are forwarded to the game layer, which validates them with the deserialization helpers from <code>network/protocol</code>.</li>
+<li>A payload doesn't decode to exactly <code>length</code> bytes, or a field is out of range: <code>bool</code> not 0/1, string empty or over 32 bytes, unknown enum value, reserved bits set, <code>SNAPSHOT.count</code> not matching the payload size.</li>
+</ol>
+<p>The header decoder MUST reject these cases explicitly:</p>
+<ul>
+<li><code>TooShort</code>: data pointer is null or the datagram is shorter than the 16-byte header.</li>
+<li><code>TooLong</code>: the datagram is larger than 1200 bytes.</li>
+<li><code>BadMagic</code>: the first 2 bytes are not <code>0x5254</code>.</li>
+<li><code>BadVersion</code>: the version byte is not <code>1</code>.</li>
+<li><code>BadFlags</code>: the flags byte is not zero.</li>
+</ul>
+<p>All header validation happens before any message payload is parsed, and all invalid packets are discarded without partial processing.</p>
+<p>Implementation requirements:</p>
+<ul>
+<li>Never trust a length or count field for allocation. Every size is checked against the bytes actually received before reading or reserving memory. One fixed 1200-byte receive buffer per socket is enough.</li>
+<li>A malformed packet MUST NOT crash the program, throw an uncaught exception, or make memory grow.</li>
+<li>The server SHOULD enforce a per-address packet rate limit, a pending-connection limit, and a disconnect path for clients that keep exceeding the limits. This is planned and tracked under issue #18.</li>
+<li>Duplicate and out-of-date packets are normal on UDP and are not errors: they are handled by §2.2 and §2.3.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
