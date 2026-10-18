@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <deque>
 #include <functional>
 #include <typeindex>
 #include <unordered_map>
@@ -33,6 +34,15 @@ private:
     std::deque<Pending> _queue;
     SubscriptionId _nextId = 1;
 };
+
+template <typename E>
+SubscriptionId EventDispatcher::subscribe(std::function<void(const E&)> callback)
+{
+    const SubscriptionId id = _nextId++;
+    _listeners[std::type_index(typeid(E))].push_back(
+        Listener{id, [callback](const void* event) { callback(*static_cast<const E*>(event)); }});
+    return id;
+}
 
 template <typename E> void EventDispatcher::deliver(const E& event)
 {
