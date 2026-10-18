@@ -1,13 +1,29 @@
+#include "ClientNetwork.hpp"
 #include "Gui.hpp"
+#include "MessageType.hpp"
 
+#include <array>
 #include <charconv>
+#include <cstdint>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
+
+namespace net = rtype::network;
+namespace proto = rtype::protocol;
+
+struct NetworkOptions
+{
+    bool enabled = false;
+    std::string host;
+    std::uint16_t port = 0;
+    std::string name = "Player";
+};
 
 rtype::gui::SpriteDraw sprite(const std::string& texture, rtype::gui::GuiRectangle source,
                               rtype::gui::GuiRectangle destination, std::uint32_t id, int layer)
@@ -43,8 +59,25 @@ std::string actionNames(const std::array<bool, rtype::gui::playerActionCount>& a
     return result.empty() ? "none" : result;
 }
 
+// "host:port" -> options.host / options.port
+void parseEndpoint(std::string_view value, NetworkOptions& options)
+{
+    const auto colon = value.rfind(':');
+    if (colon == std::string_view::npos || colon == 0 || colon + 1 >= value.size())
+        throw std::invalid_argument("--connect expects host:port");
+    const auto portText = value.substr(colon + 1);
+    unsigned port = 0;
+    const auto result = std::from_chars(portText.data(), portText.data() + portText.size(), port);
+    if (result.ec != std::errc{} || result.ptr != portText.data() + portText.size() || port == 0 ||
+        port > 65535)
+        throw std::invalid_argument("--connect: invalid port");
+    options.host = std::string(value.substr(0, colon));
+    options.port = static_cast<std::uint16_t>(port);
+    options.enabled = true;
+}
+
 void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
-                   rtype::gui::AudioSettings& settings)
+                   rtype::gui::AudioSettings& settings, NetworkOptions& network)
 {
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument(argv[index]);
@@ -58,9 +91,13 @@ void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
                 std::from_chars(value.data(), value.data() + value.size(), settings.volume);
             if (result.ec != std::errc{} || result.ptr != value.data() + value.size())
                 throw std::invalid_argument("Volume must be a number between 0 and 1");
+        } else if (argument == "--connect" && index + 1 < argc) {
+            parseEndpoint(argv[++index], network);
+        } else if (argument == "--name" && index + 1 < argc) {
+            network.name = argv[++index];
         } else {
-            throw std::invalid_argument(
-                "Usage: r-type_client [--no-audio] [--mute] [--volume 0..1]");
+            throw std::invalid_argument("Usage: r-type_client [--no-audio] [--mute] [--volume "
+                                        "0..1] [--connect host:port] [--name NAME]");
         }
     }
 }
@@ -92,6 +129,48 @@ rtype::gui::RenderScene makeDemoScene(bool showEnemy)
     return scene;
 }
 
+std::string failureText(net::ConnectFailure reason)
+{
+    switch (reason) {
+    case net::ConnectFailure::Full:
+        return "server full";
+    case net::ConnectFailure::BadVersion:
+        return "bad protocol version";
+    case net::ConnectFailure::Banned:
+        return "banned";
+    case net::ConnectFailure::Timeout:
+        return "timeout";
+    }
+    return "unknown";
+}
+
+std::string disconnectText(net::DisconnectReason reason)
+{
+    switch (reason) {
+    case net::DisconnectReason::Quit:
+        return "disconnected";
+    case net::DisconnectReason::Timeout:
+        return "connection lost (timeout)";
+    case net::DisconnectReason::Kicked:
+        return "kicked";
+    case net::DisconnectReason::ServerShutdown:
+        return "server shut down";
+    }
+    return "disconnected";
+}
+
+// TEMPORARY payload: one bit per PlayerAction (Up, Down, Left, Right, Fire).
+// TODO: replace with the Input encoder from protocol/src/Messages.hpp once the
+// server-side decoder is the reference (same bytes on both sides).
+std::vector<std::uint8_t> encodeInput(const std::array<bool, rtype::gui::playerActionCount>& held)
+{
+    std::uint8_t mask = 0;
+    for (std::size_t index = 0; index < held.size(); ++index)
+        if (held[index])
+            mask = static_cast<std::uint8_t>(mask | (1U << index));
+    return {mask};
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -99,7 +178,8 @@ int main(int argc, char** argv)
     try {
         rtype::gui::GuiConfig config;
         rtype::gui::AudioSettings audioSettings{0.5F, false};
-        configureDemo(argc, argv, config, audioSettings);
+        NetworkOptions networkOptions;
+        configureDemo(argc, argv, config, audioSettings, networkOptions);
         rtype::gui::Gui gui;
         gui.setAudioSettings(audioSettings);
         gui.open(config);
@@ -117,12 +197,60 @@ int main(int argc, char** argv)
         resources.loadTexture("enemy", "enemy/red-fighter.gif");
         resources.loadTexture("enemy-weapons", "projectiles/red-beam-and-effects.gif");
 
+        // --- network (issue #16) ---
+        rtype::client::ClientNetwork network;
+        std::string networkStatus = "offline";
+        std::size_t messagesReceived = 0;
+        std::size_t snapshotsReceived = 0;
+
+        if (networkOptions.enabled) {
+            network.onConnected([&](net::PeerId id, const std::string&) {
+                networkStatus = "connected (id " + std::to_string(id) + ")";
+                std::cout << "Connected as client " << id << '\n';
+            });
+            network.onConnectionFailed([&](net::ConnectFailure reason) {
+                networkStatus = "connection failed: " + failureText(reason);
+                std::cerr << "Connection failed: " << failureText(reason) << '\n';
+            });
+            network.onDisconnected([&](net::PeerId, net::DisconnectReason reason) {
+                networkStatus = disconnectText(reason);
+                std::cout << "Disconnected: " << disconnectText(reason) << '\n';
+            });
+
+            // Server -> client messages. For now they are only counted;
+            // the game state integration will replace these handlers.
+            for (const auto type :
+                 {proto::MessageType::PlayerJoined, proto::MessageType::PlayerLeft,
+                  proto::MessageType::EntitySpawn, proto::MessageType::EntityDestroy,
+                  proto::MessageType::GameEvent})
+                network.registerHandler(type,
+                                        [&](std::span<const std::uint8_t>) { ++messagesReceived; });
+            network.registerHandler(proto::MessageType::Snapshot,
+                                    [&](std::span<const std::uint8_t>) {
+                                        ++messagesReceived;
+                                        ++snapshotsReceived;
+                                    });
+
+            if (const auto ec = network.connect(networkOptions.host, networkOptions.port,
+                                                networkOptions.name)) {
+                networkStatus = "connect error: " + ec.message();
+                std::cerr << "connect: " << ec.message() << '\n';
+            } else {
+                networkStatus = "connecting...";
+            }
+        }
+
         // Temporary local rendering fixture, replaced by client game state at integration.
         float elapsed = 0.0F;
         bool enemyRemovalReported = false;
         float fireCueRemaining = 0.0F;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
+
+            network.update(); // drain network events once per frame, before game logic
+            if (network.isConnected())
+                network.sendUnreliable(proto::MessageType::Input, encodeInput(actions.heldActions));
+
             const bool firePressed =
                 actions.pressedActions[static_cast<std::size_t>(rtype::gui::PlayerAction::Fire)];
             std::vector<rtype::gui::SoundEvent> soundEvents;
@@ -149,6 +277,14 @@ int main(int argc, char** argv)
                                             : audioSettings.muted   ? "muted"
                                                                     : "enabled";
             scene.overlayTexts.push_back(label("Audio: " + audioStatus, 20.0F, 50.0F));
+            if (networkOptions.enabled) {
+                scene.overlayTexts.push_back(label("Network: " + networkStatus, 20.0F, 80.0F));
+                scene.overlayTexts.push_back(
+                    label("Msgs: " + std::to_string(messagesReceived) +
+                              " | Snapshots: " + std::to_string(snapshotsReceived) +
+                              " | Dropped: " + std::to_string(network.droppedPackets()),
+                          20.0F, 110.0F));
+            }
             if (fireCueRemaining > 0.0F)
                 scene.overlayTexts.push_back(label("Fire input", 350.0F, 80.0F));
             if (enemyRemovalReported)
