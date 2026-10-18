@@ -6,6 +6,8 @@ add_library(rtype_engine STATIC
     src/systems/BoundsSystem.cpp
     src/systems/InputSystem.cpp
     src/systems/MotionSystem.cpp
+    src/systems/CollisionSystem.cpp
+    src/systems/DamageSystem.cpp
 )
 add_library(rtype::engine ALIAS rtype_engine)
 

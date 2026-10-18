@@ -1,4 +1,4 @@
-#include "InputSystem.hpp"
+#include "systems/InputSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"
