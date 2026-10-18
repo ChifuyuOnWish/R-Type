@@ -8,7 +8,6 @@
 
 namespace rtype::gui {
 
-// Preserve both fields when translating an engine entity identifier.
 struct GuiEntityId
 {
     std::uint32_t index = 0;
@@ -155,7 +154,7 @@ struct SoundEvent
 struct BackgroundConfig
 {
     bool enabled = false;
-    float scrollSpeed = 40.0F; // Pixels per second, scrolling left.
+    float scrollSpeed = 40.0F;
     GuiColor starColor{180, 190, 210, 255};
 };
 

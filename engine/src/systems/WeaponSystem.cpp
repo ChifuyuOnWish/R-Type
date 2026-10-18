@@ -14,7 +14,6 @@ void WeaponSystem::update(Registry& registry, float dt)
     registry.each<Weapon, Position>(
         [this, dt, &registry](Entity shooter, Weapon& weapon, Position& position) {
             weapon.timer = std::max(0.F, weapon.timer - dt);
-            // Players fire while they hold shoot; automatic weapons (enemies) fire on cooldown.
             const bool wantsToFire = registry.hasComponent<Controllable>(shooter)
                                          ? registry.getComponent<Controllable>(shooter).shoot
                                          : weapon.automatic;
@@ -25,7 +24,6 @@ void WeaponSystem::update(Registry& registry, float dt)
             if (weapon.rate > 0.F) {
                 weapon.timer = weapon.timer / weapon.rate;
             }
-            // Copy before spawning: adding the projectile's Position can move `position`.
             const Position from = position;
             const unsigned type = weapon.projectileType;
             _spawn(registry, shooter, from, type);

@@ -146,7 +146,6 @@ int main(int argc, char** argv)
             }
         }
 
-        // Temporary local rendering fixture, replaced by client game state at integration.
         float elapsed = 0.0F;
         bool enemyRemovalReported = false;
         float fireCueRemaining = 0.0F;

@@ -5,8 +5,6 @@
 
 namespace rtype::engine {
 
-// Applies Hit components to Health. With a dispatcher, publishes a DamageEvent per hit and an
-// EntityDiedEvent when an entity's health reaches 0.
 class DamageSystem : public ISystem
 {
 public:

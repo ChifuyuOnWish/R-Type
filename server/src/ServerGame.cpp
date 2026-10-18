@@ -59,8 +59,6 @@ ServerGame::ServerGame(network::NetworkServer& net) : _net(net)
     _dispatcher.subscribe<DamageEvent>([this](const DamageEvent& ev) { onDamage(ev); });
     _dispatcher.subscribe<EntityDiedEvent>([this](const EntityDiedEvent& ev) { onDied(ev); });
 
-    // Order matters: read inputs, decide where enemies go, fire, move everything, test hits
-    // on the new positions, apply damage, revive ships, remove the dead and what left the world.
     _loop.addSystem(std::make_unique<InputSystem>(PlayerSpeed));
     _loop.addSystem(std::make_unique<WaveSystem>(_factory, [this](Entity enemy) {
         _registry.addComponent(enemy, NetType{static_cast<std::uint16_t>(EntityType::EnemyBasic)});
@@ -234,7 +232,6 @@ std::uint32_t ServerGame::wireId(Entity entity) const
 {
     if (const std::uint32_t id = netIdOf(_registry, entity))
         return id;
-    // Already destroyed this tick: syncEntities() hasn't forgotten it yet.
     for (const auto& [netId, s] : _synced)
         if (s.entity == entity)
             return netId;
@@ -251,7 +248,6 @@ bool ServerGame::isShip(Entity entity) const
 
 void ServerGame::onDamage(const DamageEvent& ev)
 {
-    // Only hits on players are worth an event (the client can flash the ship or play a sound).
     if (!isShip(ev.victim) || !_registry.isAlive(ev.victim))
         return;
     if (const std::uint32_t target = wireId(ev.victim))

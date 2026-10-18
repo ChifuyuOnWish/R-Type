@@ -22,7 +22,6 @@ bool sameTeam(Registry& registry, Entity a, Entity b)
            registry.getComponent<Team>(a).id == registry.getComponent<Team>(b).id;
 }
 
-// Returns true when the hit landed. A projectile credits the hit to whoever fired it.
 bool giveHit(Registry& registry, Entity attacker, Entity victim)
 {
     if (!registry.hasComponent<Damage>(attacker) || !registry.hasComponent<Health>(victim)) {
@@ -66,8 +65,6 @@ void CollisionSystem::update(Registry& registry, float)
             if (!registry.hasComponent<Position>(a) || !registry.hasComponent<Position>(b)) {
                 continue;
             }
-            // Same team never collides (no friendly fire, a missile never hits its shooter),
-            // missiles pass through each other, and a missile is used up by its first hit.
             if (sameTeam(registry, a, b) || isSpent(a) || isSpent(b)) {
                 continue;
             }

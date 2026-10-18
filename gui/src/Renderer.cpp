@@ -75,7 +75,6 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
     if (!IsWindowReady())
         throw std::logic_error("Rendering requires an open window");
 
-    // Resolve and validate everything before starting a drawing frame.
     std::vector<PreparedSprite> sprites;
     sprites.reserve(scene.sprites.size());
     for (const auto& sprite : scene.sprites) {

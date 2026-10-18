@@ -23,7 +23,6 @@ void BoundsSystem::update(Registry& registry, float)
 {
     registry.each<Position>([this, &registry](const Entity& entity, Position& position) {
         if (registry.hasComponent<Controllable>(entity)) {
-            // Positions are centres: keep the whole hitbox on screen.
             float halfW = 0.F;
             float halfH = 0.F;
             if (registry.hasComponent<Hitbox>(entity)) {

@@ -82,7 +82,6 @@ struct PlayerLeftMessage
     bool operator==(const PlayerLeftMessage&) const = default;
 };
 
-// Reliable.
 struct EntitySpawnMessage
 {
     static constexpr MessageType Type = MessageType::EntitySpawn;
