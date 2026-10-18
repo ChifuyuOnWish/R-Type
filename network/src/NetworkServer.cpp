@@ -80,7 +80,7 @@ void NetworkServer::handleConnectRequest(const Endpoint& from, const PacketHeade
 {
     protocol::ByteReader reader(msg.payload.data(), msg.payload.size());
     auto name = reader.readString();
-    if (!name || name->size() > MaxNameLength || reader.remaining() != 0) {
+    if (!name || name->empty() || name->size() > MaxNameLength || reader.remaining() != 0) {
         countDropped();
         return;
     }
@@ -239,7 +239,7 @@ void NetworkServer::onStop()
 {
     for (auto& [id, s] : _sessions) {
         queueFor(s, static_cast<std::uint8_t>(TransportMessage::Disconnect),
-                 {static_cast<std::uint8_t>(DisconnectReason::Quit)}, true,
+                 {static_cast<std::uint8_t>(DisconnectReason::ServerShutdown)}, true,
                  std::chrono::steady_clock::now());
         flush(s, std::chrono::steady_clock::now());
     }

@@ -17,6 +17,7 @@ enum class DisconnectReason : std::uint8_t
     Quit,
     Timeout,
     Kicked,
+    ServerShutdown,
 };
 
 struct Connected

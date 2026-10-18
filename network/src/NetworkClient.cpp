@@ -23,10 +23,10 @@ DisconnectReason disconnectReason(const std::vector<std::uint8_t>& payload)
     if (payload.empty())
         return DisconnectReason::Quit;
     switch (payload[0]) {
-    case 1:
-        return DisconnectReason::Timeout;
     case 2:
         return DisconnectReason::Kicked;
+    case 3:
+        return DisconnectReason::ServerShutdown;
     default:
         return DisconnectReason::Quit;
     }
