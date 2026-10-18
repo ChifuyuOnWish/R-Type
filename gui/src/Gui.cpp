@@ -1,6 +1,7 @@
 #include "Gui.hpp"
 
 #include "Renderer.hpp"
+#include "StatusPresenter.hpp"
 
 #include <raylib.h>
 #include <stdexcept>
@@ -114,6 +115,11 @@ void Gui::render(const RenderScene& scene)
 {
     if (!_window.isOpen())
         throw std::logic_error("Cannot render before opening the GUI");
+    if (scene.feedback.status != GuiStatus::None) {
+        const auto statusScene = StatusPresenter::makeScene(scene.feedback, _window.getSize());
+        Renderer(_resources).render(statusScene);
+        return;
+    }
     _background.update(scene.background, _window.getFrameTime());
     const auto stars = scene.background.enabled ? _background.getStars(_window.getSize())
                                                 : std::vector<GuiPosition>{};

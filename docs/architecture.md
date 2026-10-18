@@ -87,12 +87,14 @@ The presentation subsystem lives in `gui/`, behind the `IGui` interface.
 Its presentation types are defined in `GuiTypes.hpp` without exposing raylib types.
 
 The client owns the main loop and supplies a `RenderScene` containing sprites
-and text. The GUI renders this data without handling network packets or
+and text, with optional status feedback. The GUI renders this data without
+handling network packets or
 gameplay rules.
 
 `Gui` coordinates window management, rendering and visual resources.
 `Window` manages the window lifecycle and frame timing. `Renderer` draws the
-provided scene, while `ResourceManager` owns textures and fonts and releases
+provided scene. `StatusPresenter` builds status pages that replace the game view.
+`ResourceManager` owns textures and fonts and releases
 them before the window closes.
 
 The client can enable and configure a scrolling starfield. The GUI updates its

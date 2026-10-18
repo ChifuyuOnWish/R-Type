@@ -6,6 +6,7 @@ add_library(rtype_gui STATIC
     src/ScrollingBackground.cpp
     src/InputMapper.cpp
     src/AudioSystem.cpp
+    src/StatusPresenter.cpp
 )
 add_library(rtype::gui ALIAS rtype_gui)
 
