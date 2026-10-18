@@ -48,6 +48,10 @@ other effects continue; no voice is stolen.
 
 ## Volume and mute
 
+Players can adjust and save these values through [Settings](settings.md).
+The GUI defaults to 50% volume, unmuted.
+
+
 ```cpp
 gui.setAudioSettings({0.5F, false}); // Half volume
 gui.setAudioSettings({0.5F, true});  // Mute
@@ -59,26 +63,18 @@ previous settings. Updates affect existing and future voices.
 
 Muting sets existing voices to zero volume while their playback continues.
 New events are discarded while muted. Unmuting restores the configured volume.
-Settings survive closing and reopening the GUI.
+Saved preferences are loaded on opening. Explicit API audio settings override
+the saved audio values; use Apply and save to persist session changes.
 
-## Local checks and accessibility
+## Current client integration
 
-The demo uses two generated test tones: Space triggers `demo-shot`, and the
-temporary enemy removal triggers `demo-hit`. Visual text accompanies both
-events and remains available when sound is muted, missing or unavailable.
-
-```sh
-./r-type_client
-./r-type_client --volume 0.25
-./r-type_client --mute
-./r-type_client --no-audio
-```
-
-Press Space repeatedly to check overlapping effects. Temporarily rename an
-audio asset to check the missing-file path. The application must keep rendering
-and showing the visual cues.
+The client initializes audio and applies saved volume and mute preferences.
+The former local demonstration and its automatic test-tone triggers have been
+removed. Gameplay sound events are not connected yet; no sounds are loaded or
+played by the current client. The loading and playback API above remains
+available for that integration. Existing generated test assets are retained.
 
 The automated audio test replaces native audio calls with a fake backend to
 check initialization failures, loading, overlapping voices, volume, mute and
 cleanup ordering without a physical device. Listening checks on a real device
-are still required.
+are still required once gameplay effects are connected.

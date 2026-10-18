@@ -9,34 +9,36 @@
 | Move left | Left arrow |
 | Move right | Right arrow |
 | Fire | Space |
+| Open/close Settings | F1 or Escape |
 
-Escape closes the window and is reserved for window management.
+The Settings button can also be clicked. Escape no longer closes the window.
+Use the close button or Quit application in Settings to exit.
+
+Change gameplay bindings through [Settings](settings.md). Supported keys are
+arrows, Space, A to Z, Enter, and left/right Control and Shift.
 
 ## Action states
 
-Call `IGui::pollActions()` once per frame before `render()`. Window events are
-polled by raylib at the end of rendering and are read on the next iteration.
+Call `IGui::pollActions()` once per frame before rendering. Raylib polls native
+window events at the end of rendering and exposes them on the next iteration.
 
-Each `PlayerActions` array is indexed by `PlayerAction`:
+Each PlayerActions array is indexed by PlayerAction:
 
-- `heldActions`: the action is currently held.
-- `pressedActions`: the action became held since the previous poll.
-- `releasedActions`: the action stopped being held since the previous poll.
+- heldActions: the action is currently held.
+- pressedActions: the action became held since the previous poll.
+- releasedActions: the action stopped being held since the previous poll.
 
-Losing window focus clears held actions and reports releases for actions
-previously held. While unfocused, keyboard presses are ignored. Held keys are
-sampled again when focus returns.
+Focus loss releases actions; unfocused input is ignored. Held keys are sampled
+again when focus returns. Settings releases gameplay actions while it is open.
+On startup, after API rebinding and after closing Settings, sampled keys must
+return to neutral before gameplay input resumes.
 
-The GUI reports controls only. Movement, firing rules and network transmission
-are handled by the client and game systems.
+The GUI reports actions. Client/game systems own movement, firing behavior
+and network transmission.
 
-## Change bindings
+## Programmatic bindings
 
-Bindings use `GuiKey`, not raylib key codes. Supported keys are the arrows,
-Space, A to Z, Enter, and the left and right Control and Shift keys.
-`GuiKey::None` disables an action.
-
-Start from the defaults and change the entries you need:
+Bindings use GuiKey without exposing native key codes.
 
 ```cpp
 rtype::gui::KeyBindings bindings;
@@ -45,20 +47,9 @@ bindings.keys[static_cast<std::size_t>(rtype::gui::PlayerAction::Fire)] =
 gui.setKeyBindings(bindings);
 ```
 
-`setKeyBindings()` is available through `IGui` before or after opening the
-window. It replaces the complete binding set. Multiple actions may share one
-key. Invalid key values throw without changing the current bindings.
+The setter replaces the complete binding set. GuiKey::None disables a binding.
+Multiple actions may share a key through the API; interactive rebinding swaps
+conflicting bindings. Invalid key values throw without changing the bindings.
 
-Action transitions are evaluated on the next poll. Remapping away from a held
-key reports a release if the replacement key is not held. Closing and reopening
-the GUI clears input state and preserves bindings.
+See [Settings](settings.md) for saving, restoring and local verification.
 
-## Local demo
-
-The temporary client demo displays held actions below the rendering scene and
-prints press and release events to the terminal. It does not move ships or send
-network messages.
-
-Check the arrows and Space individually, then hold an arrow and press Space to
-check simultaneous actions. Switch to another window while holding a key:
-the next input poll must release the action.

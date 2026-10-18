@@ -21,6 +21,10 @@ public:
 
     [[nodiscard]] virtual PlayerActions pollActions() = 0;
 
+    [[nodiscard]] virtual bool isSettingsOpen() const noexcept = 0;
+
+    [[nodiscard]] virtual const GuiPreferences& getPreferences() const noexcept = 0;
+
     virtual void render(const RenderScene& scene) = 0;
 
     virtual void setAudioSettings(const AudioSettings& settings) = 0;

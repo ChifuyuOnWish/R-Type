@@ -1,59 +1,53 @@
 # Accessibility
 
-## Physical and motor disabilities
+## Physical and motor access
 
-The default controls use the arrow keys for movement and Space for fire.
-Bindings can be changed through `IGui::setKeyBindings()`; the mapper also
-supports letters, Enter, Control and Shift. Actions can share a key.
-See [controls](controls.md) for the supported keys and an example.
+Players can rebind movement and fire through a keyboard/mouse Settings menu.
+Menu navigation remains fixed after rebinding. Gameplay input is released on
+focus loss and while Settings is open. Returning from Settings waits for keys
+to be released before gameplay resumes.
 
-Held actions are released when the window loses focus. Escape closes the
-window and is reserved for window management.
+See [controls](controls.md) and [Settings](settings.md).
 
-Current limitations: there is no interactive rebinding menu, controller support,
-toggle-to-fire option or one-handed preset. Changing bindings requires client
-configuration through the API.
+Limitations: no controller support, toggle-to-fire mode or one-handed preset.
+Holding Fire is reported continuously; client/game systems own firing behavior.
 
-## Audio and visual disabilities
+## Audio and visual access
 
-The demo identifies players with P1 to P4 labels as well as ship colors.
-Its fire and enemy-removal events have visible text cues, including when audio
-is muted, unavailable or an effect fails to load. Future gameplay events must
-also provide the client with appropriate visual feedback.
+Settings provides volume, mute and text sizes of 100%, 125% and 150%.
+Audio failures leave input and rendering operational. Gameplay sound events
+are not connected in the current client; visual equivalents must accompany
+future sound feedback.
 
-Audio volume and mute are exposed through `IGui::setAudioSettings()`.
-The demo accepts `--volume`, `--mute` and `--no-audio`.
-See [audio](audio.md) for behavior and examples.
+Player labels P1 to P4 supplement the colors of server-controlled ships.
+Connection statuses use explicit headings and messages instead of color or
+sound alone. They use light text on a dark background, wrap messages and
+truncate when the available vertical space is exhausted.
 
-Status pages use light text on an opaque dark background. Status is expressed
-by an explicit title and message rather than color or sound alone. Messages
-wrap at word boundaries, and long individual words are split when necessary.
-Layout uses the current window dimensions. At most 2048 message characters
-are considered; text exceeding the available vertical space ends with an
-ellipsis when a message line can be displayed.
+An optional scene tint offers red, green, blue or amber at adjustable opacity.
+This is a visual preference, not a validated color-vision correction.
+Essential information must remain identifiable without color.
 
-Status pages are static: no flashing, pulsing, countdown or automatic dismissal.
-The gameplay starfield can be disabled through
-`scene.background.enabled = false`.
+Text-size settings apply to Settings, status pages and client-supplied scene
+and overlay text. Font size and spacing change; client-supplied positions do
+not. Client HUD layout must accommodate larger text.
 
-Current limitations: the built-in font has limited glyph coverage; there is no
-screen-reader integration, text-size setting, colorblind palette selector or
-scrollable error dialog. Very small windows may omit message text or the close
-hint; check readability at 640 x 360 and above. Long diagnostic details belong
-in client logs as well as the concise visible message.
+Limitations: no screen-reader integration or localization. The built-in font
+has limited glyph coverage. Real window readability still requires manual
+checks, including 640 x 360 and large text.
 
-## Mental and cognitive disabilities
+## Mental and cognitive access
 
-Connecting, rejected, disconnected and error states have distinct English
-headings. While such a status is supplied, the GUI hides gameplay sprites and
-their overlays so stale positions do not look like a running game.
+Settings uses labeled values, explicit Apply and save, Back and Restore
+defaults actions. Unapplied changes are discarded on Back, and saved settings
+are restored on later launches.
 
-The client decides when a status changes. The GUI does not implement connection,
-retry, timeout or recovery rules. It continues processing window events and
-input; client coordination must decide whether gameplay actions are used.
+Background motion can be disabled independently of game simulation.
+Status pages are static and do not flash or dismiss themselves. When a status
+is supplied, it hides the game view to avoid showing stale positions.
 
-Current limitations: there is no localization, tutorial or interactive reconnect
-screen. Real multiplayer behavior still needs integration validation.
+Limitations: no tutorial, simplified difficulty setting or interactive reconnect
+screen. The GUI does not decide connection, retry, timeout or recovery rules.
 
 ## Supply status feedback
 
@@ -64,35 +58,18 @@ scene.feedback.message = "The server stopped responding.";
 gui.render(scene);
 ```
 
-Supported statuses are `None`, `Connecting`, `Rejected`, `Disconnected` and
-`Error`. `None` leaves normal scene rendering active; it does not claim that
-a network connection exists. An empty message uses a status-specific default.
-Status rendering uses the built-in font and requires no custom visual assets.
+Supported statuses are None, Connecting, Rejected, Disconnected and Error.
+An empty message selects a status-specific default. Status rendering uses the
+built-in font without custom assets. Supply None with a current scene when
+gameplay may resume.
 
-Supply `None` with a current game scene when the client decides gameplay can
-resume. Rendering a status does not clear the client's world or stop audio
-already playing; those decisions belong to client coordination.
+Continue calling pollActions() on status pages so Settings remains usable.
+Rendering a status does not clear the client world or stop existing audio.
 
 ## Verification
 
-Automated tests cover each status, default and custom messages, wrapping,
-truncation, viewport bounds and layouts without gameplay entities.
+See the [Settings checklist](settings.md#local-checks). Automated checks cover
+settings, keyboard mapping, persistence, status layouts and tint drawing order.
+Physical rendering, audio and multiplayer integration require manual checks.
+No accessibility certification is claimed.
 
-Manual checks to perform:
-
-- Run each status demo and verify readable headings, messages and the close hint.
-- Resize the window and check that text stays inside it.
-- Verify P1 to P4 labels and simultaneous movement/fire actions in the normal demo.
-- Verify visible fire and enemy-removal cues with muted or unavailable audio.
-- Confirm that a status hides the game view and Escape still closes the window.
-
-```sh
-./r-type_client --status connecting
-./r-type_client --status rejected --message "The lobby is full."
-./r-type_client --status disconnected --no-audio
-./r-type_client --status error --message "Could not load the level."
-```
-
-These are local presentation checks, not live connection tests. Results for
-real network events and platform-specific accessibility checks remain to be
-recorded during integration.

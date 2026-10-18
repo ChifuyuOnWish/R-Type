@@ -7,7 +7,8 @@ namespace rtype::gui {
 class StatusPresenter
 {
 public:
-    [[nodiscard]] static RenderScene makeScene(const StatusFeedback& feedback, GuiVector2 viewport);
+    [[nodiscard]] static RenderScene makeScene(const StatusFeedback& feedback, GuiVector2 viewport,
+                                               float textScale = 1.0F);
 };
 
 } // namespace rtype::gui

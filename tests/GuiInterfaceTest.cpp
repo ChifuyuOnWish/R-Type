@@ -36,6 +36,12 @@ public:
         return actions;
     }
 
+    [[nodiscard]] bool isSettingsOpen() const noexcept override { return false; }
+    [[nodiscard]] const rtype::gui::GuiPreferences& getPreferences() const noexcept override
+    {
+        return preferences;
+    }
+
     void render(const rtype::gui::RenderScene& scene) override
     {
         require(!_closed, "Rendering requires an open GUI");
@@ -67,6 +73,7 @@ public:
     std::string renderedOverlay;
     std::string playedSound;
     rtype::gui::AudioSettings audioSettings;
+    rtype::gui::GuiPreferences preferences;
     rtype::gui::GuiKey fireKey = rtype::gui::GuiKey::Space;
 
 private:
