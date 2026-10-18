@@ -16,7 +16,6 @@ std::error_code UdpSocket::open(std::uint16_t port)
     _socket.open(asio::ip::udp::v4(), ec);
     if (ec)
         return ec;
-    _socket.set_option(asio::socket_base::reuse_address(true), ec);
     _socket.bind(Endpoint(asio::ip::udp::v4(), port), ec);
     if (ec) {
         close();

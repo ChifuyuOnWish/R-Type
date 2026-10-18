@@ -20,7 +20,16 @@ std::error_code NetworkHost::start(std::uint16_t port)
             std::cerr << "NetworkHost: receive error: " << ec.message() << '\n';
         });
     scheduleTick();
-    _thread = std::thread([this] { _io.run(); });
+    _thread = std::thread([this] {
+        for (;;) {
+            try {
+                _io.run();
+                return;
+            } catch (const std::exception& e) {
+                std::cerr << "NetworkHost: handler threw exception: " << e.what() << '\n';
+            }
+        }
+    });
     return {};
 }
 
