@@ -37,7 +37,7 @@ The current implementation in this repository is organized around the following 
 - `network/protocol/CMakeLists.txt`: builds the protocol module in the project.
 - `tests/protocol_messages_test.cpp`: round-trip and rejection tests covering the message layout and invalid inputs.
 
-This module is the canonical implementation used to validate the wire format described in this document.
+The generic UDP transport layer lives in `network/include` and `network/src`; the protocol module above is the R-Type message layer used by that transport. The file list above matches the current repository layout and is kept in sync with the implementation.
 
 ## 2. Packet header
 
@@ -79,6 +79,7 @@ This rule is used for packet ordering and duplicate detection, and it is covered
 ### 2.3 Acknowledgements and reliability
 
 - There is no separate ACK message: each side acknowledges what it received through `ack` / `ackBits` in the header of its next packet. A side with nothing else to send SHOULD send a packet with no messages within 100 ms so acknowledgements keep flowing.
+- The current implementation does not send this as a dedicated empty datagram on a fixed 100 ms timer. The client sends a lightweight packet on the next 10 ms network tick when it has nothing else to send; the server only acknowledges in the next outgoing packet (for example, a snapshot or a heartbeat after the 1 second idle period).
 - **Unreliable** messages are sent once. Losing one is harmless because a newer one replaces it (`INPUT`, `SNAPSHOT`, `PING`).
 - **Reliable** messages are kept by the sender and copied into new packets until a packet containing them is acknowledged. If one stays unacknowledged for 5 seconds, the sender considers the peer disconnected.
 - The receiver MUST process each `reliableId` only once and drop repeats.
@@ -105,13 +106,15 @@ Sent with `session = 0`.
 
 | Field | Type | Description |
 |---|---|---|
-| `reason` | `u8` | `0` quit. |
+| `reason` | `u8` | `0` quit (also used when the server shuts down), `1` timed out, `2` kicked. Any unknown value is treated as quit by the client. |
 
 #### `0x05` PING (unreliable)
 
 | Field | Type | Description |
 |---|---|---|
-| `timestamp` | `u32` | Sender's clock in milliseconds. The peer answers with `PONG`. |
+| `timestamp` | `u32` | Sender's clock in milliseconds. A receiver SHOULD answer with `PONG`. |
+
+A receiver SHOULD answer with `PONG`. In the current implementation, the client does so for server `PING`s, but the server currently ignores `PING` and does not yet send `PONG`, so server-side round-trip timing is not implemented yet.
 
 #### `0x06` PONG (unreliable)
 
@@ -130,7 +133,7 @@ The client sends the current state of its controls, not key presses. A lost `INP
 
 ### 3.2 Server → Client
 
-`DISCONNECT`, `PING` and `PONG` are also sent by the server, with the same layout as in §3.1. A server `DISCONNECT` uses reason `2` (kicked) or `3` (server shutting down).
+`DISCONNECT`, `PING` and `PONG` are also sent by the server, with the same layout as in §3.1. A server `DISCONNECT` uses reason `0` for quit (also used when the server shuts down), `1` for timeout and `2` for kicked. A client treats any unknown value as quit.
 
 #### `0x02` CONNECT_ACCEPT (reliable)
 
@@ -167,6 +170,15 @@ The client sends the current state of its controls, not key presses. A lost `INP
 | `entityId` | `u32` | Unique for the lifetime of the game. |
 | `entityType` | `u16` | Kind of entity (player ship, enemy type, missile…), see the game's entity list. |
 | `x`, `y` | `fixed`, `fixed` | Initial position. |
+
+| entityType | Entity |
+|---|---|
+| 1–4 | Player ship, owned by the client with that clientId |
+| 10 | Basic enemy |
+| 20 | Player missile |
+| 21 | Enemy missile |
+
+World: 1920 × 1080 units, (0, 0) top-left, x/y are the centre of the entity. Snapshot velocities are in units per server tick (1/60 s).
 
 #### `0x14` ENTITY_DESTROY (reliable)
 
@@ -219,9 +231,9 @@ sequenceDiagram
     S--)C: PLAYER_LEFT(timed out) (to the other players)
 ```
 
-1. **Connecting.** The client sends `CONNECT_REQUEST` with `session = 0` and repeats it every 500 ms until it gets an answer, up to 10 times. A server receiving a repeat from an endpoint it already accepted resends the same `CONNECT_ACCEPT`.
+1. **Connecting.** The client sends `CONNECT_REQUEST` with `session = 0` and repeats it every 500 ms until it gets an answer, up to 10 times. A server receiving a repeated `CONNECT_REQUEST` from an already accepted endpoint ignores it; the reliable `CONNECT_ACCEPT` is resent on the normal reliability resend cadence until the client acknowledges it.
 2. **Session.** After `CONNECT_ACCEPT`, every packet in both directions carries the `sessionToken`. The server identifies a client by its address, port **and** token; packets that don't match an existing session are dropped. This prevents someone from injecting packets for another player by faking their address.
-3. **Keep-alive.** A side that has sent nothing for 1 second sends a `PING`. This keeps an idle but alive player from timing out, and the `PING`/`PONG` pair measures round-trip time.
+3. **Keep-alive.** A side that has sent nothing for 1 second SHOULD send a `PING`. The client does this; the server currently ignores `PING` and does not yet send `PONG`, so server-side round-trip time is not measured yet.
 4. **Leaving.** A client that quits sends `DISCONNECT` and stops after it is acknowledged or after 3 attempts. The server tells the other players with `PLAYER_LEFT(quit)`.
 5. **Timeout.** If the server receives nothing from a client for 5 seconds (crash, network loss), it removes that client and sends `PLAYER_LEFT(timed out)` to the others. The game continues for the remaining players. A client that hears nothing from the server for 5 seconds considers itself disconnected.
 
@@ -234,7 +246,7 @@ The receiver checks each datagram in this order. The first failed check drops th
 1. Size below 16 bytes or above 1200 bytes.
 2. `magic` is not `0x5254`, `flags` is not `0`, or `version` is not `1`. Exception: a `CONNECT_REQUEST` with a wrong version gets a `CONNECT_REJECT(version mismatch)` if the rest of it can be read.
 3. On the server: the sender is unknown and the first message is not `CONNECT_REQUEST`, or the sender is known but `session` doesn't match its token.
-4. A message header or payload runs past the end of the datagram, `channel` is not `0` or `1`, or `type` is unknown.
+4. A message header or payload runs past the end of the datagram, `channel` is not `0` or `1`, or the message type is unknown. Message types below `0x10` are ignored by the transport layer if they are not recognized; message types at or above `0x10` are forwarded to the game layer, which validates them with the deserialization helpers from `network/protocol`.
 5. A payload doesn't decode to exactly `length` bytes, or a field is out of range: `bool` not 0/1, string empty or over 32 bytes, unknown enum value, reserved bits set, `SNAPSHOT.count` not matching the payload size.
 
 The header decoder MUST reject these cases explicitly:
@@ -251,5 +263,5 @@ Implementation requirements:
 
 - Never trust a length or count field for allocation. Every size is checked against the bytes actually received before reading or reserving memory. One fixed 1200-byte receive buffer per socket is enough.
 - A malformed packet MUST NOT crash the program, throw an uncaught exception, or make memory grow.
-- The server limits how many packets per second it accepts from one address, how many connection attempts can be pending, and how many reliable messages can wait for acknowledgement per client. Packets over a limit are dropped. A client that keeps exceeding them is disconnected with `DISCONNECT(kicked)`.
+- The server SHOULD enforce a per-address packet rate limit, a pending-connection limit, and a disconnect path for clients that keep exceeding the limits. This is planned and tracked under issue #18.
 - Duplicate and out-of-date packets are normal on UDP and are not errors: they are handled by §2.2 and §2.3.
