@@ -82,3 +82,9 @@ target_include_directories(rtype_audio_test SYSTEM PRIVATE
 target_compile_features(rtype_audio_test PRIVATE cxx_std_20)
 rtype_set_warnings(rtype_audio_test)
 add_test(NAME audio COMMAND rtype_audio_test)
+
+# Engine EventDispatcher (issue #39)
+add_executable(rtype_engine_events_test engine_events_test.cpp)
+target_link_libraries(rtype_engine_events_test PRIVATE rtype::engine)
+rtype_set_warnings(rtype_engine_events_test)
+add_test(NAME engine_events COMMAND rtype_engine_events_test)

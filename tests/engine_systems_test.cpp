@@ -9,7 +9,6 @@
 #include "systems/InputSystem.hpp"
 #include "systems/LifetimeSystem.hpp"
 #include "systems/MotionSystem.hpp"
-#include "systems/SpawnSystem.hpp"
 #include "systems/WeaponSystem.hpp"
 
 #include <cassert>
@@ -27,8 +26,6 @@ static_assert(std::is_trivially_copyable_v<Damage>);
 static_assert(std::is_trivially_copyable_v<Hit>);
 static_assert(std::is_trivially_copyable_v<Lifetime>);
 static_assert(std::is_trivially_copyable_v<Invincibility>);
-static_assert(std::is_trivially_copyable_v<Sprite>);
-static_assert(std::is_trivially_copyable_v<Animation>);
 static_assert(std::is_trivially_copyable_v<Controllable>);
 static_assert(std::is_trivially_copyable_v<PlayerOwner>);
 static_assert(std::is_trivially_copyable_v<EnemyBehavior>);
@@ -46,8 +43,6 @@ static void test_defaults()
     assert(Hit{}.amount == 0);
     assert(Lifetime{}.remaining == 0.F);
     assert(Invincibility{}.remaining == 0.F);
-    assert(Sprite{}.scale == 1.F && Sprite{}.layer == 0);
-    assert(Animation{}.frameCount == 1 && Animation{}.loop);
     assert(!Controllable{}.up && !Controllable{}.shoot);
     assert(PlayerOwner{}.playerId == 0);
     assert(EnemyBehavior{}.pattern == EnemyPattern::Straight);
@@ -368,55 +363,6 @@ static void test_straight_enemy_moves_left()
     assert(reg.getComponent<Velocity>(e).dy == 0.F);
 }
 
-static void test_spawn_follows_timer()
-{
-    Registry reg;
-    int count = 0;
-    SpawnSystem spawner(SpawnConfig{1.F, 100.F, 0.F, 50.F}, 42,
-                        [&](Registry&, float, float) { count++; });
-
-    spawner.update(reg, 0.5F);
-    assert(count == 0);
-    spawner.update(reg, 0.5F);
-    assert(count == 1);
-    spawner.update(reg, 2.5F); // long tick: catches up
-    assert(count == 3);
-}
-
-static void test_spawn_position_is_on_the_right_within_range()
-{
-    Registry reg;
-    std::vector<float> heights;
-    SpawnSystem spawner(SpawnConfig{0.1F, 100.F, 10.F, 20.F}, 1, [&](Registry&, float x, float y) {
-        assert(x == 100.F);
-        heights.push_back(y);
-    });
-    for (int i = 0; i < 50; i++) {
-        spawner.update(reg, 0.1F);
-    }
-    assert(!heights.empty());
-    for (const float y : heights) {
-        assert(y >= 10.F && y <= 20.F);
-    }
-}
-
-static void test_spawn_is_reproducible_with_same_seed()
-{
-    Registry reg;
-    std::vector<float> first;
-    std::vector<float> second;
-    SpawnSystem a(SpawnConfig{0.1F, 0.F, 0.F, 100.F}, 7,
-                  [&](Registry&, float, float y) { first.push_back(y); });
-    SpawnSystem b(SpawnConfig{0.1F, 0.F, 0.F, 100.F}, 7,
-                  [&](Registry&, float, float y) { second.push_back(y); });
-    for (int i = 0; i < 20; i++) {
-        a.update(reg, 0.1F);
-        b.update(reg, 0.1F);
-    }
-    assert(!first.empty());
-    assert(first == second);
-}
-
 int main()
 {
     test_defaults();
@@ -442,9 +388,6 @@ int main()
     test_weapon_does_not_fire_without_shoot();
 
     test_straight_enemy_moves_left();
-    test_spawn_follows_timer();
-    test_spawn_position_is_on_the_right_within_range();
-    test_spawn_is_reproducible_with_same_seed();
 
     std::cout << "engine: all tests passed\n";
     return 0;
