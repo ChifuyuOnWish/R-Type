@@ -22,3 +22,8 @@ target_link_libraries(rtype_gui PRIVATE raylib)
 
 rtype_set_warnings(rtype_gui)
 
+
+# Use the GLFW headers bundled with raylib; GLFW symbols are already in static raylib.
+target_include_directories(rtype_gui SYSTEM PRIVATE
+    $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>
+)

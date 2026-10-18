@@ -99,7 +99,10 @@ them before the window closes.
 
 The client can enable and configure a scrolling starfield. The GUI updates its
 visual offset using elapsed time and repeats the background across the current
-window size without scaling entity coordinates.
+window size. A scene may declare its world dimensions through
+`RenderScene::worldSize`; the GUI then fits sprites and scene text to the
+current window with uniform scaling and centered placement. Texture regions
+and overlay coordinates are unchanged. A zero world size keeps pixel coordinates.
 
 The GUI samples keyboard input and maps it to player actions through
 `InputMapper`. The client receives action states and can configure bindings
@@ -114,4 +117,9 @@ audio, text size and presentation. It suppresses gameplay actions while the
 menu is open without stopping the client loop. An optional transparent
 rectangle tints the game scene before UI overlays are drawn. See
 [Settings](settings.md) for behavior and persistence.
+
+
+The network client opens at 1920 x 1080 and declares a 1920 x 1080 world.
+Its HUD displays an average frame rate refreshed approximately twice per second,
+computed from the frame durations returned by the GUI.
 

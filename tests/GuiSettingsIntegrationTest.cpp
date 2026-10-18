@@ -4,8 +4,11 @@
 
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 #include <raylib.h>
 #include <stdexcept>
 
@@ -16,6 +19,8 @@ bool ready = false, focused = true, clicked = false;
 Vector2 mouse{};
 float wheel = 0;
 int exitKey = -1;
+int aspectNumerator = 0, aspectDenominator = 0;
+int screenWidth = 1280, screenHeight = 720;
 RenderScene rendered;
 void check(bool condition, const char* message)
 {
@@ -40,6 +45,16 @@ constexpr auto fire = static_cast<std::size_t>(PlayerAction::Fire);
 
 // Only the native boundary is replaced; Gui, input and menu orchestration are real.
 extern "C" {
+GLFWwindow* glfwGetCurrentContext()
+{
+    static int token;
+    return reinterpret_cast<GLFWwindow*>(&token);
+}
+void glfwSetWindowAspectRatio(GLFWwindow*, int numerator, int denominator)
+{
+    aspectNumerator = numerator;
+    aspectDenominator = denominator;
+}
 Font GetFontDefault()
 {
     return {};
@@ -73,11 +88,11 @@ bool WindowShouldClose()
 }
 int GetScreenWidth()
 {
-    return 1280;
+    return screenWidth;
 }
 int GetScreenHeight()
 {
-    return 720;
+    return screenHeight;
 }
 bool IsWindowResized()
 {
@@ -244,6 +259,36 @@ int main()
         gui.render(textScene);
         check(rendered.overlayTexts[0].fontSize == 25.0F,
               "Text scale applies to client-supplied HUD text");
+        RenderScene worldScene;
+        worldScene.worldSize = {1920.0F, 1080.0F};
+        SpriteDraw ship;
+        ship.destinationRect = {{300.0F, 600.0F}, 96.0F, 45.0F};
+        ship.sourceRect = {{67.0F, 2.0F}, 32.0F, 15.0F};
+        ship.origin = {12.0F, 6.0F};
+        worldScene.sprites.push_back(ship);
+        worldScene.sceneTexts.push_back(label);
+        worldScene.overlayTexts.push_back(label);
+        gui.render(worldScene);
+        const auto& fitted = rendered.sprites.front();
+        check(fitted.destinationRect.pos.x == 200.0F && fitted.destinationRect.pos.y == 400.0F &&
+                  fitted.destinationRect.width == 64.0F && fitted.destinationRect.height == 30.0F,
+              "World fits the window without changing aspect ratio");
+        check(fitted.sourceRect.width == 32.0F && fitted.origin.x == 8.0F,
+              "Texture regions stay unchanged and origins scale with sprites");
+        check(rendered.overlayTexts.front().fontSize == 25.0F,
+              "HUD keeps its size independently of world scaling");
+        check(worldScene.sprites.front().destinationRect.width == 96.0F,
+              "Rendering does not mutate the submitted scene");
+        screenWidth = 1600;
+        screenHeight = 1000;
+        gui.render(worldScene);
+        check(std::abs(rendered.sprites.front().destinationRect.pos.x - 250.0F) < 0.01F &&
+                  std::abs(rendered.sprites.front().destinationRect.pos.y - 550.0F) < 0.01F,
+              "A taller viewport centers the scaled world vertically");
+        screenWidth = 1280;
+        screenHeight = 720;
+        check(aspectNumerator == 16 && aspectDenominator == 9,
+              "The native window is configured once to preserve the 16:9 aspect ratio");
         press(gui, KEY_F1);
         press(gui, KEY_UP);
         press(gui, KEY_ENTER);

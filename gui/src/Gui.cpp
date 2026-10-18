@@ -51,6 +51,34 @@ RenderScene withSettingsButton(RenderScene scene, GuiVector2 viewport, float sca
     return scene;
 }
 
+void fitWorld(RenderScene& scene, GuiVector2 viewport)
+{
+    const auto world = scene.worldSize;
+    if (world.x == 0.0F && world.y == 0.0F)
+        return;
+    if (!std::isfinite(world.x) || !std::isfinite(world.y) || world.x <= 0.0F || world.y <= 0.0F)
+        throw std::invalid_argument("World dimensions must be finite and positive");
+    if (viewport.x <= 0.0F || viewport.y <= 0.0F)
+        return;
+    const float scale = std::min(viewport.x / world.x, viewport.y / world.y);
+    const GuiPosition offset{(viewport.x - world.x * scale) / 2.0F,
+                             (viewport.y - world.y * scale) / 2.0F};
+    for (auto& sprite : scene.sprites) {
+        auto& destination = sprite.destinationRect;
+        destination.pos = {offset.x + destination.pos.x * scale,
+                           offset.y + destination.pos.y * scale};
+        destination.width *= scale;
+        destination.height *= scale;
+        sprite.origin.x *= scale;
+        sprite.origin.y *= scale;
+    }
+    for (auto& text : scene.sceneTexts) {
+        text.position = {offset.x + text.position.x * scale, offset.y + text.position.y * scale};
+        text.fontSize *= scale;
+        text.spacing *= scale;
+    }
+}
+
 GuiColor sceneTint(const VisualSettings& visual)
 {
     constexpr std::array<GuiColor, 5> colors{{{0, 0, 0, 0},
@@ -240,6 +268,7 @@ void Gui::render(const RenderScene& scene)
     const auto stars = scene.background.enabled ? _background.getStars(_window.getSize())
                                                 : std::vector<GuiPosition>{};
     auto presented = scene;
+    fitWorld(presented, _window.getSize());
     for (auto* texts : {&presented.sceneTexts, &presented.overlayTexts}) {
         for (auto& text : *texts) {
             text.fontSize *= visual.textScale;

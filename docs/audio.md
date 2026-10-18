@@ -68,13 +68,36 @@ the saved audio values; use Apply and save to persist session changes.
 
 ## Current client integration
 
-The client initializes audio and applies saved volume and mute preferences.
-The former local demonstration and its automatic test-tone triggers have been
-removed. Gameplay sound events are not connected yet; no sounds are loaded or
-played by the current client. The loading and playback API above remains
-available for that integration. Existing generated test assets are retained.
+After opening the GUI, the client loads the two existing generated test effects:
+`audio/demo-shot.wav` as `shot` and `audio/demo-hit.wav` as `hit`. These are
+placeholder tones, not a final sound pack. No new audio assets are required.
+
+The client decodes GameEvent messages from the server and maps them as follows:
+
+| Server event | Sound ID |
+|--------------|----------|
+| Shoot | shot |
+| Hit | hit |
+| Kill | hit |
+| PlayerDeath | hit |
+
+Sounds are triggered by received server events, including other players and
+enemies, rather than local keyboard presses. The client does not display event
+notices. Muting or disabling audio currently has no equivalent event text.
+
+Events received while Settings or a connection status page is displayed are
+not played or queued for later. Network and world updates continue. Voices
+already playing may finish. Volume, mute and overlapping voices follow the
+AudioSystem rules above. Missing sound assets are logged and skipped without
+blocking gameplay or rendering.
+
+## Verification
+
+Run a server and a connected client with an audio device available. Hold Fire
+and check that server-confirmed shots produce sound. Change volume, mute and
+unmute in Settings; apply each change. Check that mute and --no-audio suppress sound without affecting gameplay. Missing assets must not prevent movement or rendering.
 
 The automated audio test replaces native audio calls with a fake backend to
 check initialization failures, loading, overlapping voices, volume, mute and
-cleanup ordering without a physical device. Listening checks on a real device
-are still required once gameplay effects are connected.
+cleanup ordering without a physical device. These checks do not confirm the
+new server-event playback on real hardware; that requires a manual check.
