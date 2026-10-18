@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Messages.hpp"
 #include "Registry.hpp"
 
 #include <cstdint>
-#include <vector>
 
 namespace rtype::server {
 
@@ -16,11 +14,6 @@ struct NetType
 struct NetId
 {
     std::uint32_t id = 0;
-};
-
-struct GameEventQueue
-{
-    std::vector<protocol::GameEventMessage> events;
 };
 
 inline std::uint32_t netIdOf(const engine::Registry& registry, engine::Entity entity)
