@@ -198,7 +198,7 @@ void ServerGame::syncEntities()
 
 void ServerGame::sendSnapshot()
 {
-    constexpr float PerTick = static_cast<float>(GameLoop::Step);
+    constexpr float PerTick = static_cast<float>(Update::Step);
     SnapshotMessage snap{_serverTick, {}};
     for (const auto& [netId, s] : _synced) {
         SnapshotEntry e{netId, Fixed::fromFloat(s.x), Fixed::fromFloat(s.y), {}, {}};
