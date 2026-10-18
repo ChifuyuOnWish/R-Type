@@ -9,7 +9,7 @@ Assets are grouped by their main intended use:
 | boss/ | Large enemy sheets and associated parts or effects |
 | projectiles/ | Dedicated projectile and beam sheets |
 | effects/ | Dedicated explosion sheets |
-| audio/ | Generated test tones for the local audio demo |
+| audio/ | Generated placeholder effects used by server gameplay events |
 
 Names describe the artwork for this project's asset organization. They are not
 verified original character names or gameplay classifications. Each original
@@ -44,11 +44,13 @@ as a failed custom-font load.
 Gui clears resources before closing the window. A standalone ResourceManager
 must be cleared or destroyed before its graphics context closes.
 
-## Audio demo
+## Audio effects
 
 `audio/demo-shot.wav` and `audio/demo-hit.wav` are generated sine-wave effects
-for independent audio checks. They are temporary test assets, separate from
-the supplied sprite collection. See [audio documentation](../docs/audio.md).
+used as placeholder gameplay effects. The client plays them from server events;
+they are separate from the supplied sprite collection. See
+[audio documentation](../docs/audio.md) and the
+[resource how-to](../docs/how-to/add-gui-resource.md).
 
 ## Sources and licenses
 

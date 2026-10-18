@@ -20,7 +20,8 @@ trigger sound effects. No equivalent text or dedicated visual cue is currently
 provided when audio is muted or unavailable; this remains an accessibility
 limitation.
 
-Player labels P1 to P4 supplement the colors of server-controlled ships.
+Player names supplement the colors of server-controlled ships. Names come
+from connection and player-joined messages; an unknown name displays Player.
 Connection statuses use explicit headings and messages instead of color or
 sound alone. They use light text on a dark background, wrap messages and
 truncate when the available vertical space is exhausted.
@@ -30,8 +31,9 @@ This is a visual preference, not a validated color-vision correction.
 Essential information must remain identifiable without color.
 
 Text-size settings apply to Settings, status pages and client-supplied scene
-and overlay text. Font size and spacing change; client-supplied positions do
-not. Client HUD layout must accommodate larger text.
+and overlay text. Scene text follows world scaling; HUD positions remain in
+window pixels. Font size and spacing also follow the text-size preference.
+Client HUD layout must accommodate larger text.
 
 Limitations: no screen-reader integration or localization. The built-in font
 has limited glyph coverage. Real window readability still requires manual
@@ -73,4 +75,3 @@ See the [Settings checklist](settings.md#local-checks). Automated checks cover
 settings, keyboard mapping, persistence, status layouts and tint drawing order.
 Physical rendering, audio and multiplayer integration require manual checks.
 No accessibility certification is claimed.
-
