@@ -82,3 +82,9 @@ target_include_directories(rtype_audio_test SYSTEM PRIVATE
 target_compile_features(rtype_audio_test PRIVATE cxx_std_20)
 rtype_set_warnings(rtype_audio_test)
 add_test(NAME audio COMMAND rtype_audio_test)
+
+# Status layouts and message handling do not require a graphics context.
+add_executable(rtype_status_presenter_test StatusPresenterTest.cpp)
+target_link_libraries(rtype_status_presenter_test PRIVATE rtype::gui)
+rtype_set_warnings(rtype_status_presenter_test)
+add_test(NAME status_presenter COMMAND rtype_status_presenter_test)

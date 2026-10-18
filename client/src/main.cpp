@@ -43,8 +43,23 @@ std::string actionNames(const std::array<bool, rtype::gui::playerActionCount>& a
     return result.empty() ? "none" : result;
 }
 
+rtype::gui::GuiStatus parseStatus(std::string_view value)
+{
+    if (value == "none")
+        return rtype::gui::GuiStatus::None;
+    if (value == "connecting")
+        return rtype::gui::GuiStatus::Connecting;
+    if (value == "rejected")
+        return rtype::gui::GuiStatus::Rejected;
+    if (value == "disconnected")
+        return rtype::gui::GuiStatus::Disconnected;
+    if (value == "error")
+        return rtype::gui::GuiStatus::Error;
+    throw std::invalid_argument("Status must be none, connecting, rejected, disconnected or error");
+}
+
 void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
-                   rtype::gui::AudioSettings& settings)
+                   rtype::gui::AudioSettings& settings, rtype::gui::StatusFeedback& feedback)
 {
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument(argv[index]);
@@ -52,6 +67,10 @@ void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
             config.audioEnabled = false;
         } else if (argument == "--mute") {
             settings.muted = true;
+        } else if (argument == "--status" && index + 1 < argc) {
+            feedback.status = parseStatus(argv[++index]);
+        } else if (argument == "--message" && index + 1 < argc) {
+            feedback.message = argv[++index];
         } else if (argument == "--volume" && index + 1 < argc) {
             const std::string_view value(argv[++index]);
             const auto result =
@@ -60,7 +79,8 @@ void configureDemo(int argc, char** argv, rtype::gui::GuiConfig& config,
                 throw std::invalid_argument("Volume must be a number between 0 and 1");
         } else {
             throw std::invalid_argument(
-                "Usage: r-type_client [--no-audio] [--mute] [--volume 0..1]");
+                "Usage: r-type_client [--no-audio] [--mute] [--volume 0..1] "
+                "[--status none|connecting|rejected|disconnected|error] [--message text]");
         }
     }
 }
@@ -99,7 +119,8 @@ int main(int argc, char** argv)
     try {
         rtype::gui::GuiConfig config;
         rtype::gui::AudioSettings audioSettings{0.5F, false};
-        configureDemo(argc, argv, config, audioSettings);
+        rtype::gui::StatusFeedback feedback;
+        configureDemo(argc, argv, config, audioSettings, feedback);
         rtype::gui::Gui gui;
         gui.setAudioSettings(audioSettings);
         gui.open(config);
@@ -111,11 +132,19 @@ int main(int argc, char** argv)
             if (!gui.audio().loadSound("demo-hit", "audio/demo-hit.wav"))
                 std::cerr << gui.audio().getLastError() << '\n';
         }
-        auto& resources = gui.resources();
-        resources.loadTexture("players", "player/ship-variants.gif");
-        resources.loadTexture("player-weapons", "player/ship-and-effects.gif");
-        resources.loadTexture("enemy", "enemy/red-fighter.gif");
-        resources.loadTexture("enemy-weapons", "projectiles/red-beam-and-effects.gif");
+        if (feedback.status == rtype::gui::GuiStatus::None) {
+            try {
+                auto& resources = gui.resources();
+                resources.loadTexture("players", "player/ship-variants.gif");
+                resources.loadTexture("player-weapons", "player/ship-and-effects.gif");
+                resources.loadTexture("enemy", "enemy/red-fighter.gif");
+                resources.loadTexture("enemy-weapons", "projectiles/red-beam-and-effects.gif");
+            } catch (const std::exception& error) {
+                feedback.status = rtype::gui::GuiStatus::Error;
+                feedback.message = "Could not load visual resources: " + std::string(error.what());
+                std::cerr << feedback.message << '\n';
+            }
+        }
 
         // Temporary local rendering fixture, replaced by client game state at integration.
         float elapsed = 0.0F;
@@ -123,19 +152,22 @@ int main(int argc, char** argv)
         float fireCueRemaining = 0.0F;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
+            const bool showGame = feedback.status == rtype::gui::GuiStatus::None;
             const bool firePressed =
+                showGame &&
                 actions.pressedActions[static_cast<std::size_t>(rtype::gui::PlayerAction::Fire)];
             std::vector<rtype::gui::SoundEvent> soundEvents;
             if (firePressed) {
                 fireCueRemaining = 0.25F;
                 soundEvents.push_back({"demo-shot"});
             }
-            if (elapsed >= 5.0F && !enemyRemovalReported) {
+            if (showGame && elapsed >= 5.0F && !enemyRemovalReported) {
                 enemyRemovalReported = true;
                 soundEvents.push_back({"demo-hit"});
             }
             gui.playAudio(soundEvents);
             auto scene = makeDemoScene(elapsed < 5.0F);
+            scene.feedback = feedback;
             scene.overlayTexts.push_back(label("Arrows: move | Space: fire", 20.0F, 640.0F));
             scene.overlayTexts.push_back(
                 label("Held: " + actionNames(actions.heldActions), 20.0F, 670.0F));
