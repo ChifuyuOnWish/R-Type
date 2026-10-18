@@ -1,8 +1,8 @@
 #pragma once
 
-#include "GameLoop.hpp"
 #include "NetworkServer.hpp"
 #include "Registry.hpp"
+#include "Update.hpp"
 
 #include <atomic>
 
@@ -19,7 +19,7 @@ private:
 
     network::NetworkServer& _net;
     engine::Registry _registry;
-    engine::GameLoop _loop{_registry};
+    engine::Update _loop{_registry};
 };
 
 } // namespace rtype::server
