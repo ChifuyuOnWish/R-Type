@@ -77,7 +77,6 @@ static void test_input()
     const Bytes exact = encode(InputMessage{0x01020304, ButtonLeft});
     assert((exact == Bytes{0x01, 0x02, 0x03, 0x04, 0x04}));
 
-    // Bits 5-7 must be 0.
     checkSerializeRejected(InputMessage{1, 0x20});
     checkSerializeRejected(InputMessage{1, 0x80});
     assert(!decode<InputMessage>(Bytes{0, 0, 0, 1, 0x20}).has_value());
@@ -93,7 +92,6 @@ static void test_player_joined()
     const Bytes exact = encode(PlayerJoinedMessage{7, "Bob"});
     assert((exact == Bytes{0x07, 0x03, 0x42, 0x6F, 0x62}));
 
-    // Name must be 1 to 32 bytes.
     checkSerializeRejected(PlayerJoinedMessage{1, ""});
     checkSerializeRejected(PlayerJoinedMessage{1, std::string(33, 'x')});
     assert(!decode<PlayerJoinedMessage>(Bytes{1, 0}).has_value());
@@ -154,7 +152,6 @@ static void test_snapshot()
                            Fixed16{std::numeric_limits<std::int16_t>::max()}};
     checkRoundTrip(SnapshotMessage{5, {extremes}});
 
-    // Fills a datagram exactly.
     SnapshotMessage full;
     full.serverTick = 9;
     for (std::size_t i = 0; i < MaxSnapshotEntries; ++i)
@@ -163,15 +160,14 @@ static void test_snapshot()
     assert(encode(full).size() == SnapshotFixedPartSize + SnapshotEntrySize * MaxSnapshotEntries);
     assert(SnapshotFixedPartSize + SnapshotEntrySize * MaxSnapshotEntries + 4 + 16 <= 1200);
 
-    // One more does not fit.
     full.entries.push_back(entry(9999, 1));
     checkSerializeRejected(full);
     Bytes b = encode(SnapshotMessage{1, {entry(1, 1), entry(2, 2)}});
-    b[5] = 3; // count says 3, payload holds 2
+    b[5] = 3;
     assert(!decode<SnapshotMessage>(b).has_value());
-    b[5] = 1; // count says 1, payload holds 2
+    b[5] = 1;
     assert(!decode<SnapshotMessage>(b).has_value());
-    b[4] = 0xFF; // huge count
+    b[4] = 0xFF;
     b[5] = 0xFF;
     assert(!decode<SnapshotMessage>(b).has_value());
 }

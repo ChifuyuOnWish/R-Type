@@ -27,7 +27,7 @@ struct ComponentParams
     unsigned playerId = 0;
     Entity owner{};
     unsigned pierceCount = 0;
-    std::uint32_t netId = 0;
+    std::uint8_t team = 0;
 };
 
 class EntityFactory

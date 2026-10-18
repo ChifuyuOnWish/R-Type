@@ -117,7 +117,6 @@ TextDraw line(const std::string& text, GuiPosition position, float fontSize, Gui
 
 std::size_t columnsFor(float width, float fontSize)
 {
-    // Conservative cell width for the built-in font, including character spacing.
     return static_cast<std::size_t>(std::max(1.0F, std::floor(width / (fontSize + 1.0F))));
 }
 

@@ -57,7 +57,7 @@ static void test_entity_manager_create_destroy()
     assert(em.destroy(a));
     assert(!em.isAlive(a));
     assert(em.aliveCount() == 1);
-    assert(!em.destroy(a)); // double destroy rejected
+    assert(!em.destroy(a));
 }
 
 static void test_entity_manager_recycling_and_stale_id()
@@ -68,7 +68,7 @@ static void test_entity_manager_recycling_and_stale_id()
     const Entity b = em.create();
     assert(b.index() == a.index());
     assert(b.generation() == a.generation() + 1);
-    assert(!em.isAlive(a)); // stale ID rejected
+    assert(!em.isAlive(a));
     assert(em.isAlive(b));
 }
 
@@ -89,7 +89,7 @@ static void test_sparse_set_add_get_has()
     assert(set.get(e) == 42);
     assert(set.size() == 1);
 
-    set.add(e, 7); // overwrite
+    set.add(e, 7);
     assert(set.size() == 1);
     assert(set.get(e) == 7);
 }
@@ -102,14 +102,14 @@ static void test_sparse_set_remove_keeps_dense_array_packed()
     set.add(b, 20);
     set.add(c, 30);
 
-    set.remove(a); // swapped with the last element
+    set.remove(a);
     assert(!set.has(a));
     assert(set.size() == 2);
-    assert(set.components().size() == 2); // no hole
+    assert(set.components().size() == 2);
     assert(set.get(b) == 20);
     assert(set.get(c) == 30);
 
-    set.remove(Entity(9, 0)); // missing entity: no-op
+    set.remove(Entity(9, 0));
     assert(set.size() == 2);
 }
 
@@ -199,7 +199,7 @@ static void test_registry_destroy_cleans_every_storage()
     assert(!reg.hasComponent<Velocity>(e));
     assert(reg.getStorage<Position>().size() == 0);
     assert(reg.getStorage<Velocity>().size() == 0);
-    assert(!reg.destroyEntity(e)); // already dead
+    assert(!reg.destroyEntity(e));
 }
 
 static void test_registry_recycled_entity_has_no_old_components()
@@ -209,7 +209,7 @@ static void test_registry_recycled_entity_has_no_old_components()
     reg.addComponent(a, Position{1.F, 2.F});
     reg.destroyEntity(a);
 
-    const Entity b = reg.createEntity(); // same index, new generation
+    const Entity b = reg.createEntity();
     assert(!reg.hasComponent<Position>(b));
 }
 
@@ -247,7 +247,7 @@ static void test_registry_const_lookup_creates_nothing()
     reg.addComponent(e, Position{1.F, 2.F});
     const Registry& creg = reg;
     assert(creg.hasComponent<Position>(e));
-    assert(!creg.hasComponent<Velocity>(e)); // unknown type
+    assert(!creg.hasComponent<Velocity>(e));
     assert(creg.getComponent<Position>(e).x == 1.F);
 }
 
@@ -270,8 +270,8 @@ static void test_each_only_entities_with_all_components()
     const Entity c = reg.createEntity();
     reg.addComponent(a, Position{0.F, 0.F});
     reg.addComponent(a, Velocity{1.F, 0.F});
-    reg.addComponent(b, Position{0.F, 0.F}); // no Velocity
-    reg.addComponent(c, Velocity{1.F, 0.F}); // no Position
+    reg.addComponent(b, Position{0.F, 0.F});
+    reg.addComponent(c, Velocity{1.F, 0.F});
 
     int count = 0;
     reg.each<Position, Velocity>([&](Entity e, Position& p, Velocity& v) {
@@ -321,7 +321,7 @@ static void test_destroy_during_iteration_is_deferred()
         reg.destroyLater(e);
     });
     assert(visited == 5);
-    assert(reg.aliveCount() == 5); // nothing destroyed yet
+    assert(reg.aliveCount() == 5);
 
     reg.flushDestroyed();
     assert(reg.aliveCount() == 0);

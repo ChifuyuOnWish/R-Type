@@ -1,5 +1,3 @@
-// Loopback tests for NetworkClient against a real NetworkServer, and against a
-// hand-written fake server for the failure paths (plain asserts).
 #undef NDEBUG
 #include "ByteReader.hpp"
 #include "NetworkClient.hpp"
@@ -57,7 +55,6 @@ struct FakeServer
     FakeServer() { socket.non_blocking(true); }
     std::uint16_t port() const { return socket.local_endpoint().port(); }
 
-    // Returns false when nothing is waiting.
     bool receive(Bytes& out, asio::ip::udp::endpoint& from)
     {
         std::uint8_t buffer[MaxDatagramSize + 1];
@@ -209,7 +206,6 @@ void test_gives_up_after_retries()
     Log log;
     assert(!client.connect("127.0.0.1", fake.port(), "Bob"));
 
-    // Count what reaches the fake server until well after the client gave up.
     int requests = 0;
     const auto start = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start < 800ms) {
@@ -279,7 +275,6 @@ void test_invalid_arguments()
     assert(client.connect("127.0.0.1", 4242, std::string(MaxNameLength + 1, 'x')) ==
            std::make_error_code(std::errc::invalid_argument));
     assert(client.state() == ClientState::Disconnected);
-    // Nothing to disconnect from: must not crash or produce events.
     client.disconnect();
     std::this_thread::sleep_for(30ms);
     assert(client.poll().empty());

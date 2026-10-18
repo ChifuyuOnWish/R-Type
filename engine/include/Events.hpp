@@ -14,11 +14,13 @@ struct DamageEvent
 {
     Entity victim;
     int amount = 0;
+    Entity source;
 };
 
 struct EntityDiedEvent
 {
     Entity entity;
+    Entity killer;
 };
 
 struct EntitySpawnedEvent

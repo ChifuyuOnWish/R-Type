@@ -76,7 +76,6 @@ private:
     std::atomic<std::uint8_t> _tickRate{0};
     std::atomic<bool> _started{false};
 
-    // Network thread only.
     std::optional<Connection> _conn;
     Endpoint _server;
     std::string _name;
