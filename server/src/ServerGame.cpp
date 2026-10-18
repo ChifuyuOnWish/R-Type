@@ -1,9 +1,7 @@
 #include "ServerGame.hpp"
 
 #include "Components.hpp"
-#include "EntityType.hpp"
 #include "Messages.hpp"
-#include "ServerComponents.hpp"
 #include "systems/BoundsSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MotionSystem.hpp"
@@ -32,13 +30,6 @@ template <typename M> std::vector<std::uint8_t> encode(const M& msg)
     return w.data();
 }
 
-constexpr unsigned StepsPerSnapshot = 3;
-
-bool outsideWorld(float x, float y)
-{
-    return x < 0.F || x > WorldWidth || y < 0.F || y > WorldHeight;
-}
-
 } // namespace
 
 ServerGame::ServerGame(network::NetworkServer& net) : _net(net)
@@ -53,16 +44,7 @@ void ServerGame::run(const std::atomic<bool>& running)
 {
     while (running.load()) {
         handleNetworkEvents();
-        const unsigned steps = _loop.tick();
-        if (steps > 0) {
-            _serverTick += steps;
-            syncEntities();
-            _stepsSinceSnapshot += steps;
-            if (_stepsSinceSnapshot >= StepsPerSnapshot) {
-                sendSnapshot();
-                _stepsSinceSnapshot = 0;
-            }
-        }
+        _loop.tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
@@ -95,14 +77,6 @@ void ServerGame::onConnected(const network::Connected& ev)
     for (const auto& [id, player] : _players)
         sendTo(ev.peerId, PlayerJoinedMessage{static_cast<std::uint8_t>(id), player.name}, true);
     broadcast(PlayerJoinedMessage{static_cast<std::uint8_t>(ev.peerId), ev.name}, true, ev.peerId);
-    for (const auto& [netId, s] : _synced) {
-        if (!_registry.isAlive(s.entity) || !_registry.hasComponent<Position>(s.entity))
-            continue;
-        const auto& p = _registry.getComponent<Position>(s.entity);
-        sendTo(ev.peerId,
-               EntitySpawnMessage{netId, s.type, Fixed::fromFloat(p.x), Fixed::fromFloat(p.y)},
-               true);
-    }
     _players[ev.peerId] = Player{ev.name, spawnPlayerShip(ev.peerId), 0};
 }
 
@@ -115,7 +89,6 @@ engine::Entity ServerGame::spawnPlayerShip(PeerId id)
     _registry.addComponent(ship, Health{3, 3});
     _registry.addComponent(ship, Controllable{});
     _registry.addComponent(ship, PlayerOwner{id});
-    _registry.addComponent(ship, NetType{static_cast<std::uint16_t>(playerShipType(id))});
     return ship;
 }
 
@@ -150,12 +123,7 @@ void ServerGame::onDisconnected(const network::Disconnected& ev)
     if (it == _players.end())
         return;
     std::cout << "player " << ev.peerId << " left (reason " << static_cast<int>(ev.reason) << ")\n";
-    const Entity ship = it->second.ship;
-    if (const std::uint32_t netId = netIdOf(_registry, ship)) {
-        broadcast(EntityDestroyMessage{netId, DestroyCause::Other}, true);
-        _synced.erase(netId);
-    }
-    _registry.destroyEntity(ship);
+    _registry.destroyEntity(it->second.ship);
     _players.erase(it);
 
     PlayerLeftReason reason = PlayerLeftReason::Quit;
@@ -164,57 +132,6 @@ void ServerGame::onDisconnected(const network::Disconnected& ev)
     else if (ev.reason == network::DisconnectReason::Kicked)
         reason = PlayerLeftReason::Kicked;
     broadcast(PlayerLeftMessage{static_cast<std::uint8_t>(ev.peerId), reason}, true);
-}
-
-void ServerGame::syncEntities()
-{
-    _registry.each<NetType, Position>([&](Entity e, NetType& t, Position& p) {
-        if (_registry.hasComponent<NetId>(e))
-            return;
-        const std::uint32_t netId = _nextNetId++;
-        const Synced synced{e, t.type, p.x, p.y};
-        _registry.addComponent(e, NetId{netId});
-        _synced[netId] = synced;
-        broadcast(EntitySpawnMessage{netId, synced.type, Fixed::fromFloat(synced.x),
-                                     Fixed::fromFloat(synced.y)},
-                  true);
-    });
-    for (auto it = _synced.begin(); it != _synced.end();) {
-        Synced& s = it->second;
-        if (_registry.isAlive(s.entity)) {
-            if (_registry.hasComponent<Position>(s.entity)) {
-                const auto& p = _registry.getComponent<Position>(s.entity);
-                s.x = p.x;
-                s.y = p.y;
-            }
-            ++it;
-            continue;
-        }
-        const auto cause = outsideWorld(s.x, s.y) ? DestroyCause::LeftScreen : DestroyCause::Killed;
-        broadcast(EntityDestroyMessage{it->first, cause}, true);
-        it = _synced.erase(it);
-    }
-}
-
-void ServerGame::sendSnapshot()
-{
-    constexpr float PerTick = static_cast<float>(GameLoop::Step);
-    SnapshotMessage snap{_serverTick, {}};
-    for (const auto& [netId, s] : _synced) {
-        SnapshotEntry e{netId, Fixed::fromFloat(s.x), Fixed::fromFloat(s.y), {}, {}};
-        if (_registry.hasComponent<Velocity>(s.entity)) {
-            const auto& v = _registry.getComponent<Velocity>(s.entity);
-            e.vx = Fixed16::fromFloat(v.dx * PerTick);
-            e.vy = Fixed16::fromFloat(v.dy * PerTick);
-        }
-        snap.entries.push_back(e);
-        if (snap.entries.size() == MaxSnapshotEntries) {
-            broadcast(snap, false);
-            snap.entries.clear();
-        }
-    }
-    if (!snap.entries.empty() || _synced.empty())
-        broadcast(snap, false);
 }
 
 } // namespace rtype::server

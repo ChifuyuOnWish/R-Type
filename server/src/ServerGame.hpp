@@ -24,13 +24,6 @@ private:
         engine::Entity ship;
         std::uint32_t lastInputTick = 0;
     };
-    struct Synced
-    {
-        engine::Entity entity;
-        std::uint16_t type;
-        float x;
-        float y;
-    };
 
     void handleNetworkEvents();
     void onConnected(const network::Connected& ev);
@@ -42,17 +35,10 @@ private:
     void broadcast(const M& msg, bool reliable, network::PeerId except = network::NoPeer);
     template <typename M> void sendTo(network::PeerId peer, const M& msg, bool reliable);
 
-    void syncEntities();
-    void sendSnapshot();
-
     network::NetworkServer& _net;
     engine::Registry _registry;
     engine::GameLoop _loop{_registry};
     std::map<network::PeerId, Player> _players;
-    std::map<std::uint32_t, Synced> _synced;
-    std::uint32_t _nextNetId = 1;
-    std::uint32_t _serverTick = 0;
-    unsigned _stepsSinceSnapshot = 0;
 };
 
 } // namespace rtype::server

@@ -171,15 +171,6 @@ The client sends the current state of its controls, not key presses. A lost `INP
 | `entityType` | `u16` | Kind of entity (player ship, enemy type, missile…), see the game's entity list. |
 | `x`, `y` | `fixed`, `fixed` | Initial position. |
 
-| entityType | Entity |
-|---|---|
-| 1–4 | Player ship, owned by the client with that clientId |
-| 10 | Basic enemy |
-| 20 | Player missile |
-| 21 | Enemy missile |
-
-World: 1920 × 1080 units, (0, 0) top-left, x/y are the centre of the entity. Snapshot velocities are in units per server tick (1/60 s).
-
 #### `0x14` ENTITY_DESTROY (reliable)
 
 | Field | Type | Description |
