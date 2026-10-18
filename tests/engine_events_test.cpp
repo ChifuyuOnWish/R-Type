@@ -26,7 +26,7 @@ static void test_subscriber_receives_event_data()
     EventDispatcher bus;
     int received = 0;
     bus.subscribe<DamageEvent>([&](const DamageEvent& e) { received = e.amount; });
-    bus.publish(DamageEvent{Entity{}, 7});
+    bus.publish(DamageEvent{Entity{}, 7, Entity{}});
     bus.flush();
     assert(received == 7);
 }
@@ -48,9 +48,9 @@ static void test_events_keep_publication_order()
     EventDispatcher bus;
     std::vector<int> amounts;
     bus.subscribe<DamageEvent>([&](const DamageEvent& e) { amounts.push_back(e.amount); });
-    bus.publish(DamageEvent{Entity{}, 1});
-    bus.publish(DamageEvent{Entity{}, 2});
-    bus.publish(DamageEvent{Entity{}, 3});
+    bus.publish(DamageEvent{Entity{}, 1, Entity{}});
+    bus.publish(DamageEvent{Entity{}, 2, Entity{}});
+    bus.publish(DamageEvent{Entity{}, 3, Entity{}});
     bus.flush();
     assert((amounts == std::vector<int>{1, 2, 3}));
 }
@@ -107,7 +107,7 @@ static void test_two_systems_communicate_without_referencing_each_other()
     EventDispatcher bus;
     int damageTaken = 0;
     bus.subscribe<CollisionEvent>(
-        [&](const CollisionEvent& e) { bus.publish(DamageEvent{e.b, 5}); });
+        [&](const CollisionEvent& e) { bus.publish(DamageEvent{e.b, 5, Entity{}}); });
     bus.subscribe<DamageEvent>([&](const DamageEvent& e) { damageTaken += e.amount; });
     bus.publish(CollisionEvent{});
     bus.flush();
