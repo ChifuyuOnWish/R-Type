@@ -4,8 +4,13 @@
 #include "systems/BoundsSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/DamageSystem.hpp"
+#include "systems/DeathSystem.hpp"
+#include "systems/EnemyBehaviorSystem.hpp"
 #include "systems/InputSystem.hpp"
+#include "systems/LifetimeSystem.hpp"
 #include "systems/MotionSystem.hpp"
+#include "systems/SpawnSystem.hpp"
+#include "systems/WeaponSystem.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -268,6 +273,150 @@ static void test_collision_then_damage_pipeline()
     assert(!reg.hasComponent<Hit>(enemy));
 }
 
+static void test_lifetime_destroys_expired_entities()
+{
+    Registry reg;
+    const Entity e = reg.createEntity();
+    reg.addComponent(e, Lifetime{0.25F});
+
+    LifetimeSystem lifetime;
+    lifetime.update(reg, 0.1F);
+    lifetime.update(reg, 0.1F);
+    reg.flushDestroyed();
+    assert(reg.isAlive(e));
+
+    lifetime.update(reg, 0.1F);
+    assert(reg.isAlive(e)); // destruction is deferred
+    reg.flushDestroyed();
+    assert(!reg.isAlive(e));
+}
+
+static void test_death_destroys_entities_without_health()
+{
+    Registry reg;
+    const Entity dead = reg.createEntity();
+    reg.addComponent(dead, Health{0, 3});
+    const Entity alive = reg.createEntity();
+    reg.addComponent(alive, Health{1, 3});
+
+    DeathSystem death;
+    death.update(reg, 0.1F);
+    reg.flushDestroyed();
+    assert(!reg.isAlive(dead));
+    assert(reg.isAlive(alive));
+}
+
+static void test_weapon_fires_with_cooldown()
+{
+    Registry reg;
+    const Entity shooter = reg.createEntity();
+    reg.addComponent(shooter, Position{10.F, 20.F});
+    Controllable keys;
+    keys.shoot = true;
+    reg.addComponent(shooter, keys);
+    reg.addComponent(shooter, Weapon{0.5F, 0.F, 7, 1.F});
+
+    int shots = 0;
+    Position lastOrigin;
+    unsigned lastType = 0;
+    WeaponSystem weapon([&](Registry& r, Entity owner, Position origin, unsigned type) {
+        const Entity missile = r.createEntity();
+        r.addComponent(missile, Position{origin.x, origin.y});
+        r.addComponent(missile, Projectile{owner, 2.F, 0});
+        lastOrigin = origin;
+        lastType = type;
+        shots++;
+    });
+
+    weapon.update(reg, 0.25F); // timer is 0: fires
+    assert(shots == 1);
+    weapon.update(reg, 0.25F); // 0.25 left: waits
+    assert(shots == 1);
+    weapon.update(reg, 0.25F); // cooldown over: fires
+    assert(shots == 2);
+    assert(lastOrigin.x == 10.F && lastOrigin.y == 20.F);
+    assert(lastType == 7);
+}
+
+static void test_weapon_does_not_fire_without_shoot()
+{
+    Registry reg;
+    const Entity shooter = reg.createEntity();
+    reg.addComponent(shooter, Position{});
+    reg.addComponent(shooter, Controllable{});
+    reg.addComponent(shooter, Weapon{0.5F, 0.F, 0, 1.F});
+
+    int shots = 0;
+    WeaponSystem weapon([&](Registry&, Entity, Position, unsigned) { shots++; });
+    weapon.update(reg, 0.25F);
+    assert(shots == 0);
+}
+
+static void test_straight_enemy_moves_left()
+{
+    Registry reg;
+    const Entity e = reg.createEntity();
+    EnemyBehavior behavior;
+    behavior.pattern = EnemyPattern::Straight;
+    behavior.speed = 30.F;
+    reg.addComponent(e, behavior);
+    reg.addComponent(e, Velocity{});
+
+    EnemyBehaviorSystem enemies;
+    enemies.update(reg, 0.1F);
+    assert(reg.getComponent<Velocity>(e).dx == -30.F);
+    assert(reg.getComponent<Velocity>(e).dy == 0.F);
+}
+
+static void test_spawn_follows_timer()
+{
+    Registry reg;
+    int count = 0;
+    SpawnSystem spawner(SpawnConfig{1.F, 100.F, 0.F, 50.F}, 42,
+                        [&](Registry&, float, float) { count++; });
+
+    spawner.update(reg, 0.5F);
+    assert(count == 0);
+    spawner.update(reg, 0.5F);
+    assert(count == 1);
+    spawner.update(reg, 2.5F); // long tick: catches up
+    assert(count == 3);
+}
+
+static void test_spawn_position_is_on_the_right_within_range()
+{
+    Registry reg;
+    std::vector<float> heights;
+    SpawnSystem spawner(SpawnConfig{0.1F, 100.F, 10.F, 20.F}, 1, [&](Registry&, float x, float y) {
+        assert(x == 100.F);
+        heights.push_back(y);
+    });
+    for (int i = 0; i < 50; i++) {
+        spawner.update(reg, 0.1F);
+    }
+    assert(!heights.empty());
+    for (const float y : heights) {
+        assert(y >= 10.F && y <= 20.F);
+    }
+}
+
+static void test_spawn_is_reproducible_with_same_seed()
+{
+    Registry reg;
+    std::vector<float> first;
+    std::vector<float> second;
+    SpawnSystem a(SpawnConfig{0.1F, 0.F, 0.F, 100.F}, 7,
+                  [&](Registry&, float, float y) { first.push_back(y); });
+    SpawnSystem b(SpawnConfig{0.1F, 0.F, 0.F, 100.F}, 7,
+                  [&](Registry&, float, float y) { second.push_back(y); });
+    for (int i = 0; i < 20; i++) {
+        a.update(reg, 0.1F);
+        b.update(reg, 0.1F);
+    }
+    assert(!first.empty());
+    assert(first == second);
+}
+
 int main()
 {
     test_defaults();
@@ -286,6 +435,16 @@ int main()
     test_hit_is_applied_then_removed();
     test_damage_is_clamped_at_zero();
     test_collision_then_damage_pipeline();
+
+    test_lifetime_destroys_expired_entities();
+    test_death_destroys_entities_without_health();
+    test_weapon_fires_with_cooldown();
+    test_weapon_does_not_fire_without_shoot();
+
+    test_straight_enemy_moves_left();
+    test_spawn_follows_timer();
+    test_spawn_position_is_on_the_right_within_range();
+    test_spawn_is_reproducible_with_same_seed();
 
     std::cout << "engine: all tests passed\n";
     return 0;
