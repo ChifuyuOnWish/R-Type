@@ -1,4 +1,4 @@
-#include "systems/BoundsSystem.hpp"
+#include "BoundsSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"

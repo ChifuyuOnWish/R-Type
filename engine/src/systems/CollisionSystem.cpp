@@ -1,4 +1,4 @@
-#include "systems/CollisionSystem.hpp"
+#include "CollisionSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"

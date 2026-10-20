@@ -1,4 +1,4 @@
-#include "systems/DamageSystem.hpp"
+#include "DamageSystem.hpp"
 
 #include "Components.hpp"
 #include "Events.hpp"

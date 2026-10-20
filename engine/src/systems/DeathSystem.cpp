@@ -1,4 +1,4 @@
-#include "systems/DeathSystem.hpp"
+#include "DeathSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"

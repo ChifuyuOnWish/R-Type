@@ -1,4 +1,4 @@
-#include "systems/MotionSystem.hpp"
+#include "MotionSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"

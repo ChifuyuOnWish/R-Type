@@ -1,4 +1,4 @@
-#include "systems/LifetimeSystem.hpp"
+#include "LifetimeSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"

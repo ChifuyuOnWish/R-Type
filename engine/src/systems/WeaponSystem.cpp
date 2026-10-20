@@ -1,4 +1,4 @@
-#include "systems/WeaponSystem.hpp"
+#include "WeaponSystem.hpp"
 
 #include "Registry.hpp"
 

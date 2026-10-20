@@ -1,4 +1,4 @@
-#include "systems/EnemyBehaviorSystem.hpp"
+#include "EnemyBehaviorSystem.hpp"
 
 #include "Components.hpp"
 #include "Registry.hpp"
