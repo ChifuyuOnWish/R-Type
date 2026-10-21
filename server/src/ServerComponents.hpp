@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Registry.hpp"
+#include "ecs/Registry.hpp"
 
 #include <cstdint>
 

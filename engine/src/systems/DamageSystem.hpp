@@ -1,7 +1,7 @@
 #pragma once
 
-#include "EventDispatcher.hpp"
 #include "ISystem.hpp"
+#include "core/EventDispatcher.hpp"
 
 namespace rtype::engine {
 

@@ -1,6 +1,6 @@
-#include "systems/WeaponSystem.hpp"
+#include "WeaponSystem.hpp"
 
-#include "Registry.hpp"
+#include "ecs/Registry.hpp"
 
 #include <algorithm>
 #include <utility>

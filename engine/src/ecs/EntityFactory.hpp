@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Components.hpp"
+#include "Components/Components.hpp"
 #include "Registry.hpp"
 
 #include <cstdint>
