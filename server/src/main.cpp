@@ -1,11 +1,14 @@
+#include "GameSession.hpp"
+#include "InfiniteMode.hpp"
 #include "NetworkServer.hpp"
-#include "ServerGame.hpp"
 
 #include <atomic>
 #include <charconv>
 #include <csignal>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
 namespace {
 
@@ -47,8 +50,8 @@ int main(int argc, char** argv)
     }
     std::cout << "r-type_server listening on UDP port " << net.localPort() << '\n';
 
-    rtype::server::ServerGame game(net);
-    game.run(g_running);
+    rtype::server::GameSession session(net, std::make_unique<rtype::server::InfiniteMode>());
+    session.run(g_running);
 
     std::cout << "r-type_server: shutting down\n";
     net.stop();
