@@ -1,6 +1,6 @@
 #include "ServerGame.hpp"
 
-#include "Components.hpp"
+#include "Components/Components.hpp"
 #include "EntityType.hpp"
 #include "GameSystems.hpp"
 #include "ServerComponents.hpp"

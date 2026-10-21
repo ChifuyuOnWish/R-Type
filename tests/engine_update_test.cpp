@@ -1,6 +1,6 @@
 #undef NDEBUG
-#include "Registry.hpp"
-#include "Update.hpp"
+#include "core/Update.hpp"
+#include "ecs/Registry.hpp"
 
 #include <cassert>
 #include <iostream>

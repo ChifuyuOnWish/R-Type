@@ -1,0 +1,17 @@
+#pragma once
+
+#include "Controllable.hpp"
+#include "Damage.hpp"
+#include "EnemyBehavior.hpp"
+#include "Health.hpp"
+#include "Hit.hpp"
+#include "Hitbox.hpp"
+#include "Invincibility.hpp"
+#include "Lifetime.hpp"
+#include "PlayerOwner.hpp"
+#include "Position.hpp"
+#include "Projectile.hpp"
+#include "Score.hpp"
+#include "Team.hpp"
+#include "Velocity.hpp"
+#include "Weapon.hpp"

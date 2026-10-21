@@ -1,7 +1,7 @@
-#include "systems/BoundsSystem.hpp"
+#include "BoundsSystem.hpp"
 
-#include "Components.hpp"
-#include "Registry.hpp"
+#include "Components/Components.hpp"
+#include "ecs/Registry.hpp"
 
 #include <algorithm>
 
