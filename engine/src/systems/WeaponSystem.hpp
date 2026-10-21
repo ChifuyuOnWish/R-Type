@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Components/Components.hpp"
 #include "ISystem.hpp"
+#include "components/Components.hpp"
 #include "ecs/Entity.hpp"
 
 #include <functional>

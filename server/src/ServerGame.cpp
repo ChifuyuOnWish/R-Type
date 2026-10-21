@@ -1,9 +1,9 @@
 #include "ServerGame.hpp"
 
-#include "Components/Components.hpp"
 #include "EntityType.hpp"
 #include "GameSystems.hpp"
 #include "ServerComponents.hpp"
+#include "components/Components.hpp"
 #include "systems/BoundsSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/DamageSystem.hpp"

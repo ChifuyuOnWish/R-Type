@@ -1,6 +1,6 @@
 #include "CollisionSystem.hpp"
 
-#include "Components/Components.hpp"
+#include "components/Components.hpp"
 #include "ecs/Registry.hpp"
 
 #include <cmath>

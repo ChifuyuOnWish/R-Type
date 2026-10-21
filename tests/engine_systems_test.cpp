@@ -1,5 +1,5 @@
 #undef NDEBUG
-#include "Components/Components.hpp"
+#include "components/Components.hpp"
 #include "ecs/Registry.hpp"
 #include "systems/BoundsSystem.hpp"
 #include "systems/CollisionSystem.hpp"
