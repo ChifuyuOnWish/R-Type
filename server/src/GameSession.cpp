@@ -1,8 +1,8 @@
 #include "GameSession.hpp"
 
-#include "Components.hpp"
 #include "ModeSystems.hpp"
 #include "World.hpp"
+#include "components/Components.hpp"
 #include "systems/BoundsSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/DamageSystem.hpp"

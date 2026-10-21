@@ -1,8 +1,8 @@
 #include "Replicator.hpp"
 
-#include "Components.hpp"
-#include "Update.hpp"
 #include "World.hpp"
+#include "components/Components.hpp"
+#include "core/Update.hpp"
 
 namespace rtype::server {
 

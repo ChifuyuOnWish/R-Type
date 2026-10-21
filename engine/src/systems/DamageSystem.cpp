@@ -1,7 +1,7 @@
 #include "DamageSystem.hpp"
 
-#include "Components/Components.hpp"
 #include "Events.hpp"
+#include "components/Components.hpp"
 #include "ecs/Registry.hpp"
 
 #include <algorithm>

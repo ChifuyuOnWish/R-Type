@@ -1,7 +1,7 @@
 #include "InfiniteMode.hpp"
 
-#include "Components.hpp"
 #include "World.hpp"
+#include "components/Components.hpp"
 
 #include <random>
 

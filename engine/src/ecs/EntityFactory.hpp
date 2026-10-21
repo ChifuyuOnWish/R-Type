@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Components/Components.hpp"
 #include "Registry.hpp"
+#include "components/Components.hpp"
 
 #include <cstdint>
 #include <functional>

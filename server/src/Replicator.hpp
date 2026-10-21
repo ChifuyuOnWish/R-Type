@@ -3,8 +3,8 @@
 #include "ByteWriter.hpp"
 #include "Messages.hpp"
 #include "NetworkServer.hpp"
-#include "Registry.hpp"
 #include "ServerComponents.hpp"
+#include "ecs/Registry.hpp"
 
 #include <cstdint>
 #include <iostream>

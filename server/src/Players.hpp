@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Components.hpp"
-#include "Entity.hpp"
 #include "Messages.hpp"
 #include "NetworkEvent.hpp"
-#include "Registry.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "ecs/Registry.hpp"
 
 #include <map>
 

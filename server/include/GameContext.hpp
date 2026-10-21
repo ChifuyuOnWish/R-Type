@@ -2,8 +2,8 @@
 
 #include "Messages.hpp"
 #include "Players.hpp"
-#include "Registry.hpp"
 #include "Spawner.hpp"
+#include "ecs/Registry.hpp"
 
 #include <random>
 #include <vector>

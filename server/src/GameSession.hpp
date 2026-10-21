@@ -1,17 +1,17 @@
 #pragma once
 
-#include "EntityFactory.hpp"
-#include "EventDispatcher.hpp"
 #include "Events.hpp"
 #include "GameContext.hpp"
 #include "IGameMode.hpp"
 #include "Messages.hpp"
 #include "NetworkServer.hpp"
 #include "Players.hpp"
-#include "Registry.hpp"
 #include "Replicator.hpp"
 #include "Spawner.hpp"
-#include "Update.hpp"
+#include "core/EventDispatcher.hpp"
+#include "core/Update.hpp"
+#include "ecs/EntityFactory.hpp"
+#include "ecs/Registry.hpp"
 
 #include <atomic>
 #include <cstdint>

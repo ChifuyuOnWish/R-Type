@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Entity.hpp"
 #include "GameContext.hpp"
 #include "NetworkEvent.hpp"
+#include "ecs/Entity.hpp"
 
 namespace rtype::server {
 
