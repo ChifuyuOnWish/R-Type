@@ -8,4 +8,4 @@ struct Score
     int total = 0;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

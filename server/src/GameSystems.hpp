@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Components.hpp"
-#include "EntityFactory.hpp"
+#include "Components/Components.hpp"
 #include "ISystem.hpp"
+#include "ecs/EntityFactory.hpp"
 
 #include <functional>
 #include <random>

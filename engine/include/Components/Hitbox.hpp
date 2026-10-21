@@ -8,4 +8,4 @@ struct Hitbox
     float height = 0.F;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

@@ -1,6 +1,6 @@
 #undef NDEBUG
-#include "Components.hpp"
-#include "Registry.hpp"
+#include "Components/Components.hpp"
+#include "ecs/Registry.hpp"
 #include "systems/BoundsSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/DamageSystem.hpp"

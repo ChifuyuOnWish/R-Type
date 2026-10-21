@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Entity.hpp"
 #include "IComponentStorage.hpp"
+#include "ecs/Entity.hpp"
 
 #include <cassert>
 #include <cstddef>

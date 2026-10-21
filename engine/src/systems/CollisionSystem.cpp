@@ -1,7 +1,7 @@
 #include "CollisionSystem.hpp"
 
-#include "Components.hpp"
-#include "Registry.hpp"
+#include "Components/Components.hpp"
+#include "ecs/Registry.hpp"
 
 #include <cmath>
 #include <vector>

@@ -11,4 +11,4 @@ struct Weapon
     bool automatic = false;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

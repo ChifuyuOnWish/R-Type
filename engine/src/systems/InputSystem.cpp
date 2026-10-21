@@ -1,7 +1,7 @@
 #include "InputSystem.hpp"
 
-#include "Components.hpp"
-#include "Registry.hpp"
+#include "Components/Components.hpp"
+#include "ecs/Registry.hpp"
 
 namespace rtype::engine {
 

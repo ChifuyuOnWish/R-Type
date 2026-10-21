@@ -7,4 +7,4 @@ struct Lifetime
     float remaining = 0.F;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

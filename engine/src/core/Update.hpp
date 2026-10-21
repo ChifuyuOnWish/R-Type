@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ISystem.hpp"
-#include "Registry.hpp"
+#include "ecs/Registry.hpp"
 
 #include <functional>
 #include <memory>

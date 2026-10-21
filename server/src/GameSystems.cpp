@@ -1,7 +1,7 @@
 #include "GameSystems.hpp"
 
 #include "EntityType.hpp"
-#include "Registry.hpp"
+#include "ecs/Registry.hpp"
 
 #include <utility>
 

@@ -7,4 +7,4 @@ struct Damage
     int value = 0;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

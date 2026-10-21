@@ -7,4 +7,4 @@ struct PlayerOwner
     unsigned playerId = 0;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

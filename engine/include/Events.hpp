@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Entity.hpp"
+#include "ecs/Entity.hpp"
 
 namespace rtype::engine {
 

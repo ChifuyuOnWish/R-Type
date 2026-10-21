@@ -8,4 +8,4 @@ struct Velocity
     float dy = 0.F;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

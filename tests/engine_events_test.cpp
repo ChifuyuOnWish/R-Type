@@ -1,6 +1,6 @@
 #undef NDEBUG
-#include "EventDispatcher.hpp"
 #include "Events.hpp"
+#include "core/EventDispatcher.hpp"
 
 #include <cassert>
 #include <iostream>

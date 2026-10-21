@@ -1,7 +1,7 @@
 #undef NDEBUG
-#include "EntityManager.hpp"
-#include "Registry.hpp"
 #include "SparseSet.hpp"
+#include "ecs/EntityManager.hpp"
+#include "ecs/Registry.hpp"
 
 #include <cassert>
 #include <cstdint>

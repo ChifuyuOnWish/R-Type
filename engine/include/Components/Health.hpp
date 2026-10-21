@@ -8,4 +8,4 @@ struct Health
     int max = 1;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

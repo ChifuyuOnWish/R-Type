@@ -8,4 +8,4 @@ struct Position
     float y = 0.F;
 };
 
-// namespace rtype::engine
+} // namespace rtype::engine

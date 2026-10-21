@@ -1,12 +1,12 @@
 #pragma once
 
-#include "EntityFactory.hpp"
-#include "EventDispatcher.hpp"
 #include "Events.hpp"
 #include "Messages.hpp"
 #include "NetworkServer.hpp"
-#include "Registry.hpp"
-#include "Update.hpp"
+#include "core/EventDispatcher.hpp"
+#include "core/Update.hpp"
+#include "ecs/EntityFactory.hpp"
+#include "ecs/Registry.hpp"
 
 #include <atomic>
 #include <cstdint>
