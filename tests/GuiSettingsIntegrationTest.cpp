@@ -43,7 +43,6 @@ void press(Gui& gui, int key)
 constexpr auto fire = static_cast<std::size_t>(PlayerAction::Fire);
 } // namespace
 
-// Only the native boundary is replaced; Gui, input and menu orchestration are real.
 extern "C" {
 GLFWwindow* glfwGetCurrentContext()
 {
@@ -211,7 +210,6 @@ int main()
         press(gui, KEY_DOWN);
         press(gui, KEY_ENTER);
         check(!gui.getPreferences().audio.muted, "Draft has not been applied");
-        // Mouse wheel reaches Apply and save; keyboard activates it.
         for (int index = 0; index < 11; ++index) {
             wheel = -1;
             (void)poll(gui);
@@ -231,7 +229,6 @@ int main()
         clicked = true;
         (void)poll(gui);
         check(gui.isSettingsOpen(), "Mouse settings button");
-        // Set a red scene tint, save it, and return to the scene.
         for (int index = 0; index < 4; ++index)
             press(gui, KEY_DOWN);
         press(gui, KEY_RIGHT);

@@ -73,7 +73,7 @@ void ClientNetwork::dispatch(const network::MessageReceived& ev)
 {
     const auto it = _handlers.find(ev.type);
     if (it == _handlers.end() || !it->second)
-        return; // unknown type: ignored on purpose, a newer server must not break an older client
+        return;
     it->second(std::span<const std::uint8_t>(ev.payload.data(), ev.payload.size()));
 }
 

@@ -1,0 +1,11 @@
+{
+  "$schema": "schema/campaign.schema.json",
+  "levels": [
+    "levels/level_01.json",
+    "levels/level_02.json"
+  ],
+  "lives": 3,
+  "scaling": {
+    "perExtraPlayer": { "enemyHealth": 0.25, "enemyCount": 0.2, "bossHealth": 0.5 }
+  }
+}

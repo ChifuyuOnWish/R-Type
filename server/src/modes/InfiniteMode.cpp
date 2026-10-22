@@ -34,7 +34,6 @@ void InfiniteMode::update(GameContext& ctx, float dt)
     std::uniform_real_distribution<float> height(SpawnMargin, WorldHeight - SpawnMargin);
     std::uniform_real_distribution<float> firstShot(MinFirstShot, MaxFirstShot);
     _spawnTimer = next(ctx.rng);
-    // 40 units right of the screen: inside BoundsSystem's 100-unit margin, so it isn't removed.
     ctx.spawner.spawnBasicEnemy(Position{WorldWidth + 40.F, height(ctx.rng)}, firstShot(ctx.rng));
 }
 

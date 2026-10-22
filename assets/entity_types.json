@@ -1,0 +1,22 @@
+{
+  "$schema": "levels/schema/entity_types.schema.json",
+  "types": {
+    "player_1":         { "id": 1,  "sprite": "player.png", "frames": 5, "row": 0 },
+    "player_2":         { "id": 2,  "sprite": "player.png", "frames": 5, "row": 1 },
+    "player_3":         { "id": 3,  "sprite": "player.png", "frames": 5, "row": 2 },
+    "player_4":         { "id": 4,  "sprite": "player.png", "frames": 5, "row": 3 },
+
+    "enemy_basic":      { "id": 10, "sprite": "enemy_basic.png", "frames": 8, "fps": 10 },
+    "enemy_wave":       { "id": 11, "sprite": "enemy_wave.png",  "frames": 6, "fps": 8 },
+    "enemy_tank":       { "id": 12, "sprite": "enemy_tank.png",  "frames": 4, "fps": 6 },
+
+    "player_missile":   { "id": 20, "sprite": "player_missile.png" },
+    "enemy_missile":    { "id": 21, "sprite": "enemy_missile.png", "frames": 4, "fps": 12 },
+
+    "rock":             { "id": 30, "sprite": "tiles.png", "tile": 0 },
+    "crate":            { "id": 31, "sprite": "tiles.png", "tile": 1 },
+    "spikes":           { "id": 32, "sprite": "tiles.png", "tile": 2 },
+
+    "boss_dobkeratops": { "id": 40, "sprite": "boss_dobkeratops.png", "frames": 4, "fps": 4 }
+  }
+}

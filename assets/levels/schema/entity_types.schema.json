@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entity_types.schema.json",
+  "title": "R-Type entity types",
+  "description": "Shared by the server and the client. The server reads only each name and its id (the entityType sent in ENTITY_SPAWN). Every other field is for the client, which uses it to build the entity's visual components.",
+  "type": "object",
+  "required": ["types"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "types": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "Unique. 1-4 are the player ships (= clientId); 10, 20 and 21 match protocol::EntityType." },
+          "sprite": { "type": "string", "description": "Client only: the texture file." }
+        }
+      }
+    }
+  }
+}

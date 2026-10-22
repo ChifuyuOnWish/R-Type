@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formations.schema.json",
+  "title": "R-Type formations",
+  "type": "object",
+  "required": ["formations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "formations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["slots"],
+        "additionalProperties": false,
+        "properties": {
+          "slots": {
+            "type": "array",
+            "description": "[x, y] offsets from the wave's anchor, in world units. x grows to the right (further off-screen), y grows downwards. One enemy per slot.",
+            "minItems": 1,
+            "items": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 }
+          },
+          "slotDelay": { "type": "number", "minimum": 0, "default": 0, "description": "Seconds between two slots spawning. Use it with identical offsets for a snake that follows one path." }
+        }
+      }
+    }
+  }
+}
