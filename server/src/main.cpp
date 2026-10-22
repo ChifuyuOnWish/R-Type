@@ -1,10 +1,12 @@
 #include "GameSession.hpp"
-#include "InfiniteMode.hpp"
 #include "NetworkServer.hpp"
+#include "level/LevelLoader.hpp"
+#include "modes/InfiniteMode.hpp"
 
 #include <atomic>
 #include <charconv>
 #include <csignal>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -30,13 +32,34 @@ bool parsePort(const char* text, std::uint16_t& port)
     return true;
 }
 
+int checkLevels(const char* dir)
+{
+    try {
+        const auto data = rtype::server::level::LevelLoader::load(dir);
+        std::size_t waves = 0;
+        for (const auto& level : data.levels)
+            waves += level.waves.size();
+        std::cout << "OK: " << data.levels.size() << " levels, " << waves << " waves, "
+                  << data.enemies.size() << " enemies, " << data.bosses.size() << " bosses, "
+                  << data.formations.size() << " formations\n";
+        return 0;
+    } catch (const rtype::server::level::LevelError& e) {
+        std::cerr << e.what() << '\n';
+        return 84;
+    }
+}
+
 } // namespace
 
 int main(int argc, char** argv)
 {
+    if (argc == 3 && std::strcmp(argv[1], "--check-levels") == 0)
+        return checkLevels(argv[2]);
+
     std::uint16_t port = 4242;
     if (argc > 2 || (argc == 2 && !parsePort(argv[1], port))) {
-        std::cerr << "usage: " << argv[0] << " [port]   (default 4242)\n";
+        std::cerr << "usage: " << argv[0] << " [port]   (default 4242)\n"
+                  << "       " << argv[0] << " --check-levels <dir>\n";
         return 84;
     }
     std::signal(SIGINT, onSignal);

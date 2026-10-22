@@ -37,3 +37,9 @@ CPMAddPackage(
         "GLFW_BUILD_X11 ON"
         "GLFW_BUILD_WAYLAND OFF"
 )
+
+CPMAddPackage(
+    NAME nlohmann_json
+    VERSION 3.11.3
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+)

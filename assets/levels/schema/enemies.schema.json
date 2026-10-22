@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "enemies.schema.json",
+  "title": "R-Type enemies and bosses",
+  "type": "object",
+  "required": [
+    "enemies"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "enemies": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/enemy"
+      }
+    },
+    "bosses": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/boss"
+      }
+    }
+  },
+  "$defs": {
+    "size": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "movement": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "straight",
+            "sine",
+            "dive",
+            "follow",
+            "stationary"
+          ],
+          "description": "Maps onto EnemyPattern in the engine."
+        },
+        "amplitude": {
+          "type": "number"
+        },
+        "frequency": {
+          "type": "number"
+        }
+      }
+    },
+    "weapon": {
+      "type": "object",
+      "required": [
+        "projectile",
+        "cooldown"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "projectile": {
+          "type": "string"
+        },
+        "cooldown": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "damage": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "aim": {
+          "enum": [
+            "forward",
+            "nearest_player"
+          ],
+          "default": "forward"
+        }
+      }
+    },
+    "drops": {
+      "type": "object",
+      "description": "Power-up id to drop chance (0 to 1), rolled once on death.",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "enemy": {
+      "type": "object",
+      "required": [
+        "sprite",
+        "health",
+        "hitbox",
+        "speed",
+        "movement"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "sprite": {
+          "type": "string",
+          "description": "What the client draws. Sent in ENTITY_SPAWN."
+        },
+        "health": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contactDamage": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1
+        },
+        "hitbox": {
+          "$ref": "#/$defs/size"
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0
+        },
+        "movement": {
+          "$ref": "#/$defs/movement"
+        },
+        "weapon": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/weapon"
+            }
+          ]
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "drops": {
+          "$ref": "#/$defs/drops"
+        }
+      }
+    },
+    "boss": {
+      "type": "object",
+      "required": [
+        "sprite",
+        "health",
+        "hitbox"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "sprite": {
+          "type": "string"
+        },
+        "health": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contactDamage": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1
+        },
+        "hitbox": {
+          "$ref": "#/$defs/size"
+        },
+        "entry": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from": {
+              "enum": [
+                "right",
+                "top",
+                "bottom"
+              ]
+            },
+            "stopAtX": {
+              "type": "number"
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "weakPoint": {
+          "type": "object",
+          "description": "Only this area takes full damage, the classic R-Type boss rule.",
+          "additionalProperties": false,
+          "properties": {
+            "offset": {
+              "$ref": "#/$defs/size"
+            },
+            "hitbox": {
+              "$ref": "#/$defs/size"
+            },
+            "damageMultiplier": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "description": "Tunable numbers only. Attack patterns and phases live in the boss's own class, registered under the same id in BossRegistry."
+    }
+  }
+}

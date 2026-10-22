@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "campaign.schema.json",
+  "title": "R-Type campaign",
+  "type": "object",
+  "required": ["levels"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "levels": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "Level files in play order, relative to this file." },
+    "lives": { "type": "integer", "minimum": 1, "default": 3 },
+    "scaling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "perExtraPlayer": {
+          "type": "object",
+          "description": "Added per player beyond the first, as a fraction. 0.25 with 4 players gives x1.75.",
+          "additionalProperties": false,
+          "properties": {
+            "enemyHealth": { "type": "number", "minimum": 0 },
+            "enemyCount": { "type": "number", "minimum": 0 },
+            "bossHealth": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

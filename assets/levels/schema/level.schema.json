@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "level.schema.json",
+  "title": "R-Type level",
+  "type": "object",
+  "required": ["name", "waves"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string", "description": "Shown on the stage intro screen." },
+    "background": { "type": "string", "description": "Asset id of the scrolling background." },
+    "music": { "type": "string", "description": "Asset id of the stage music." },
+    "seed": { "type": "integer", "description": "Seeds roster picks and random heights so a level plays the same every run. Leave out for a random seed." },
+    "waves": {
+      "type": "array",
+      "description": "Played in order. An empty list goes straight to the terrain and boss.",
+      "items": { "$ref": "#/$defs/wave" }
+    },
+    "terrain": {
+      "description": "Scrolling blocks. null for an open-space level.",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/terrain" }]
+    },
+    "boss": {
+      "description": "Comes in once every wave is cleared. null ends the level when the last wave is cleared.",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/boss" }]
+    }
+  },
+  "$defs": {
+    "wave": {
+      "type": "object",
+      "required": ["formation", "roster"],
+      "additionalProperties": false,
+      "properties": {
+        "formation": { "type": "string", "description": "A key of formations.json." },
+        "roster": {
+          "type": "object",
+          "description": "Enemy id (a key of enemies.json) to weight. Each formation slot picks one enemy by weight. Weights are normalised, so they need not add up to 1.",
+          "minProperties": 1,
+          "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "y": {
+          "description": "Height of the formation's anchor: world units (0 = top, 1080 = bottom), \"center\", or \"random\" (kept clear of the edges).",
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 1080 },
+            { "enum": ["center", "random"] }
+          ],
+          "default": "random"
+        },
+        "delay": { "type": "number", "minimum": 0, "default": 0, "description": "Seconds after the previous wave started, or after it was cleared when waitForClear is true." },
+        "waitForClear": { "type": "boolean", "default": false },
+        "repeat": { "type": "integer", "minimum": 1, "default": 1, "description": "How many times the formation is sent." },
+        "repeatDelay": { "type": "number", "minimum": 0, "default": 2.0 }
+      }
+    },
+    "terrain": {
+      "type": "object",
+      "required": ["scrollSpeed", "tileSize", "tiles", "map"],
+      "additionalProperties": false,
+      "properties": {
+        "startAt": { "type": "number", "minimum": 0, "default": 0, "description": "Seconds after the level starts when the first column enters on the right." },
+        "scrollSpeed": { "type": "number", "exclusiveMinimum": 0, "description": "World units per second." },
+        "tileSize": { "type": "number", "exclusiveMinimum": 0, "description": "60 gives 18 rows for a 1080-high world." },
+        "tiles": {
+          "type": "object",
+          "description": "One character per tile kind. A space is always empty.",
+          "propertyNames": { "minLength": 1, "maxLength": 1, "not": { "const": " " } },
+          "additionalProperties": { "$ref": "#/$defs/tile" }
+        },
+        "map": {
+          "type": "array",
+          "description": "Top row first. Every row has the same length.",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    },
+    "tile": {
+      "type": "object",
+      "required": ["sprite"],
+      "additionalProperties": false,
+      "properties": {
+        "sprite": { "type": "string" },
+        "contactDamage": { "type": "integer", "minimum": 0, "default": 1 },
+        "solid": { "type": "boolean", "default": true, "description": "Solid tiles stop missiles. Non-solid tiles (spikes, gas) only hurt on contact." },
+        "health": { "type": "integer", "minimum": 1, "description": "Leave out for an indestructible tile." }
+      }
+    },
+    "boss": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "A key of bosses in enemies.json." },
+        "delay": { "type": "number", "minimum": 0, "default": 3.0, "description": "Seconds after the last wave is cleared." }
+      }
+    }
+  }
+}
