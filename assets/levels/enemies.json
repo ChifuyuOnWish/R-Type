@@ -2,7 +2,7 @@
   "$schema": "schema/enemies.schema.json",
   "enemies": {
     "bydo_basic": {
-      "sprite": "enemy_basic",
+      "type": "enemy_basic",
       "health": 1,
       "contactDamage": 1,
       "hitbox": [64, 64],
@@ -12,7 +12,7 @@
       "score": 100
     },
     "bydo_wave": {
-      "sprite": "enemy_wave",
+      "type": "enemy_wave",
       "health": 2,
       "contactDamage": 1,
       "hitbox": [64, 48],
@@ -22,7 +22,7 @@
       "score": 150
     },
     "bydo_tank": {
-      "sprite": "enemy_tank",
+      "type": "enemy_tank",
       "health": 6,
       "contactDamage": 2,
       "hitbox": [96, 96],
@@ -35,7 +35,7 @@
   },
   "bosses": {
     "dobkeratops": {
-      "sprite": "boss_dobkeratops",
+      "type": "boss_dobkeratops",
       "health": 300,
       "contactDamage": 3,
       "hitbox": [400, 600],

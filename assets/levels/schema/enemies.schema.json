@@ -71,7 +71,8 @@
       "additionalProperties": false,
       "properties": {
         "projectile": {
-          "type": "string"
+          "type": "string",
+          "description": "A name from entity_types.json."
         },
         "cooldown": {
           "type": "number",
@@ -103,7 +104,7 @@
     "enemy": {
       "type": "object",
       "required": [
-        "sprite",
+        "type",
         "health",
         "hitbox",
         "speed",
@@ -111,10 +112,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "sprite": {
-          "type": "string",
-          "description": "What the client draws. Sent in ENTITY_SPAWN."
-        },
         "health": {
           "type": "integer",
           "minimum": 1
@@ -151,21 +148,22 @@
         },
         "drops": {
           "$ref": "#/$defs/drops"
+        },
+        "type": {
+          "type": "string",
+          "description": "A name from entity_types.json: what clients draw for this entity."
         }
       }
     },
     "boss": {
       "type": "object",
       "required": [
-        "sprite",
+        "type",
         "health",
         "hitbox"
       ],
       "additionalProperties": false,
       "properties": {
-        "sprite": {
-          "type": "string"
-        },
         "health": {
           "type": "integer",
           "minimum": 1
@@ -219,6 +217,10 @@
           "type": "integer",
           "minimum": 0,
           "default": 0
+        },
+        "type": {
+          "type": "string",
+          "description": "A name from entity_types.json: what clients draw for this entity."
         }
       },
       "description": "Tunable numbers only. Attack patterns and phases live in the boss's own class, registered under the same id in BossRegistry."

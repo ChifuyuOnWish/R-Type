@@ -101,7 +101,6 @@ std::vector<std::string> wrapped(const std::string& value, float width, float si
         while (end > 0 && measuredWidth(remaining.substr(0, end), size, measure) > width)
             end = previousCharacter(remaining, end);
         if (end == 0) {
-            // A single glyph wider than the viewport must still make progress.
             end = 1;
             while (end < remaining.size() &&
                    (static_cast<unsigned char>(remaining[end]) & 0xC0) == 0x80)

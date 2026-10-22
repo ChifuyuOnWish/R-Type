@@ -15,9 +15,9 @@
     "scrollSpeed": 120,
     "tileSize": 60,
     "tiles": {
-      "#": { "sprite": "rock", "contactDamage": 1, "solid": true },
-      "x": { "sprite": "crate", "contactDamage": 1, "solid": true, "health": 3 },
-      "^": { "sprite": "spikes", "contactDamage": 2, "solid": false }
+      "#": { "type": "rock", "contactDamage": 1, "solid": true },
+      "x": { "type": "crate", "contactDamage": 1, "solid": true, "health": 3 },
+      "^": { "type": "spikes", "contactDamage": 2, "solid": false }
     },
     "map": [
       "################################################################",

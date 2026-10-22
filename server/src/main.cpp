@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 
@@ -32,16 +33,22 @@ bool parsePort(const char* text, std::uint16_t& port)
     return true;
 }
 
-int checkLevels(const char* dir)
+int checkLevels(std::filesystem::path dir, std::filesystem::path types)
 {
+    dir = std::filesystem::absolute(dir).lexically_normal();
+    if (!dir.has_filename())
+        dir = dir.parent_path();
+    if (types.empty())
+        types = dir.parent_path() / "entity_types.json";
     try {
-        const auto data = rtype::server::level::LevelLoader::load(dir);
+        const auto data = rtype::server::level::LevelLoader::load(dir, types);
         std::size_t waves = 0;
         for (const auto& level : data.levels)
             waves += level.waves.size();
         std::cout << "OK: " << data.levels.size() << " levels, " << waves << " waves, "
                   << data.enemies.size() << " enemies, " << data.bosses.size() << " bosses, "
-                  << data.formations.size() << " formations\n";
+                  << data.formations.size() << " formations, " << data.entityTypes.size()
+                  << " entity types\n";
         return 0;
     } catch (const rtype::server::level::LevelError& e) {
         std::cerr << e.what() << '\n';
@@ -53,13 +60,13 @@ int checkLevels(const char* dir)
 
 int main(int argc, char** argv)
 {
-    if (argc == 3 && std::strcmp(argv[1], "--check-levels") == 0)
-        return checkLevels(argv[2]);
+    if ((argc == 3 || argc == 4) && std::strcmp(argv[1], "--check-levels") == 0)
+        return checkLevels(argv[2], argc == 4 ? argv[3] : "");
 
     std::uint16_t port = 4242;
     if (argc > 2 || (argc == 2 && !parsePort(argv[1], port))) {
         std::cerr << "usage: " << argv[0] << " [port]   (default 4242)\n"
-                  << "       " << argv[0] << " --check-levels <dir>\n";
+                  << "       " << argv[0] << " --check-levels <dir> [entity-types]\n";
         return 84;
     }
     std::signal(SIGINT, onSignal);
@@ -73,6 +80,7 @@ int main(int argc, char** argv)
     }
     std::cout << "r-type_server listening on UDP port " << net.localPort() << '\n';
 
+    // net is declared before session, so it outlives it.
     rtype::server::GameSession session(net, std::make_unique<rtype::server::InfiniteMode>());
     session.run(g_running);
 

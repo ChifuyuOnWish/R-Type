@@ -30,7 +30,6 @@ int main()
     assert(world.entities().at(1).y == 200.0F);
     assert(world.entities().at(2).x == 10.0F);
 
-    // Another chunk from the same tick must update without removing other entities.
     world.applySnapshot({10, {position(2, 300.0F, 400.0F)}});
     assert(world.entities().at(1).x == 100.0F);
     assert(world.entities().at(2).x == 300.0F);

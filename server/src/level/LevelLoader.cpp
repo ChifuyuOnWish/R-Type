@@ -36,7 +36,7 @@ json readFile(const std::filesystem::path& dir, const std::string& name)
     if (!in)
         throw LevelError(name + ": cannot open " + (dir / name).string());
     try {
-        return json::parse(in, nullptr, true, true); // allow exceptions, ignore // comments
+        return json::parse(in, nullptr, true, true);
     } catch (const json::parse_error& e) {
         throw LevelError(name + ": invalid JSON: " + e.what());
     }
@@ -108,6 +108,38 @@ float atLeast(float value, float min, const Where& at)
     return value;
 }
 
+using EntityTypes = std::map<std::string, std::uint16_t>;
+
+EntityTypes entityTypes(const json& v, const Where& at)
+{
+    EntityTypes types;
+    std::map<std::uint16_t, std::string> byId;
+    const json& list = member(v, "types", at);
+    if (!list.is_object() || list.empty())
+        (at / "types").fail("expected at least one type");
+    for (const auto& [name, def] : list.items()) {
+        const Where tat = at / "types" / name;
+        const int id = integer(member(def, "id", tat), tat / "id");
+        if (id < 1 || id > 65535)
+            (tat / "id").fail("must be between 1 and 65535");
+        const auto netId = static_cast<std::uint16_t>(id);
+        if (const auto taken = byId.find(netId); taken != byId.end())
+            (tat / "id")
+                .fail("id " + std::to_string(id) + " already used by '" + taken->second + "'");
+        byId.emplace(netId, name);
+        types.emplace(name, netId);
+    }
+    return types;
+}
+
+std::uint16_t netType(const std::string& name, const EntityTypes& types, const Where& at)
+{
+    const auto it = types.find(name);
+    if (it == types.end())
+        at.fail("unknown entity type '" + name + "'");
+    return it->second;
+}
+
 Vec2 vec2(const json& v, const Where& at)
 {
     if (!v.is_array() || v.size() != 2)
@@ -141,11 +173,12 @@ Movement movement(const json& v, const Where& at)
     (at / "type").fail("unknown movement '" + type + "'");
 }
 
-EnemyDef enemy(const std::string& id, const json& v, const Where& at)
+EnemyDef enemy(const std::string& id, const json& v, const EntityTypes& types, const Where& at)
 {
     EnemyDef e;
     e.id = id;
-    e.sprite = text(member(v, "sprite", at), at / "sprite");
+    e.type = text(member(v, "type", at), at / "type");
+    e.netType = netType(e.type, types, at / "type");
     e.health = integer(member(v, "health", at), at / "health");
     if (e.health < 1)
         (at / "health").fail("must be at least 1");
@@ -161,6 +194,7 @@ EnemyDef enemy(const std::string& id, const json& v, const Where& at)
         const Where wat = at / "weapon";
         WeaponDef weapon;
         weapon.projectile = text(member(w, "projectile", wat), wat / "projectile");
+        weapon.projectileNetType = netType(weapon.projectile, types, wat / "projectile");
         weapon.cooldown = number(member(w, "cooldown", wat), wat / "cooldown");
         if (weapon.cooldown <= 0.F)
             (wat / "cooldown").fail("must be above 0");
@@ -180,11 +214,12 @@ EnemyDef enemy(const std::string& id, const json& v, const Where& at)
     return e;
 }
 
-BossDef boss(const std::string& id, const json& v, const Where& at)
+BossDef boss(const std::string& id, const json& v, const EntityTypes& types, const Where& at)
 {
     BossDef b;
     b.id = id;
-    b.sprite = text(member(v, "sprite", at), at / "sprite");
+    b.type = text(member(v, "type", at), at / "type");
+    b.netType = netType(b.type, types, at / "type");
     b.health = integer(member(v, "health", at), at / "health");
     if (b.health < 1)
         (at / "health").fail("must be at least 1");
@@ -278,7 +313,7 @@ Wave wave(const json& v, const GameData& data, const Where& at)
     return w;
 }
 
-Terrain terrain(const json& v, const Where& at)
+Terrain terrain(const json& v, const EntityTypes& types, const Where& at)
 {
     Terrain t;
     t.startAt = atLeast(numberOr(v, "startAt", 0.F, at), 0.F, at / "startAt");
@@ -295,7 +330,8 @@ Terrain terrain(const json& v, const Where& at)
         if (key.size() != 1 || key == " ")
             tat.fail("a tile key is one character, and not a space");
         TileDef tile;
-        tile.sprite = text(member(def, "sprite", tat), tat / "sprite");
+        tile.type = text(member(def, "type", tat), tat / "type");
+        tile.netType = netType(tile.type, types, tat / "type");
         tile.contactDamage = integerOr(def, "contactDamage", 1, tat);
         tile.solid = !has(def, "solid") || boolean(def["solid"], tat / "solid");
         if (has(def, "health"))
@@ -338,7 +374,7 @@ Level level(const std::string& file, const json& v, const GameData& data)
         l.waves.push_back(wave(waves[i], data, at / "waves" / i));
 
     if (has(v, "terrain"))
-        l.terrain = terrain(v["terrain"], at / "terrain");
+        l.terrain = terrain(v["terrain"], data.entityTypes, at / "terrain");
     if (has(v, "boss")) {
         const json& b = v["boss"];
         const std::string id = text(member(b, "id", at / "boss"), at / "boss" / "id");
@@ -352,17 +388,22 @@ Level level(const std::string& file, const json& v, const GameData& data)
 
 } // namespace
 
-GameData LevelLoader::load(const std::filesystem::path& dir)
+GameData LevelLoader::load(const std::filesystem::path& dir,
+                           const std::filesystem::path& entityTypesFile)
 {
     GameData data;
+
+    const std::string typesName = entityTypesFile.filename().string();
+    data.entityTypes =
+        entityTypes(readFile(entityTypesFile.parent_path(), typesName), Where{typesName, ""});
 
     const json enemies = readFile(dir, "enemies.json");
     const Where eat{"enemies.json", ""};
     for (const auto& [id, def] : member(enemies, "enemies", eat).items())
-        data.enemies.emplace(id, enemy(id, def, eat / "enemies" / id));
+        data.enemies.emplace(id, enemy(id, def, data.entityTypes, eat / "enemies" / id));
     if (has(enemies, "bosses"))
         for (const auto& [id, def] : enemies["bosses"].items())
-            data.bosses.emplace(id, boss(id, def, eat / "bosses" / id));
+            data.bosses.emplace(id, boss(id, def, data.entityTypes, eat / "bosses" / id));
 
     const json formations = readFile(dir, "formations.json");
     const Where fat{"formations.json", ""};

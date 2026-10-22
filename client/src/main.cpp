@@ -55,7 +55,6 @@ rtype::gui::TextDraw label(const std::string& text, float x, float y)
     return result;
 }
 
-// "host:port" -> options.host / options.port
 void parseEndpoint(std::string_view value, NetworkOptions& options)
 {
     const auto colon = value.rfind(':');

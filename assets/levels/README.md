@@ -84,9 +84,9 @@ An ASCII map plus a legend, readable and editable in any text editor:
 "terrain": {
   "startAt": 4.0, "scrollSpeed": 120, "tileSize": 60,
   "tiles": {
-    "#": { "sprite": "rock",   "contactDamage": 1, "solid": true },
-    "x": { "sprite": "crate",  "contactDamage": 1, "solid": true, "health": 3 },
-    "^": { "sprite": "spikes", "contactDamage": 2, "solid": false }
+    "#": { "type": "rock",   "contactDamage": 1, "solid": true },
+    "x": { "type": "crate",  "contactDamage": 1, "solid": true, "health": 3 },
+    "^": { "type": "spikes", "contactDamage": 2, "solid": false }
   },
   "map": [ "######...", "    ####...", ... ]
 }
@@ -104,7 +104,7 @@ An ASCII map plus a legend, readable and editable in any text editor:
 
 - `WaveSystem` (from the gameplay fix) keeps its job but reads a `Level` struct instead of spawning a Bydo every 1 to 2 s. Each slot becomes one `_factory.create(...)` with `ComponentParams` filled from the enemy entry, so `health`, `hitbox`, `speed`, `movement` and `weapon` map almost 1:1 onto what `GameSystems.cpp` hard-codes today.
 - Terrain tiles become ordinary entities with `Position`, `Velocity{-scrollSpeed, 0}`, `Hitbox`, `Damage`, a team that hurts players, and `Health` when destructible. The existing `CollisionSystem` / `DamageSystem` and `ENTITY_SPAWN` replication then work unchanged. Spawn a column only when it is about to enter the screen, not the whole map at load, to keep the entity count and the network traffic low.
-- Only the server reads these files. Clients get everything through `ENTITY_SPAWN`; they need the `sprite` ids, which means a sprite id has to go into the spawn message (or a fixed `EntityType` per enemy, as now).
+- Only the server reads these files. Enemies, bosses, tiles and projectiles name a `type` from `../entity_types.json` (`assets/entity_types.json` in the repo). That file gives each type the id sent in `ENTITY_SPAWN`, plus visual fields (texture, frames, fps) that only the client reads. The server loader fails on an unknown type or a duplicate id.
 - Parse into plain structs once at load (`from_json` overloads), validate, and fail with `level_02.json: waves/3: unknown enemy 'bydo_tnak'`-style messages. Never read JSON in the game loop.
 
 ## Checking the files

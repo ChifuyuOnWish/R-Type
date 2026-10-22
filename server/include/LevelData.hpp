@@ -31,6 +31,7 @@ enum class Aim
 struct WeaponDef
 {
     std::string projectile;
+    std::uint16_t projectileNetType = 0;
     float cooldown = 1.F;
     int damage = 1;
     Aim aim = Aim::Forward;
@@ -45,7 +46,8 @@ struct Drop
 struct EnemyDef
 {
     std::string id;
-    std::string sprite;
+    std::string type;
+    std::uint16_t netType = 0;
     int health = 1;
     int contactDamage = 1;
     Vec2 hitbox;
@@ -72,11 +74,11 @@ struct WeakPoint
     float damageMultiplier = 1.F;
 };
 
-// Only the tunable numbers: each boss's attacks live in its own IBoss class.
 struct BossDef
 {
     std::string id;
-    std::string sprite;
+    std::string type;
+    std::uint16_t netType = 0;
     int health = 1;
     int contactDamage = 1;
     Vec2 hitbox;
@@ -107,7 +109,7 @@ struct YAnchor
         Random
     };
     Kind kind = Kind::Random;
-    float value = 0.F;
+    float value = 0.F; // Kind::Value only
 };
 
 struct Wave
@@ -123,7 +125,8 @@ struct Wave
 
 struct TileDef
 {
-    std::string sprite;
+    std::string type;
+    std::uint16_t netType = 0;
     int contactDamage = 1;
     bool solid = true;
     std::optional<int> health;
@@ -165,10 +168,11 @@ struct Scaling
 
 struct GameData
 {
+    std::map<std::string, std::uint16_t> entityTypes;
     std::map<std::string, EnemyDef> enemies;
     std::map<std::string, BossDef> bosses;
     std::map<std::string, Formation> formations;
-    std::vector<Level> levels; // campaign order
+    std::vector<Level> levels;
     int lives = 3;
     Scaling scaling;
 

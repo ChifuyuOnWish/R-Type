@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LevelData.hpp"
+#include "level/LevelData.hpp"
 
 #include <filesystem>
 #include <stdexcept>
@@ -17,7 +17,8 @@ public:
 class LevelLoader
 {
 public:
-    static GameData load(const std::filesystem::path& dir);
+    static GameData load(const std::filesystem::path& dir,
+                         const std::filesystem::path& entityTypes);
 };
 
 } // namespace rtype::server::level
