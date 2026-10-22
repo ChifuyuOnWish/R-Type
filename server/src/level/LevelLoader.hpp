@@ -1,6 +1,6 @@
 #pragma once
 
-#include "level/LevelData.hpp"
+#include "LevelData.hpp"
 
 #include <filesystem>
 #include <stdexcept>
