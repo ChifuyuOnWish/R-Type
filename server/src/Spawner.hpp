@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LevelData.hpp"
 #include "Messages.hpp"
 #include "NetworkEvent.hpp"
 #include "components/Components.hpp"
@@ -24,6 +25,8 @@ public:
     engine::Entity spawnProjectile(engine::Registry& registry, engine::Entity shooter,
                                    engine::Position from, unsigned type);
     engine::Entity spawnBasicEnemy(engine::Position position, float firstShotDelay);
+    engine::Entity spawnEnemy(const level::EnemyDef& def, engine::Position position, int health,
+                              float firstShotDelay);
 
 private:
     engine::Registry& _registry;

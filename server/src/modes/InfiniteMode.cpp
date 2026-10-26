@@ -2,6 +2,7 @@
 
 #include "World.hpp"
 #include "components/Components.hpp"
+#include "modes/ShipRules.hpp"
 
 #include <random>
 
@@ -15,9 +16,6 @@ constexpr float MaxSpawnInterval = 2.F;
 constexpr float SpawnMargin = 80.F;
 constexpr float MinFirstShot = 0.5F;
 constexpr float MaxFirstShot = 2.5F;
-constexpr float RespawnInvincibility = 2.F;
-constexpr float ShipStartX = 150.F;
-constexpr float ShipSpacing = 200.F;
 } // namespace
 
 void InfiniteMode::start(GameContext&)
@@ -39,22 +37,12 @@ void InfiniteMode::update(GameContext& ctx, float dt)
 
 void InfiniteMode::resolve(GameContext& ctx, float)
 {
-    Registry& registry = ctx.registry;
-    registry.each<Controllable, Health, Position>(
-        [&registry](Entity ship, Controllable&, Health& health, Position& position) {
-            if (health.current > 0)
-                return;
-            health.current = health.max;
-            position = Position{ShipStartX, WorldHeight / 2.F};
-            if (registry.hasComponent<Invincibility>(ship))
-                registry.getComponent<Invincibility>(ship).remaining = RespawnInvincibility;
-        });
+    respawnDeadShips(ctx.registry);
 }
 
 Entity InfiniteMode::spawnShip(GameContext& ctx, network::PeerId peer)
 {
-    return ctx.spawner.spawnPlayerShip(
-        peer, Position{ShipStartX, ShipSpacing * static_cast<float>(peer)});
+    return spawnShipInLane(ctx, peer);
 }
 
 ModeState InfiniteMode::state() const
