@@ -139,9 +139,10 @@ add_test(NAME renderer_tint COMMAND rtype_renderer_tint_test)
 
 
 
-add_executable(rtype_client_world_test ClientWorldTest.cpp)
+add_executable(rtype_client_world_test ClientWorldTest.cpp ../client/src/ClientSync.cpp
+    ../client/src/ClientEntityFactory.cpp ../client/src/ClientWorld.cpp)
 target_include_directories(rtype_client_world_test PRIVATE ../client/src)
-target_link_libraries(rtype_client_world_test PRIVATE rtype::protocol)
+target_link_libraries(rtype_client_world_test PRIVATE rtype::protocol rtype::engine)
 rtype_set_warnings(rtype_client_world_test)
 add_test(NAME client_world COMMAND rtype_client_world_test)
 
