@@ -1,58 +1,33 @@
 #pragma once
 
+#include "ClientSync.hpp"
+#include "ISystem.hpp"
 #include "Messages.hpp"
+#include "ecs/Registry.hpp"
 
-#include <cstdint>
-#include <unordered_map>
+#include <memory>
+#include <vector>
 
 namespace rtype::client {
-
-struct WorldEntity
-{
-    std::uint16_t type = 0;
-    float x = 0.0F;
-    float y = 0.0F;
-};
 
 class ClientWorld
 {
 public:
-    void spawn(const protocol::EntitySpawnMessage& message)
-    {
-        _entities.try_emplace(message.entityId, WorldEntity{message.entityType, message.x.toFloat(),
-                                                            message.y.toFloat()});
-    }
+    ClientWorld();
 
-    void destroy(const protocol::EntityDestroyMessage& message)
-    {
-        _entities.erase(message.entityId);
-    }
+    void spawn(const protocol::EntitySpawnMessage& message) { _sync.spawn(message); }
+    void destroy(const protocol::EntityDestroyMessage& message) { _sync.destroy(message); }
+    void applySnapshot(const protocol::SnapshotMessage& message) { _sync.applySnapshot(message); }
 
-    void applySnapshot(const protocol::SnapshotMessage& message)
-    {
-        if (_hasTick && message.serverTick != _lastTick &&
-            message.serverTick - _lastTick >= 0x80000000U)
-            return;
-        _hasTick = true;
-        _lastTick = message.serverTick;
-        for (const auto& entry : message.entries) {
-            const auto it = _entities.find(entry.entityId);
-            if (it == _entities.end())
-                continue;
-            it->second.x = entry.x.toFloat();
-            it->second.y = entry.y.toFloat();
-        }
-    }
+    void update(float dt);
 
-    [[nodiscard]] const std::unordered_map<std::uint32_t, WorldEntity>& entities() const noexcept
-    {
-        return _entities;
-    }
+    [[nodiscard]] engine::Registry& registry() noexcept { return _registry; }
+    [[nodiscard]] ClientSync& sync() noexcept { return _sync; }
 
 private:
-    std::unordered_map<std::uint32_t, WorldEntity> _entities;
-    std::uint32_t _lastTick = 0;
-    bool _hasTick = false;
+    engine::Registry _registry;
+    ClientSync _sync{_registry};
+    std::vector<std::unique_ptr<engine::ISystem>> _systems;
 };
 
 } // namespace rtype::client
