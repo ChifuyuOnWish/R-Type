@@ -1,9 +1,9 @@
 #include "ClientNetwork.hpp"
 #include "ClientWorld.hpp"
-#include "EntityType.hpp"
 #include "Gui.hpp"
 #include "MessageType.hpp"
 #include "Messages.hpp"
+#include "systems/RenderSystem.hpp"
 
 #include <array>
 #include <charconv>
@@ -32,20 +32,6 @@ struct NetworkOptions
     std::uint16_t port = 0;
     std::string name = "Player";
 };
-
-rtype::gui::SpriteDraw sprite(const std::string& texture, rtype::gui::GuiRectangle source,
-                              rtype::gui::GuiRectangle destination, std::uint32_t id, int layer)
-{
-    rtype::gui::SpriteDraw result;
-    result.entityId = {id, 0};
-    result.textureId = texture;
-    result.sourceRect = source;
-    destination.pos.x -= destination.width / 2.0F;
-    destination.pos.y -= destination.height / 2.0F;
-    result.destinationRect = destination;
-    result.layer = layer;
-    return result;
-}
 
 rtype::gui::TextDraw label(const std::string& text, float x, float y)
 {
@@ -105,43 +91,15 @@ void configureClient(int argc, char** argv, rtype::gui::GuiConfig& config,
     }
 }
 
-void addWorldSprites(rtype::gui::RenderScene& scene, const rtype::client::ClientWorld& world,
-                     const PlayerNames& playerNames)
-{
-    for (const auto& [entityId, entity] : world.entities()) {
-        const auto type = static_cast<std::uint16_t>(entity.type);
-        if (type >= static_cast<std::uint16_t>(proto::EntityType::Player1) &&
-            type <= static_cast<std::uint16_t>(proto::EntityType::Player4)) {
-            const std::uint32_t index =
-                type - static_cast<std::uint16_t>(proto::EntityType::Player1);
-            const float sourceY = 2.0F + static_cast<float>(index) * 17.0F;
-            scene.sprites.push_back(sprite("players", {{67.0F, sourceY}, 32.0F, 15.0F},
-                                           {{entity.x, entity.y}, 96.0F, 45.0F}, entityId, 10));
-            const auto name = playerNames.find(index + 1);
-            scene.sceneTexts.push_back(label(name != playerNames.end() ? name->second : "Player",
-                                             entity.x - 48.0F, entity.y - 45.0F));
-        } else if (type == static_cast<std::uint16_t>(proto::EntityType::EnemyBasic)) {
-            scene.sprites.push_back(sprite("enemy", {{5.0F, 6.0F}, 21.0F, 24.0F},
-                                           {{entity.x, entity.y}, 63.0F, 72.0F}, entityId, 10));
-        } else if (type == static_cast<std::uint16_t>(proto::EntityType::PlayerMissile)) {
-            scene.sprites.push_back(sprite("player-weapons", {{215.0F, 85.0F}, 16.0F, 12.0F},
-                                           {{entity.x, entity.y}, 48.0F, 36.0F}, entityId, 20));
-        } else if (type == static_cast<std::uint16_t>(proto::EntityType::EnemyMissile)) {
-            scene.sprites.push_back(sprite("enemy-weapons", {{136.0F, 6.0F}, 7.0F, 6.0F},
-                                           {{entity.x, entity.y}, 21.0F, 18.0F}, entityId, 20));
-        }
-    }
-}
-
-rtype::gui::RenderScene makeScene(const rtype::client::ClientWorld& world,
-                                  const PlayerNames& playerNames, bool online)
+rtype::gui::RenderScene makeScene(rtype::client::ClientWorld& world, const PlayerNames& playerNames,
+                                  bool online)
 {
     rtype::gui::RenderScene scene;
     scene.clearColor = {20, 24, 32, 255};
     scene.worldSize = {1920.0F, 1080.0F};
     scene.background.enabled = true;
     scene.background.scrollSpeed = 40.0F;
-    addWorldSprites(scene, world, playerNames);
+    rtype::client::addWorldSprites(scene, world.registry(), playerNames);
     scene.overlayTexts.push_back(label("R-Type", 20.0F, 20.0F));
     if (!online)
         scene.overlayTexts.push_back(
@@ -345,6 +303,7 @@ int main(int argc, char** argv)
 
             soundEvents.clear();
             network.update();
+            remoteWorld.update(gui.getFrameTime());
             gui.playAudio(soundEvents);
             if (network.isConnected())
                 network.sendUnreliable(proto::MessageType::Input,
