@@ -14,6 +14,19 @@ constexpr float EnemyMissileSpeed = 400.F;
 constexpr float MissileLifetime = 3.F;
 constexpr float EnemySpeed = 150.F;
 constexpr float EnemyFireCooldown = 2.5F;
+
+engine::EnemyPattern pattern(level::Movement movement)
+{
+    switch (movement) {
+    case level::Movement::Sine:
+        return engine::EnemyPattern::Sine;
+    case level::Movement::Follow:
+        return engine::EnemyPattern::Chase;
+    default:
+        return engine::EnemyPattern::Straight;
+    }
+}
+
 } // namespace
 
 Spawner::Spawner(Registry& registry, EntityFactory& factory, std::vector<GameEventMessage>& events)
@@ -68,6 +81,25 @@ Entity Spawner::spawnBasicEnemy(Position position, float firstShotDelay)
     p.team = EnemyTeam;
     const Entity enemy = _factory.create("enemy_basic", p);
     _registry.addComponent(enemy, NetType{static_cast<std::uint16_t>(EntityType::EnemyBasic)});
+    return enemy;
+}
+
+Entity Spawner::spawnEnemy(const level::EnemyDef& def, Position position, int health,
+                           float firstShotDelay)
+{
+    ComponentParams p;
+    p.position = position;
+    p.velocity = Velocity{-def.speed, 0.F};
+    p.health = Health{health, health};
+    p.damage = Damage{def.contactDamage};
+    p.hitbox = Hitbox{def.hitbox.x, def.hitbox.y};
+    p.behavior = EnemyBehavior{pattern(def.movement), def.speed, def.amplitude, def.frequency};
+    if (def.weapon)
+        p.weapon =
+            Weapon{def.weapon->cooldown, firstShotDelay, def.weapon->projectileNetType, 1.F, true};
+    p.team = EnemyTeam;
+    const Entity enemy = _factory.create("enemy_basic", p);
+    _registry.addComponent(enemy, NetType{def.netType});
     return enemy;
 }
 

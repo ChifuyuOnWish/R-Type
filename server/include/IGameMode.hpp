@@ -23,7 +23,6 @@ public:
     virtual void resolve(GameContext& ctx, float dt) = 0;
     virtual engine::Entity spawnShip(GameContext& ctx, network::PeerId peer) = 0;
     virtual void onPlayerLeft(GameContext& /*ctx*/, network::PeerId /*peer*/) {}
-
     virtual ModeState state() const = 0;
 };
 
