@@ -1,7 +1,6 @@
 #include "GameSession.hpp"
 #include "NetworkServer.hpp"
 #include "level/LevelLoader.hpp"
-#include "modes/LevelMode.hpp"
 
 #include <atomic>
 #include <charconv>
@@ -10,7 +9,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
-#include <memory>
 #include <string_view>
 
 namespace {
@@ -39,7 +37,7 @@ bool parsePort(std::string_view text, std::uint16_t& port)
 int checkLevels(std::filesystem::path dir, std::filesystem::path types)
 {
     dir = std::filesystem::absolute(dir).lexically_normal();
-    if (!dir.has_filename())
+    if (!dir.has_filename()) // "assets/levels/"
         dir = dir.parent_path();
     if (types.empty())
         types = dir.parent_path() / "entity_types.json";
@@ -92,7 +90,7 @@ int main(int argc, char** argv)
     }
     std::cout << "r-type_server listening on UDP port " << net.localPort() << '\n';
 
-    rtype::server::GameSession session(net, std::make_unique<rtype::server::LevelMode>(data, 0));
+    rtype::server::GameSession session(net, data);
     session.run(g_running);
 
     std::cout << "r-type_server: shutting down\n";

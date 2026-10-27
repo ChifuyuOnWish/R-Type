@@ -9,6 +9,8 @@ add_executable(r-type_server
     src/level/WaveDirector.cpp
     src/modes/ShipRules.cpp
     src/modes/LevelMode.cpp
+    src/modes/ModeFactory.cpp
+    src/modes/LobbyMode.cpp
 )
 target_include_directories(r-type_server PRIVATE include src src/modes)
 target_link_libraries(r-type_server PRIVATE rtype::protocol rtype::engine rtype::network nlohmann_json::nlohmann_json)

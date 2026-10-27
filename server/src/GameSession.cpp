@@ -1,6 +1,7 @@
 #include "GameSession.hpp"
 
 #include "ModeSystems.hpp"
+#include "ServerComponents.hpp"
 #include "World.hpp"
 #include "components/Components.hpp"
 #include "systems/BoundsSystem.hpp"
@@ -29,7 +30,8 @@ constexpr float PlayerSpeed = 400.F;
 constexpr float BoundsMargin = 100.F;
 } // namespace
 
-GameSession::GameSession(network::NetworkServer& net, std::unique_ptr<IGameMode> mode) : _net(net)
+GameSession::GameSession(network::NetworkServer& net, const level::GameData& data)
+    : _net(net), _modes(data)
 {
     _dispatcher.subscribe<DamageEvent>([this](const DamageEvent& ev) { onDamage(ev); });
     _dispatcher.subscribe<EntityDiedEvent>([this](const EntityDiedEvent& ev) { onDied(ev); });
@@ -50,15 +52,7 @@ GameSession::GameSession(network::NetworkServer& net, std::unique_ptr<IGameMode>
     _loop.addSystem(std::make_unique<BoundsSystem>(BoundsArea{0.F, 0.F, WorldWidth, WorldHeight},
                                                    BoundsMargin));
 
-    setMode(std::move(mode));
-}
-
-void GameSession::setMode(std::unique_ptr<IGameMode> mode)
-{
-    _mode = std::move(mode);
-    _modePtr = _mode.get();
-    if (_mode)
-        _mode->start(_ctx);
+    switchMode(_modes.lobby(LobbyPhase::Selecting, Selection{}));
 }
 
 void GameSession::run(const std::atomic<bool>& running)
@@ -84,6 +78,57 @@ void GameSession::step()
     _replicator.sync();
     _replicator.sendEvents(_gameEvents);
     _replicator.afterSteps(steps, _serverTick);
+
+    if (_mode->state() != ModeState::Running) {
+        switchMode(_mode->next(_modes));
+    } else if (_players.all().empty() && !_mode->lobbyPhase()) {
+        switchMode(_modes.lobby(LobbyPhase::Selecting, _mode->selection()));
+    }
+    sendLobbyState();
+}
+
+void GameSession::switchMode(std::unique_ptr<IGameMode> mode)
+{
+    clearWorld();
+    _mode = std::move(mode);
+    _modePtr = _mode.get();
+    _mode->start(_ctx);
+    for (const auto& [peer, player] : _players.all())
+        _players.setShip(peer, _mode->spawnShip(_ctx, peer));
+}
+
+void GameSession::clearWorld()
+{
+    std::vector<Entity> doomed;
+    _registry.each<NetType>([&doomed](Entity e, NetType&) { doomed.push_back(e); });
+    for (const Entity e : doomed)
+        _registry.destroyEntity(e);
+    for (const auto& [peer, player] : _players.all())
+        _players.setShip(peer, std::nullopt);
+}
+
+LobbyStateMessage GameSession::lobbyState() const
+{
+    LobbyStateMessage state;
+    state.phase = _mode->lobbyPhase().value_or(LobbyPhase::Playing);
+    const auto leader = _players.leader();
+    state.leaderId = leader ? static_cast<std::uint8_t>(*leader) : 0;
+    const Selection selection = _mode->selection();
+    state.kind = selection.kind;
+    state.level = static_cast<std::uint8_t>(selection.level);
+    state.unlocked = static_cast<std::uint8_t>(_modes.unlocked());
+    for (const auto& level : _modes.data().levels)
+        state.levelNames.push_back(level.name);
+    return state;
+}
+
+void GameSession::sendLobbyState()
+{
+    LobbyStateMessage state = lobbyState();
+    if (_lastLobbyState && *_lastLobbyState == state)
+        return;
+    _replicator.broadcast(state, true);
+    _lastLobbyState = std::move(state);
 }
 
 void GameSession::handleNetworkEvents()
@@ -108,17 +153,32 @@ void GameSession::onConnected(const network::Connected& ev)
                           ev.peerId);
     _replicator.sendWorldTo(ev.peerId);
     _players.add(ev.peerId, ev.name, _mode->spawnShip(_ctx, ev.peerId));
+    _replicator.sendTo(ev.peerId, lobbyState(), true);
 }
 
 void GameSession::onMessage(const network::MessageReceived& ev)
 {
-    if (ev.type != static_cast<std::uint8_t>(MessageType::Input))
-        return;
     ByteReader reader(ev.payload.data(), ev.payload.size());
-    const auto input = InputMessage::deserialize(reader);
-    if (!input)
-        return;
-    _players.applyInput(ev.peerId, *input, _registry);
+    switch (static_cast<MessageType>(ev.type)) {
+    case MessageType::Input:
+        if (const auto input = InputMessage::deserialize(reader))
+            _players.applyInput(ev.peerId, *input, _registry);
+        break;
+    case MessageType::LobbySelect:
+        if (_players.leader() != ev.peerId)
+            break;
+        if (const auto select = LobbySelectMessage::deserialize(reader))
+            _mode->onLobbySelect(*select);
+        break;
+    case MessageType::LobbyStart:
+        if (_players.leader() != ev.peerId)
+            break;
+        if (LobbyStartMessage::deserialize(reader))
+            _mode->onLobbyStart();
+        break;
+    default:
+        break;
+    }
 }
 
 void GameSession::onDisconnected(const network::Disconnected& ev)
@@ -128,8 +188,10 @@ void GameSession::onDisconnected(const network::Disconnected& ev)
         return;
     std::cout << "player " << ev.peerId << " left (reason " << static_cast<int>(ev.reason) << ")\n";
     _mode->onPlayerLeft(_ctx, ev.peerId);
-    _replicator.forget(player->ship);
-    _registry.destroyEntity(player->ship);
+    if (player->ship) {
+        _replicator.forget(*player->ship);
+        _registry.destroyEntity(*player->ship);
+    }
 
     PlayerLeftReason reason = PlayerLeftReason::Quit;
     if (ev.reason == network::DisconnectReason::Timeout)

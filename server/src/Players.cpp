@@ -1,10 +1,17 @@
 #include "Players.hpp"
 
+#include "components/Components.hpp"
+
 namespace rtype::server {
 
-Player& Players::add(network::PeerId id, const std::string& name, engine::Entity ship)
+Player& Players::add(network::PeerId id, const std::string& name,
+                     std::optional<engine::Entity> ship)
 {
-    auto [it, inserted] = _players.insert_or_assign(id, Player{name, ship});
+    Player player;
+    player.name = name;
+    player.ship = ship;
+    player.joinOrder = _nextJoin++;
+    auto [it, inserted] = _players.insert_or_assign(id, std::move(player));
     (void)inserted;
     return it->second;
 }
@@ -41,7 +48,7 @@ const Player* Players::find(network::PeerId id) const
 bool Players::isShip(engine::Entity entity) const
 {
     for (const auto& [_, player] : _players) {
-        if (player.ship == entity)
+        if (player.ship && *player.ship == entity)
             return true;
     }
     return false;
@@ -63,15 +70,36 @@ void Players::applyInput(network::PeerId id, const protocol::InputMessage& input
     player->lastInputTick = input.clientTick;
     player->hasInput = true;
 
-    if (!registry.isAlive(player->ship) ||
-        !registry.hasComponent<engine::Controllable>(player->ship))
+    if (!player->ship)
         return;
-    auto& c = registry.getComponent<engine::Controllable>(player->ship);
+    const engine::Entity ship = *player->ship;
+    if (!registry.isAlive(ship) || !registry.hasComponent<engine::Controllable>(ship))
+        return;
+    auto& c = registry.getComponent<engine::Controllable>(ship);
     c.up = (input.buttons & protocol::ButtonUp) != 0;
     c.down = (input.buttons & protocol::ButtonDown) != 0;
     c.left = (input.buttons & protocol::ButtonLeft) != 0;
     c.right = (input.buttons & protocol::ButtonRight) != 0;
     c.shoot = (input.buttons & protocol::ButtonShoot) != 0;
+}
+
+std::optional<network::PeerId> Players::leader() const
+{
+    std::optional<network::PeerId> leader;
+    std::uint64_t oldest = 0;
+    for (const auto& [id, player] : _players) {
+        if (!leader || player.joinOrder < oldest) {
+            leader = id;
+            oldest = player.joinOrder;
+        }
+    }
+    return leader;
+}
+
+void Players::setShip(network::PeerId id, std::optional<engine::Entity> ship)
+{
+    if (auto it = _players.find(id); it != _players.end())
+        it->second.ship = ship;
 }
 
 } // namespace rtype::server

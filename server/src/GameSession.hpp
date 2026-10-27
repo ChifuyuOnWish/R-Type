@@ -3,7 +3,10 @@
 #include "Events.hpp"
 #include "GameContext.hpp"
 #include "IGameMode.hpp"
+#include "LevelData.hpp"
+#include "LobbyMessages.hpp"
 #include "Messages.hpp"
+#include "ModeFactory.hpp"
 #include "NetworkServer.hpp"
 #include "Players.hpp"
 #include "Replicator.hpp"
@@ -16,6 +19,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -24,9 +28,8 @@ namespace rtype::server {
 class GameSession
 {
 public:
-    GameSession(network::NetworkServer& net, std::unique_ptr<IGameMode> mode);
+    GameSession(network::NetworkServer& net, const level::GameData& data);
     void run(const std::atomic<bool>& running);
-    void setMode(std::unique_ptr<IGameMode> mode);
 
 private:
     void step();
@@ -36,6 +39,11 @@ private:
     void onMessage(const network::MessageReceived& ev);
     void onDamage(const engine::DamageEvent& ev);
     void onDied(const engine::EntityDiedEvent& ev);
+
+    void switchMode(std::unique_ptr<IGameMode> mode);
+    void clearWorld();
+    protocol::LobbyStateMessage lobbyState() const;
+    void sendLobbyState();
 
     network::NetworkServer& _net;
     engine::Registry _registry;
@@ -48,8 +56,10 @@ private:
     Replicator _replicator{_net, _registry};
     Spawner _spawner{_registry, _factory, _gameEvents};
     GameContext _ctx{_registry, _spawner, _players, _gameEvents, _rng};
+    ModeFactory _modes;
     std::unique_ptr<IGameMode> _mode;
     IGameMode* _modePtr = nullptr;
+    std::optional<protocol::LobbyStateMessage> _lastLobbyState;
     std::uint32_t _serverTick = 0;
 };
 
