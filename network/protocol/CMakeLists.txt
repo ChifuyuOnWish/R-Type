@@ -2,6 +2,7 @@
 # used by the server and the client, built on top of rtype_network.
 add_library(rtype_protocol STATIC
     src/Messages.cpp
+    src/LobbyMessages.cpp
 )
 add_library(rtype::protocol ALIAS rtype_protocol)
 

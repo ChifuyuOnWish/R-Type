@@ -17,8 +17,11 @@ public:
     void start(GameContext& ctx) override;
     void update(GameContext& ctx, float dt) override;
     void resolve(GameContext& ctx, float dt) override;
-    engine::Entity spawnShip(GameContext& ctx, network::PeerId peer) override;
+    std::optional<engine::Entity> spawnShip(GameContext& ctx, network::PeerId peer) override;
     ModeState state() const override;
+    std::unique_ptr<IGameMode> next(ModeFactory& modes) override;
+    Selection selection() const override;
+
     std::size_t index() const;
 
 private:

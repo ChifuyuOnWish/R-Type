@@ -13,6 +13,9 @@ enum class MessageType : std::uint8_t
     EntityDestroy = 0x14,
     Snapshot = 0x15,
     GameEvent = 0x16,
+    LobbyState = 0x17,
+    LobbySelect = 0x18,
+    LobbyStart = 0x19,
 };
 
 } // namespace rtype::protocol

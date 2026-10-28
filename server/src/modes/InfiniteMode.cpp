@@ -1,8 +1,9 @@
 #include "InfiniteMode.hpp"
 
+#include "ModeFactory.hpp"
+#include "ShipRules.hpp"
 #include "World.hpp"
 #include "components/Components.hpp"
-#include "modes/ShipRules.hpp"
 
 #include <random>
 
@@ -40,7 +41,7 @@ void InfiniteMode::resolve(GameContext& ctx, float)
     respawnDeadShips(ctx.registry);
 }
 
-Entity InfiniteMode::spawnShip(GameContext& ctx, network::PeerId peer)
+std::optional<Entity> InfiniteMode::spawnShip(GameContext& ctx, network::PeerId peer)
 {
     return spawnShipInLane(ctx, peer);
 }
@@ -48,6 +49,16 @@ Entity InfiniteMode::spawnShip(GameContext& ctx, network::PeerId peer)
 ModeState InfiniteMode::state() const
 {
     return ModeState::Running;
+}
+
+std::unique_ptr<IGameMode> InfiniteMode::next(ModeFactory& modes)
+{
+    return modes.lobby(protocol::LobbyPhase::GameOver, selection());
+}
+
+Selection InfiniteMode::selection() const
+{
+    return Selection{protocol::GameKind::Infinite, 0};
 }
 
 } // namespace rtype::server
