@@ -56,3 +56,9 @@ they are separate from the supplied sprite collection. See
 
 The sprite sheets come from the asset collection provided to the team.
 No license information was included in the supplied archive.
+
+## Client interface assets
+
+[Menu artwork](ui/README.md) lists the optional PNG slots for the title, Settings,
+fields and buttons. [Menu font](fonts/README.md) explains local font setup and the
+redistribution status. These assets are optional; placeholders remain available.

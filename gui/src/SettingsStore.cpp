@@ -119,6 +119,8 @@ bool SettingsStore::load(const std::filesystem::path& path, GuiPreferences& outp
             next.audio.volume = number<float>(values.at("volume"));
         if (values.contains("muted"))
             next.audio.muted = boolean(values.at("muted"));
+        if (values.contains("show-fps"))
+            next.visuals.showFps = boolean(values.at("show-fps"));
         if (values.contains("motion"))
             next.visuals.backgroundMotion = boolean(values.at("motion"));
         if (values.contains("scale"))
@@ -160,6 +162,7 @@ bool SettingsStore::save(const std::filesystem::path& path, const GuiPreferences
         file.imbue(std::locale::classic());
         file << std::setprecision(9) << "version=1\nvolume=" << preferences.audio.volume
              << "\nmuted=" << preferences.audio.muted
+             << "\nshow-fps=" << preferences.visuals.showFps
              << "\nmotion=" << preferences.visuals.backgroundMotion
              << "\ntint=" << static_cast<int>(preferences.visuals.tint)
              << "\nscale=" << preferences.visuals.textScale

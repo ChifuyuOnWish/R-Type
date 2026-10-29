@@ -112,6 +112,7 @@ add_test(NAME gui_settings COMMAND rtype_gui_settings_test)
 add_executable(rtype_gui_settings_integration_test
     GuiSettingsIntegrationTest.cpp
     ../gui/src/Gui.cpp
+    ../gui/src/FrontendMenu.cpp
     ../gui/src/Window.cpp
     ../gui/src/InputReader.cpp
     ../gui/src/InputMapper.cpp
@@ -150,3 +151,19 @@ add_test(NAME client_world COMMAND rtype_client_world_test)
 target_include_directories(rtype_gui_settings_integration_test SYSTEM PRIVATE
     $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>
 )
+
+
+add_executable(rtype_frontend_menu_test FrontendMenuTest.cpp ../gui/src/FrontendMenu.cpp)
+target_include_directories(rtype_frontend_menu_test PRIVATE ../gui/include ../gui/src)
+target_compile_features(rtype_frontend_menu_test PRIVATE cxx_std_20)
+rtype_set_warnings(rtype_frontend_menu_test)
+add_test(NAME frontend_menu COMMAND rtype_frontend_menu_test)
+
+add_executable(rtype_client_session_test ClientSessionTest.cpp
+    ../client/src/ClientSession.cpp ../client/src/ClientNetwork.cpp
+    ../client/src/ClientSync.cpp ../client/src/ClientEntityFactory.cpp ../client/src/ClientWorld.cpp)
+target_include_directories(rtype_client_session_test PRIVATE ../client/src ../gui/include)
+target_link_libraries(rtype_client_session_test PRIVATE rtype::protocol rtype::engine)
+rtype_set_warnings(rtype_client_session_test)
+add_test(NAME client_session COMMAND rtype_client_session_test)
+set_tests_properties(client_session PROPERTIES TIMEOUT 30)

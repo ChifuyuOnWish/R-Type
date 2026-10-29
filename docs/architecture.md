@@ -103,6 +103,11 @@ types in `GuiTypes.hpp`. Client coordination decodes server state and submits
 complete scenes and sound events. The GUI owns window management, rendering,
 resources, local input, audio and Settings without deciding gameplay results.
 
+Client coordination also owns the connection and lobby lifecycle in `ClientSession`.
+It supplies frontend state and receives interface commands; `FrontendMenu` in
+`gui/` handles editing, navigation and drawing. Server lobby messages decide when
+the client enters gameplay. See [client interface](client-interface.md).
+
 The client requests a 1920 x 1080 window. The native window preserves 16:9,
 and the GUI scales the logical world to fit while keeping HUD coordinates in
 window pixels. See [GUI and client presentation](gui.md) for responsibilities,

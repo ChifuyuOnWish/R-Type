@@ -40,6 +40,37 @@ void press(Gui& gui, int key)
     presses[static_cast<std::size_t>(key)] = true;
     (void)poll(gui);
 }
+void clickSetting(Gui& gui, std::size_t id)
+{
+    SettingsMenu model;
+    model.open(gui.getPreferences());
+    model.select(id);
+    const auto hit = [&](std::size_t target) {
+        for (const auto& row :
+             model.rows({static_cast<float>(screenWidth), static_cast<float>(screenHeight)})) {
+            if (row.index != target)
+                continue;
+            mouse = {row.bounds.pos.x + row.bounds.width * 0.4F,
+                     row.bounds.pos.y + row.bounds.height / 2};
+            clicked = true;
+            (void)poll(gui);
+            return;
+        }
+        throw std::runtime_error("Settings control not found");
+    };
+    if (id <= 10 || id == 15)
+        hit(16 + model.category());
+    hit(id);
+}
+bool fpsVisible()
+{
+    for (const auto& draw : rendered.overlayTexts)
+        if (draw.text.starts_with("FPS:")) {
+            check(draw.position.x == 12 && draw.position.y == 8, "FPS is anchored at the top");
+            return true;
+        }
+    return false;
+}
 constexpr auto fire = static_cast<std::size_t>(PlayerAction::Fire);
 } // namespace
 
@@ -113,6 +144,10 @@ bool IsKeyPressed(int key)
 {
     return presses.at(static_cast<std::size_t>(key));
 }
+int GetCharPressed()
+{
+    return 0;
+}
 bool IsKeyPressedRepeat(int)
 {
     return false;
@@ -144,7 +179,24 @@ const std::filesystem::path& ResourceManager::getAssetRoot() const noexcept
 {
     return _impl->root;
 }
+bool ResourceManager::hasTexture(const std::string&) const
+{
+    return false;
+}
 void ResourceManager::clear() noexcept {}
+void ResourceManager::loadFont(const std::string&, const std::filesystem::path&, int) {}
+void ResourceManager::loadTexture(const std::string&, const std::filesystem::path&) {}
+GuiVector2 ResourceManager::getTextureSize(const std::string&) const
+{
+    return {100, 100};
+}
+GuiVector2 ResourceManager::measureText(const std::string&, const std::string& text, float size,
+                                        float spacing) const
+{
+    const auto result = MeasureTextEx({}, text.c_str(), size, spacing);
+    return {result.x, result.y};
+}
+
 struct AudioSystem::Impl
 {
     AudioSettings settings;
@@ -207,46 +259,43 @@ int main()
         (void)poll(gui);
         press(gui, KEY_F1);
         check(gui.isSettingsOpen(), "Settings reopen");
-        press(gui, KEY_DOWN);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 1);
         check(!gui.getPreferences().audio.muted, "Draft has not been applied");
-        for (int index = 0; index < 11; ++index) {
-            wheel = -1;
-            (void)poll(gui);
-        }
-        press(gui, KEY_ENTER);
-        check(gui.getPreferences().audio.muted, "Draft applied");
+        clickSetting(gui, 12);
+        check(gui.getPreferences().audio.muted, "Draft applied through fixed button");
+        for (int index = 0; index < 40; ++index)
+            gui.render({});
+        check(fpsVisible(), "FPS visible when enabled, including Settings");
+        clickSetting(gui, 15);
+        gui.render({});
+        check(!fpsVisible(), "FPS toggle previews immediately");
+        clickSetting(gui, 12);
+        check(!gui.getPreferences().visuals.showFps, "FPS option applied");
         GuiPreferences saved;
         std::string error;
-        check(SettingsStore::load(config.settingsPath, saved, error) && saved.audio.muted,
+        check(SettingsStore::load(config.settingsPath, saved, error) && saved.audio.muted &&
+                  !saved.visuals.showFps,
               "Applied preferences persisted");
         press(gui, KEY_ESCAPE);
         gui.close();
         gui.open(config);
-        check(gui.getPreferences().audio.muted, "Saved preferences restored on reopen");
+        check(gui.getPreferences().audio.muted && !gui.getPreferences().visuals.showFps,
+              "Saved preferences restored on reopen");
         (void)poll(gui);
-        mouse = {1200, 25};
+        mouse = {1240, 25};
         clicked = true;
         (void)poll(gui);
         check(gui.isSettingsOpen(), "Mouse settings button");
-        for (int index = 0; index < 4; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_RIGHT);
-        for (int index = 0; index < 8; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 4);
+        clickSetting(gui, 12);
         press(gui, KEY_ESCAPE);
         gui.render({});
         check(rendered.sceneTint.red == 255 && rendered.sceneTint.alpha == 38,
               "Tint preference reaches the renderer");
         check(!rendered.overlayTexts.empty(), "Settings button stays available");
         press(gui, KEY_F1);
-        for (int index = 0; index < 3; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_RIGHT);
-        for (int index = 0; index < 9; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 3);
+        clickSetting(gui, 12);
         press(gui, KEY_ESCAPE);
         RenderScene textScene;
         TextDraw label;
@@ -286,9 +335,25 @@ int main()
         screenHeight = 720;
         check(aspectNumerator == 16 && aspectDenominator == 9,
               "The native window is configured once to preserve the 16:9 aspect ratio");
+        RenderScene frontend;
+        frontend.frontend.page = FrontendPage::Connection;
+        gui.render(frontend);
+        check(!rendered.rectangles.empty(), "Frontend draws placeholders");
+        keys[KEY_SPACE] = true;
+        check(!poll(gui).heldActions[fire], "Frontend blocks gameplay actions");
+        keys = {};
+        presses[KEY_ENTER] = true;
+        check(poll(gui).frontend.command == FrontendCommand::Connect,
+              "Form submission reaches public action contract");
         press(gui, KEY_F1);
-        press(gui, KEY_UP);
-        press(gui, KEY_ENTER);
+        check(gui.isSettingsOpen(), "Settings reachable before connection");
+        press(gui, KEY_ESCAPE);
+        check(!gui.isSettingsOpen(), "Escape returns from Settings to frontend");
+        gui.render(frontend);
+        check(!rendered.rectangles.empty(), "Connection screen restored");
+        gui.render({});
+        press(gui, KEY_F1);
+        clickSetting(gui, 14);
         check(gui.shouldClose(), "Explicit menu quit");
         gui.close();
         std::filesystem::remove_all(root);

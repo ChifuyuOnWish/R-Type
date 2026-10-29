@@ -86,6 +86,36 @@ void menuTest()
         }
     }
     require(joined == longNotice, "Wrapped notice preserves words");
+    for (const auto viewport :
+         {GuiVector2{640, 360}, GuiVector2{1280, 720}, GuiVector2{1920, 1080}}) {
+        for (std::size_t category = 16; category < 20; ++category) {
+            menu.select(category);
+            for (const auto action : {11U, 12U, 13U, 14U}) {
+                bool visible = false;
+                for (const auto& row : menu.rows(viewport))
+                    if (row.index == action)
+                        visible = row.bounds.pos.y >= 0 &&
+                                  row.bounds.pos.y + row.bounds.height <= viewport.y;
+                require(visible, "Footer actions always visible in every category");
+            }
+            for (const auto& row : menu.rows(viewport))
+                require(row.bounds.pos.x >= 0 && row.bounds.pos.y >= 0 &&
+                            row.bounds.pos.x + row.bounds.width <= viewport.x &&
+                            row.bounds.pos.y + row.bounds.height <= viewport.y,
+                        "Settings controls fit supported window");
+        }
+    }
+    menu.select(15);
+    const bool fps = menu.draft().visuals.showFps;
+    (void)menu.handle(activate);
+    require(menu.draft().visuals.showFps != fps, "FPS toggle belongs to Display");
+    MenuInput nextCategory;
+    nextCategory.category = 1;
+    (void)menu.handle(nextCategory);
+    require(menu.category() == 1, "Tab selects Audio category");
+    menu.setArtwork("settings-background", {1280, 720});
+    require(menu.makeScene({1280, 720}).sprites.front().textureId == "ui-settings-background",
+            "Notebook sprite replaces drawn paper");
     MenuInput back;
     back.back = true;
     require(menu.handle(back) == MenuResult::Closed && !menu.isOpen(), "Back cancels draft");
@@ -100,16 +130,20 @@ void persistenceTest(const std::filesystem::path& root)
     preferences.keyboard.keys[0] = GuiKey::W;
     preferences.audio.muted = true;
     preferences.visuals.backgroundMotion = false;
+    preferences.visuals.showFps = false;
     preferences.visuals.textScale = 1.5F;
     preferences.visuals.tint = TintMode::Amber;
     preferences.visuals.tintOpacity = 0.4F;
     require(SettingsStore::save(path, preferences, error), "Save preferences");
     GuiPreferences loaded;
     require(SettingsStore::load(path, loaded, error) && loaded.keyboard.keys[0] == GuiKey::W &&
-                loaded.audio.muted && !loaded.visuals.backgroundMotion &&
+                loaded.audio.muted && !loaded.visuals.backgroundMotion && !loaded.visuals.showFps &&
                 loaded.visuals.textScale == 1.5F && loaded.visuals.tint == TintMode::Amber &&
                 loaded.visuals.tintOpacity == 0.4F,
             "Preference round trip");
+    std::ofstream(path) << "version=1\nvolume=0.5\n";
+    require(SettingsStore::load(path, loaded, error) && loaded.visuals.showFps,
+            "Old files retain default FPS preference");
     preferences.audio.volume = 0.2F;
     require(SettingsStore::save(path, preferences, error), "Replace existing file");
     require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.2F,
@@ -118,7 +152,8 @@ void persistenceTest(const std::filesystem::path& root)
          {std::string("version=9\n"), std::string("version=1\nvolume=nan\n"),
           std::string("version=1\nkey.0=999\n"), std::string("version=1\ntint=9\n"),
           std::string("version=1\ntint-opacity=0.6\n"), std::string("version=1\nscale=9\n"),
-          std::string("version=1\nmuted=0\nmuted=1\n"), std::string(17000, 'x')}) {
+          std::string("version=1\nshow-fps=2\n"), std::string("version=1\nmuted=0\nmuted=1\n"),
+          std::string(17000, 'x')}) {
         std::ofstream(path) << invalid;
         loaded.audio.volume = 0.7F;
         require(!SettingsStore::load(path, loaded, error) && !error.empty() &&

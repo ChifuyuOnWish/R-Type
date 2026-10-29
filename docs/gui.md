@@ -10,7 +10,7 @@ Paths below are relative to the repository root.
 
 | Area | Location | Responsibility |
 |------|----------|----------------|
-| Client coordination | `client/src/main.cpp`, `ClientNetwork.hpp`, `ClientWorld.hpp` | Decode server events, maintain visible entities and player names, send inputs, build scenes and sound events. |
+| Client coordination | `client/src/main.cpp`, `ClientSession.hpp`, `ClientNetwork.hpp`, `ClientWorld.hpp` | Decode server events, maintain visible entities and player names, send inputs, build scenes and sound events. |
 | Public GUI contract | `gui/src/IGui.hpp`, `gui/include/GuiTypes.hpp` | Define lifecycle, action states, scenes, status feedback, preferences and sound events without native dependency types. |
 | Window and rendering | `gui/src/Gui.cpp`, `Window.cpp`, `Renderer.cpp`, `ScrollingBackground.cpp`, `StatusPresenter.cpp` | Manage the frame, window, world scaling, draw order, starfield and status pages. |
 | Visual resources | `gui/src/ResourceManager.cpp`, `gui/src/detail/ResourceManagerData.hpp` | Own native textures and fonts and resolve IDs used in scene data. |
@@ -28,11 +28,12 @@ GLFW headers and symbols rather than installing a second GLFW library.
 
 ## Frame flow
 
-1. Call `pollActions()` once to obtain held, pressed and released actions.
-2. Drain network events on the client thread and update `ClientWorld` and names.
+1. Call `pollActions()` once to obtain gameplay actions and a frontend command.
+   Pass the frontend command to `ClientSession::handle()`.
+2. Call `ClientSession::update()` to drain network events and update the local world.
 3. Convert server gameplay events into `SoundEvent` values and call `playAudio()`.
-4. Serialize held actions into an `InputMessage` while connected.
-5. Build the current `RenderScene`, including connection feedback, and call
+4. `ClientSession` serializes held actions into an `InputMessage` during gameplay.
+5. Build the current `RenderScene`, including frontend state, and call
    `render()` even when Settings or a status page is visible.
 
 These are the steps used in `client/src/main.cpp`. Network transport runs on its
@@ -52,7 +53,9 @@ See [use the GUI](how-to/use-gui.md) for a minimal consumer and
 | `overlayTexts` | Text in window pixels, such as the title and FPS counter. |
 | `worldSize` | Logical world dimensions; `{0, 0}` keeps pixel coordinates. |
 | `background` | Whether the starfield is enabled, its color and scrolling speed. |
-| `feedback` | None, Connecting, Rejected, Disconnected or Error, with a message. |
+| `feedback` | Generic status-page feedback for GUI consumers. |
+| `frontend` | Connection form, loading, lobby or gameplay state supplied by client coordination. |
+| `PlayerActions::frontend` | Connection, cancellation, selection, start or disconnect command from the interface. |
 | `SoundEvent` | ID of a sound previously registered through `AudioSystem`. |
 
 The renderer retains no entities between frames. Submit an entity every frame
@@ -61,7 +64,7 @@ keeps network entity IDs in `GuiEntityId::index` and uses generation zero becaus
 the current wire IDs identify entities for the lifetime of the game.
 
 Sprites use top-left destination coordinates. Server positions are entity
-centers, so `main.cpp` subtracts half the sprite's width and height when building
+centers, so `client/src/systems/RenderSystem.hpp` subtracts half the sprite's width and height when building
 the destination rectangle. Player types select sprite variants; connected and
 joined-player messages provide the labels. Until a name is known, the label is
 `Player`.
@@ -87,10 +90,12 @@ The world rendering order is:
 4. Optional full-window scene tint.
 5. UI rectangles, then overlay text, including the Settings button.
 
-Settings replaces the game view when open. Otherwise, non-None status feedback
-replaces it with a readable status page. Neither case stops the client loop.
-The starfield uses elapsed frame time for scrolling. The HUD FPS count is an
-average refreshed approximately twice per second, separate from the FPS target.
+Settings replaces the current view when open. Connection and lobby state otherwise
+select the frontend screen. For other GUI consumers, non-None status feedback
+selects a generic status page. None of these views stops the client loop.
+The starfield uses elapsed frame time for scrolling. The GUI owns the FPS
+counter, averaged approximately twice per second. Display / Show FPS controls its
+visibility, independently of the target FPS; it stays at the top left across all views.
 
 ## Resource and audio lifecycle
 
@@ -120,3 +125,10 @@ the interface, resource errors, input mapping, Settings, status layouts,
 starfield motion, rendering order and native aspect-ratio configuration through
 fake boundaries. They cannot establish hardware readability, audio quality or
 successful multiplayer rendering on Linux and Windows; those need manual checks.
+
+
+## Connection and lobby screens
+
+The client starts on an editable connection form and follows server lobby state.
+See [client interface](client-interface.md) for navigation, module ownership,
+optional sprite slots, font setup and verification.

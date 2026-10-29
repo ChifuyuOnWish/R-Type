@@ -53,3 +53,12 @@ conflicting bindings. Invalid key values throw without changing the bindings.
 
 See [Settings](settings.md) for saving, restoring and local verification.
 
+
+
+## Connection and lobby
+
+Use Tab / Shift+Tab or Up / Down to select controls, Enter to confirm, and click
+a field to edit it. Backspace removes the last character. Escape cancels a pending
+connection or returns from its error page. F1 and the top-right control open Settings.
+Mode and level controls are available only to the lobby leader. See
+[client interface](client-interface.md).

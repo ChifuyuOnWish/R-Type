@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FrontendTypes.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -89,6 +91,7 @@ struct PlayerActions
     std::array<bool, playerActionCount> heldActions{};
     std::array<bool, playerActionCount> pressedActions{};
     std::array<bool, playerActionCount> releasedActions{};
+    FrontendAction frontend;
 };
 
 enum class GuiKey : std::size_t
@@ -162,6 +165,7 @@ struct VisualSettings
     float textScale = 1.0F;
     TintMode tint = TintMode::Off;
     float tintOpacity = 0.15F;
+    bool showFps = true;
 };
 
 struct GuiPreferences
@@ -215,6 +219,7 @@ struct RenderScene
     GuiColor sceneTint{0, 0, 0, 0};
     std::vector<RectangleDraw> rectangles;
     GuiVector2 worldSize;
+    FrontendState frontend;
 };
 
 } // namespace rtype::gui

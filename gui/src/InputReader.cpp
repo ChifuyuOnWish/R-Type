@@ -46,6 +46,10 @@ InputFrame InputReader::poll()
         KEY_RIGHT_SHIFT,
     };
     InputFrame frame;
+    for (int codepoint = GetCharPressed(); codepoint != 0; codepoint = GetCharPressed()) {
+        if (codepoint >= 32 && codepoint <= 126)
+            frame.text.push_back(static_cast<char>(codepoint));
+    }
     frame.keyboard.focused = IsWindowFocused();
     if (!frame.keyboard.focused) {
         return frame;
@@ -62,6 +66,13 @@ InputFrame InputReader::poll()
     frame.menu.back = IsKeyPressed(KEY_ESCAPE);
     frame.toggleSettings = IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_F1);
     frame.menu.cancelCapture = frame.toggleSettings;
+    frame.backspace = pressed(KEY_BACKSPACE);
+    frame.tab = IsKeyPressed(KEY_TAB);
+    frame.shift = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+    frame.menu.category = frame.tab ? (frame.shift ? -1 : 1) : 0;
+    frame.confirm = IsKeyPressed(KEY_ENTER);
+    frame.escape = IsKeyPressed(KEY_ESCAPE);
+    frame.settingsShortcut = IsKeyPressed(KEY_F1);
     const auto mouse = GetMousePosition();
     frame.mouse = {mouse.x, mouse.y};
     frame.mouseClick = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ClientComponents.hpp"
-#include "Gui.hpp"
+#include "GuiTypes.hpp"
 #include "components/Components.hpp"
 #include "ecs/Registry.hpp"
 

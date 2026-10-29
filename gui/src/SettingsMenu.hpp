@@ -3,6 +3,7 @@
 #include "GuiTypes.hpp"
 
 #include <functional>
+#include <map>
 #include <optional>
 
 namespace rtype::gui {
@@ -15,6 +16,7 @@ struct MenuInput
     bool back = false;
     bool cancelCapture = false;
     std::optional<GuiKey> key;
+    int category = 0;
 };
 
 enum class MenuResult
@@ -30,6 +32,7 @@ struct SettingsRow
     std::size_t index = 0;
     GuiRectangle bounds;
     std::string text;
+    bool adjustable = false;
 };
 
 class SettingsMenu
@@ -37,6 +40,8 @@ class SettingsMenu
 public:
     using TextMeasure = std::function<float(const std::string&, float)>;
     void setTextMeasure(TextMeasure measure);
+    void setArtwork(std::string name, GuiVector2 size);
+    [[nodiscard]] std::size_t category() const noexcept { return _category; }
     void open(const GuiPreferences& preferences);
     void close() noexcept;
     [[nodiscard]] bool isOpen() const noexcept { return _open; }
@@ -50,8 +55,11 @@ public:
     [[nodiscard]] RenderScene makeScene(GuiVector2 viewport) const;
 
 private:
-    [[nodiscard]] std::vector<std::string> footerLines(GuiVector2 viewport) const;
+    [[nodiscard]] std::vector<std::size_t> categoryRows() const;
     TextMeasure _measure;
+    std::map<std::string, GuiVector2> _artwork;
+    std::size_t _category = 0;
+    bool _dirty = false;
     bool _open = false;
     int _capture = 0;
     std::size_t _selected = 0;

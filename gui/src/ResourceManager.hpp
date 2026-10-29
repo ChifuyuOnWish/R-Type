@@ -26,6 +26,8 @@ public:
     [[nodiscard]] bool hasFont(const std::string& id) const;
     [[nodiscard]] GuiVector2 getTextureSize(const std::string& id) const;
     [[nodiscard]] int getFontBaseSize(const std::string& id) const;
+    [[nodiscard]] GuiVector2 measureText(const std::string& fontId, const std::string& text,
+                                         float size, float spacing = 1.0F) const;
     [[nodiscard]] const std::filesystem::path& getAssetRoot() const noexcept;
 
     void clear() noexcept;

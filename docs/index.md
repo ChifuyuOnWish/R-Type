@@ -12,3 +12,4 @@
 - [Technical and comparative study](comparative-study.md): technology decisions
 - [Accessibility](accessibility.md): available features and current limitations
 - [How-tos](how-to/README.md): step-by-step developer guides
+- [Client connection and lobby interface](client-interface.md)
