@@ -9,7 +9,7 @@
 namespace rtype::gui {
 namespace {
 
-constexpr std::size_t rowCount = 15;
+constexpr std::size_t rowCount = 24;
 constexpr std::array actionNames{"Up", "Down", "Left", "Right", "Fire"};
 constexpr std::array keyNames{
     "None", "Up", "Down",  "Left",      "Right",      "Space",      "A",          "B", "C", "D",
@@ -17,6 +17,22 @@ constexpr std::array keyNames{
     "O",    "P",  "Q",     "R",         "S",          "T",          "U",          "V", "W", "X",
     "Y",    "Z",  "Enter", "Left Ctrl", "Right Ctrl", "Left Shift", "Right Shift"};
 static_assert(keyNames.size() == guiKeyCount);
+constexpr std::array buttonNames{"None",
+                                 "D-pad Up",
+                                 "D-pad Down",
+                                 "D-pad Left",
+                                 "D-pad Right",
+                                 "South / A / Cross",
+                                 "East / B / Circle",
+                                 "West / X / Square",
+                                 "North / Y / Triangle",
+                                 "Left shoulder",
+                                 "Right shoulder",
+                                 "Left trigger",
+                                 "Right trigger",
+                                 "Left stick click",
+                                 "Right stick click"};
+static_assert(buttonNames.size() == guiGamepadButtonCount);
 std::string percent(float value)
 {
     return std::to_string(static_cast<int>(std::round(value * 100.0F))) + "%";
@@ -42,14 +58,26 @@ std::string rowText(std::size_t index, const GuiPreferences& preferences)
     case 5:
         return "Tint opacity: " + percent(preferences.visuals.tintOpacity);
     case 11:
-        return "Restore defaults";
+        return std::string("Gamepad: ") + (preferences.gamepad.enabled ? "On" : "Off");
     case 12:
-        return "Apply and save";
+        return "Controller: " + std::to_string(preferences.gamepad.device + 1);
     case 13:
-        return "Back";
+        return "Stick dead zone: " + percent(preferences.gamepad.deadZone);
     case 14:
+        return std::string("Left stick movement: ") +
+               (preferences.gamepad.leftStick ? "On" : "Off");
+    case 20:
+        return "Restore defaults";
+    case 21:
+        return "Apply and save";
+    case 22:
+        return "Back";
+    case 23:
         return "Quit application";
     default:
+        if (index >= 15)
+            return "Pad " + std::string(actionNames[index - 15]) + ": " +
+                   buttonNames[static_cast<std::size_t>(preferences.gamepad.buttons[index - 15])];
         return "Key " + std::string(actionNames[index - 6]) + ": " +
                keyNames[static_cast<std::size_t>(preferences.keyboard.keys[index - 6])];
     }
@@ -158,8 +186,8 @@ std::vector<std::string> SettingsMenu::footerLines(GuiVector2 viewport) const
     const float size = 14.0F * _draft.visuals.textScale;
     std::vector<std::string> result;
     for (const auto& value : std::array<std::string, 3>{
-             "Up/Down: select | L/R: edit",
-             isCapturing() ? "Esc/F1: cancel" : "Enter: edit | Esc: back",
+             "D-pad/stick or arrows: select",
+             isCapturing() ? "Start/Esc/F1: cancel" : "A/Enter: edit | B/Esc: back",
              _notice.empty() ? "Apply and save keeps changes; Back cancels the draft." : _notice}) {
         auto lines = wrapped(value, width, size, _measure);
         result.insert(result.end(), lines.begin(), lines.end());
@@ -189,6 +217,11 @@ void SettingsMenu::select(std::size_t row)
         _selected = row;
 }
 
+void SettingsMenu::setGamepadStatus(std::string status)
+{
+    _gamepadStatus = std::move(status);
+}
+
 void SettingsMenu::setNotice(std::string notice)
 {
     _notice = std::move(notice);
@@ -202,8 +235,14 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
         if (input.cancelCapture) {
             _capture = 0;
             _notice = "Binding change cancelled.";
-        } else if (input.key && static_cast<std::size_t>(*input.key) < guiKeyCount) {
+        } else if (_capture == 1 && input.key &&
+                   static_cast<std::size_t>(*input.key) < guiKeyCount) {
             replaceBinding(_draft.keyboard.keys, _selected - 6, *input.key);
+            _capture = 0;
+            _notice = "Binding changed. Apply and save to keep it.";
+        } else if (_capture == 2 && input.gamepadButton &&
+                   static_cast<std::size_t>(*input.gamepadButton) < guiGamepadButtonCount) {
+            replaceBinding(_draft.gamepad.buttons, _selected - 15, *input.gamepadButton);
             _capture = 0;
             _notice = "Binding changed. Apply and save to keep it.";
         }
@@ -252,23 +291,42 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
             0.0F, 0.5F);
         break;
     case 11:
+        _draft.gamepad.enabled = !_draft.gamepad.enabled;
+        break;
+    case 12:
+        _draft.gamepad.device = (_draft.gamepad.device + direction + 4) % 4;
+        break;
+    case 13:
+        _draft.gamepad.deadZone = std::clamp(
+            std::round((_draft.gamepad.deadZone + static_cast<float>(direction) * 0.05F) * 100.0F) /
+                100.0F,
+            0.05F, 0.8F);
+        break;
+    case 14:
+        _draft.gamepad.leftStick = !_draft.gamepad.leftStick;
+        break;
+    case 20:
         _draft = {};
         _notice = "Defaults restored. Apply to keep them.";
         break;
-    case 12:
+    case 21:
         return MenuResult::Apply;
-    case 13:
+    case 22:
         close();
         return MenuResult::Closed;
-    case 14:
+    case 23:
         close();
         return MenuResult::Quit;
     default:
-        if (input.horizontal < 0)
-            _draft.keyboard.keys[_selected - 6] = GuiKey::None;
-        else {
-            _capture = 1;
-            _notice = "Press a key. Escape or F1 cancels.";
+        if (input.horizontal < 0) {
+            if (_selected >= 15)
+                _draft.gamepad.buttons[_selected - 15] = GuiGamepadButton::None;
+            else
+                _draft.keyboard.keys[_selected - 6] = GuiKey::None;
+        } else {
+            _capture = _selected >= 15 ? 2 : 1;
+            _notice = _capture == 2 ? "Press a pad button. Start, Escape or F1 cancels."
+                                    : "Press a key. Start, Escape or F1 cancels.";
         }
         break;
     }
@@ -310,6 +368,9 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
     const float x = std::max(20.0F, (viewport.x - 900.0F) / 2.0F);
     constexpr GuiColor white{245, 245, 245, 255};
     text(scene, "Settings", {x, 16.0F}, 28.0F * scale, white);
+    if (!_gamepadStatus.empty())
+        text(scene, clipped(_gamepadStatus, viewport.x - x * 2.0F, 12.0F * scale, _measure),
+             {x, 45.0F * scale}, 12.0F * scale, {180, 195, 210, 255});
     for (const auto& row : rows(viewport)) {
         const bool selected = row.index == _selected;
         const GuiColor background =
@@ -318,18 +379,22 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
         const auto separator = row.text.find(": ");
         const bool hasValue = separator != std::string::npos;
         const auto label = (selected ? "> " : "  ") + row.text.substr(0, separator);
-        const float labelWidth = row.bounds.width - ((row.index <= 5) ? 86.0F : 8.0F);
+        const float labelWidth =
+            row.bounds.width -
+            ((row.index <= 5 || (row.index >= 11 && row.index <= 14)) ? 86.0F : 8.0F);
         const auto ink = white;
         text(scene, clipped(label, labelWidth, 18.0F * scale, _measure),
              {row.bounds.pos.x + 4.0F, row.bounds.pos.y + (hasValue ? 2.0F : 12.0F) * scale},
              18.0F * scale, ink);
         if (hasValue) {
-            const float valueWidth = row.bounds.width - ((row.index <= 5) ? 86.0F : 24.0F);
+            const float valueWidth =
+                row.bounds.width -
+                ((row.index <= 5 || (row.index >= 11 && row.index <= 14)) ? 86.0F : 24.0F);
             text(scene,
                  clipped(row.text.substr(separator + 2), valueWidth, 14.0F * scale, _measure),
                  {row.bounds.pos.x + 20.0F, row.bounds.pos.y + 25.0F * scale}, 14.0F * scale, ink);
         }
-        if ((row.index <= 5)) {
+        if (row.index <= 5 || (row.index >= 11 && row.index <= 14)) {
             text(scene, "<", {row.bounds.pos.x + row.bounds.width - 70.0F, row.bounds.pos.y + 3.0F},
                  fontSize, white);
             text(scene, ">", {row.bounds.pos.x + row.bounds.width - 32.0F, row.bounds.pos.y + 3.0F},

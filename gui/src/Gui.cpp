@@ -47,7 +47,7 @@ RenderScene withSettingsButton(RenderScene scene, GuiVector2 viewport, float sca
         scene.overlayTexts.push_back(std::move(label));
     };
     addLabel("Settings", 14.0F, 7.0F, {240, 244, 250, 255});
-    addLabel("F1 / Esc", 10.0F, 27.0F, {172, 185, 206, 255});
+    addLabel("F1 / Esc / Start", 10.0F, 27.0F, {172, 185, 206, 255});
     return scene;
 }
 
@@ -109,6 +109,7 @@ void Gui::applyPreferences(const GuiPreferences& preferences)
 {
     SettingsStore::validate(preferences);
     _input.setKeyBindings(preferences.keyboard);
+    _input.setGamepadSettings(preferences.gamepad);
     _audio.setSettings(preferences.audio);
     _preferences = preferences;
 }
@@ -116,6 +117,8 @@ void Gui::applyPreferences(const GuiPreferences& preferences)
 void Gui::open(const GuiConfig& config)
 {
     _window.open(config);
+    _reader.reset();
+    _reader.loadMappings(_resources.getAssetRoot() / "input" / "gamecontrollerdb.txt");
     _menu.setTextMeasure([](const std::string& value, float size) {
         return MeasureTextEx(GetFontDefault(), value.c_str(), size, 1.0F).x;
     });
@@ -167,7 +170,13 @@ PlayerActions Gui::pollActions()
 {
     if (!_window.isOpen())
         throw std::logic_error("Cannot poll actions before opening the GUI");
-    auto frame = _reader.poll();
+    auto frame = _reader.poll(_preferences.gamepad);
+    const auto device = std::to_string(_preferences.gamepad.device + 1);
+    _menu.setGamepadStatus(!_preferences.gamepad.enabled ? "Gamepad disabled"
+                           : frame.gamepad.connected
+                               ? "Active controller " + device + ": " + frame.gamepadName
+                           : frame.gamepadDetected ? "Controller " + device + ": layout unavailable"
+                                                   : "Controller " + device + ": not connected");
     bool handledToggle = false;
     if (frame.toggleSettings) {
         handledToggle = true;
@@ -198,7 +207,7 @@ PlayerActions Gui::pollActions()
                         continue;
                     _menu.select(row.index);
                     frame.menu.activate = true;
-                    if (row.index <= 5) {
+                    if (row.index <= 5 || (row.index >= 11 && row.index <= 14)) {
                         if (frame.mouse.x >= row.bounds.pos.x + row.bounds.width - 40.0F)
                             frame.menu.horizontal = 1;
                         else if (frame.mouse.x >= row.bounds.pos.x + row.bounds.width - 80.0F)
@@ -230,11 +239,12 @@ PlayerActions Gui::pollActions()
     }
     if (_waitForNeutral) {
         if (std::any_of(frame.keyboard.heldKeys.begin(), frame.keyboard.heldKeys.end(),
-                        [](bool held) { return held; }))
+                        [](bool held) { return held; }) ||
+            !gamepadIsNeutral(frame.gamepad, _preferences.gamepad))
             return _input.map(KeyboardState{false});
         _waitForNeutral = false;
     }
-    return _input.map(frame.keyboard);
+    return _input.map(frame.keyboard, frame.gamepad);
 }
 
 bool Gui::isSettingsOpen() const noexcept
