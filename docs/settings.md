@@ -2,7 +2,7 @@
 
 ## Open the menu
 
-Press F1 or Escape, or click the Settings button. The menu also remains
+Press F1 or Escape, press Start on the selected controller, or click the Settings button. The menu also remains
 available on connection status pages. Escape opens or closes Settings; use
 the window close button or Quit application to exit.
 
@@ -31,6 +31,11 @@ Menu controls stay fixed when gameplay controls are rebound.
 | Scene tint | Off, Red, Green, Blue, Amber | Off |
 | Tint opacity | 0 to 50%, steps of 5% | 15% |
 | Keyboard bindings | Movement and fire | Arrows and Space |
+| Gamepad | On / Off | On |
+| Controller | Slots 1 to 4 | 1 |
+| Stick dead zone | 5 to 80%, steps of 5% | 20% |
+| Left stick movement | On / Off | On |
+| Gamepad bindings | Movement and fire buttons | D-pad and South face button |
 
 The tint is a full-window colored rectangle blended over the game scene.
 It covers the background, sprites and scene text. UI rectangles, overlay text,
@@ -57,6 +62,25 @@ Escape or F1 cancels capture.
 
 Supported keys are arrows, Space, A to Z, Enter, left/right Control and
 left/right Shift. Escape and F1 are reserved for menu navigation.
+
+## Configure a controller
+
+Use Start / Menu to open Settings. D-pad or left stick moves the selection,
+Left/Right edits a value, South (A/Cross) activates a row and East (B/Circle)
+goes back. These menu controls stay fixed when gameplay buttons are rebound.
+
+Choose a controller slot, then Apply and save before configuring that device.
+The status line describes the active device, not an unapplied draft selection.
+Activate a Pad row and press a new controller button. The activating press is
+not captured as its own replacement. Conflicting gameplay bindings are swapped.
+Left clears a Pad binding. Start, Escape or F1 cancels capture; East can be
+assigned as a gameplay button during capture.
+
+The left stick always uses the movement actions when enabled; Pad bindings add
+buttons to those actions. Disable left-stick movement for a button-only setup.
+Disabling Gamepad or choosing an unconnected slot requires keyboard/mouse to
+restore a usable input device. No reconnect or rebind operation should produce
+an unintended shot: release the controls before resuming gameplay.
 
 ## Apply and cancel
 
@@ -88,8 +112,9 @@ An explicit `GuiConfig::settingsPath` replaces the default location. The client
 exposes it through `--settings path`. If no default directory is available,
 settings still apply for the session and saving reports an error.
 
-The version 1 text format stores volume, mute, background motion, text scale,
-tint mode/opacity and five keyboard bindings. Missing optional values use
+Existing version 1 files without gamepad entries remain valid and use default
+gamepad settings. The version 1 text format stores volume, mute, background motion, text scale,
+tint mode/opacity, five keyboard bindings and gamepad preferences. Missing optional values use
 defaults, and unknown entries are ignored. Unsupported versions, duplicate
 entries, invalid values or files larger than 16 KiB are rejected without
 partially applying settings.
@@ -157,3 +182,30 @@ boundaries. These tests do not validate actual window rendering or audio
 hardware. Record manual results on supported platforms before merging.
 
 
+
+
+## Gamepad verification
+
+Automated checks cover action transitions, dead zones, reconnect safety,
+keyboard coexistence, menu navigation, button capture, persistence and older
+keyboard-only settings. Native devices are replaced by injected states.
+
+Manual verification is still required on both platforms. Record the controller
+model, firmware if known, wired/Bluetooth connection, OS and result. Check every
+row, save/restart, focus changes, disconnect while firing, reconnect with a held
+button, and navigation on connection status pages. An empty result is pending,
+not a pass.
+
+| Platform | Controller / connection | Result |
+|----------|-------------------------|--------|
+| Linux | To record during testing | Pending |
+| Windows | To record during testing | Pending |
+
+
+## Included controller layouts
+
+Controller layouts are loaded from bundled data at startup. The included project
+mapping proposes support for the wired Elite 2 revision 0517 reported in testing.
+It reuses the known wired layout and remains pending hardware verification.
+Players do not need to create a mapping file for this entry. The entry is included in the bundled database, loaded automatically without
+a user-created mapping file.

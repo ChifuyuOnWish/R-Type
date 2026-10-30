@@ -140,6 +140,76 @@ void checkBindings()
             "One key may be bound to multiple actions");
 }
 
+void checkGamepad()
+{
+    InputMapper mapper;
+    KeyboardState keyboard;
+    GamepadState pad;
+    pad.connected = true;
+    (void)mapper.map(keyboard, pad);
+    pad.leftX = 0.19F;
+    require(!any(mapper.map(keyboard, pad).heldActions),
+            "Stick drift inside the dead zone is ignored");
+    pad.leftX = 0.7F;
+    auto actions = mapper.map(keyboard, pad);
+    require(actions.pressedActions[index(PlayerAction::MoveRight)],
+            "Stick produces a movement action");
+    require(!mapper.map(keyboard, pad).pressedActions[index(PlayerAction::MoveRight)],
+            "Held stick does not repeat press transitions");
+    pad.leftX = 0.F;
+    pad.heldButtons[static_cast<std::size_t>(GuiGamepadButton::South)] = true;
+    actions = mapper.map(keyboard, pad);
+    require(actions.pressedActions[index(PlayerAction::Fire)] &&
+                actions.releasedActions[index(PlayerAction::MoveRight)],
+            "Button and stick transitions");
+    keyboard.heldKeys[index(GuiKey::Space)] = true;
+    pad.connected = false;
+    actions = mapper.map(keyboard, pad);
+    require(actions.heldActions[index(PlayerAction::Fire)] &&
+                !actions.releasedActions[index(PlayerAction::Fire)],
+            "Unplugging the pad does not release a key that is still held");
+    keyboard = {};
+    actions = mapper.map(keyboard, pad);
+    require(actions.releasedActions[index(PlayerAction::Fire)], "Disconnect releases gamepad fire");
+    pad.connected = true;
+    require(!any(mapper.map(keyboard, pad).heldActions),
+            "Reconnect with a held button waits for neutral");
+    pad.heldButtons = {};
+    (void)mapper.map(keyboard, pad);
+    pad.heldButtons[static_cast<std::size_t>(GuiGamepadButton::South)] = true;
+    require(mapper.map(keyboard, pad).pressedActions[index(PlayerAction::Fire)],
+            "Neutral rearms the gamepad");
+    keyboard.focused = false;
+    require(mapper.map(keyboard, pad).releasedActions[index(PlayerAction::Fire)],
+            "Focus loss releases gamepad input");
+
+    GamepadSettings settings;
+    settings.buttons[index(PlayerAction::Fire)] = GuiGamepadButton::RightTrigger;
+    settings.deadZone = 0.4F;
+    mapper.setGamepadSettings(settings);
+    keyboard.focused = true;
+    pad = {};
+    pad.connected = true;
+    (void)mapper.map(keyboard, pad);
+    pad.leftX = 0.3F;
+    pad.heldButtons[static_cast<std::size_t>(GuiGamepadButton::RightTrigger)] = true;
+    actions = mapper.map(keyboard, pad);
+    require(actions.heldActions[index(PlayerAction::Fire)] &&
+                !actions.heldActions[index(PlayerAction::MoveRight)],
+            "Rebinding and custom dead zone");
+    settings.enabled = false;
+    mapper.setGamepadSettings(settings);
+    require(!any(mapper.map(keyboard, pad).heldActions), "A disabled gamepad produces no actions");
+    settings.deadZone = -0.1F;
+    bool rejected = false;
+    try {
+        mapper.setGamepadSettings(settings);
+    } catch (const std::invalid_argument&) {
+        rejected = true;
+    }
+    require(rejected, "Invalid gamepad preferences are rejected");
+}
+
 } // namespace
 
 int main()
@@ -147,4 +217,5 @@ int main()
     checkDefaultBindings();
     checkFocus();
     checkBindings();
+    checkGamepad();
 }

@@ -9,6 +9,7 @@ Assets are grouped by their main intended use:
 | boss/ | Large enemy sheets and associated parts or effects |
 | projectiles/ | Dedicated projectile and beam sheets |
 | effects/ | Dedicated explosion sheets |
+| input/ | Generic controller mapping database and its license |
 | audio/ | Generated placeholder effects used by server gameplay events |
 
 Names describe the artwork for this project's asset organization. They are not
@@ -56,3 +57,6 @@ they are separate from the supplied sprite collection. See
 
 The sprite sheets come from the asset collection provided to the team.
 No license information was included in the supplied archive.
+
+
+Controller mappings and their source/license are documented in [input/README.md](input/README.md).

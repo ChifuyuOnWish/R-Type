@@ -141,6 +141,40 @@ struct KeyBindings
                                                GuiKey::Right, GuiKey::Space};
 };
 
+enum class GuiGamepadButton : std::size_t
+{
+    None,
+    DpadUp,
+    DpadDown,
+    DpadLeft,
+    DpadRight,
+    South,
+    East,
+    West,
+    North,
+    LeftShoulder,
+    RightShoulder,
+    LeftTrigger,
+    RightTrigger,
+    LeftStick,
+    RightStick,
+    Count
+};
+
+inline constexpr std::size_t guiGamepadButtonCount =
+    static_cast<std::size_t>(GuiGamepadButton::Count);
+
+struct GamepadSettings
+{
+    bool enabled = true;
+    int device = 0;
+    float deadZone = 0.2F;
+    bool leftStick = true;
+    std::array<GuiGamepadButton, playerActionCount> buttons{
+        GuiGamepadButton::DpadUp, GuiGamepadButton::DpadDown, GuiGamepadButton::DpadLeft,
+        GuiGamepadButton::DpadRight, GuiGamepadButton::South};
+};
+
 struct AudioSettings
 {
     float volume = 1.0F;
@@ -169,6 +203,7 @@ struct GuiPreferences
     KeyBindings keyboard;
     AudioSettings audio{0.5F, false};
     VisualSettings visuals;
+    GamepadSettings gamepad;
 };
 
 struct RectangleDraw

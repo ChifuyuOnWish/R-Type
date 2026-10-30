@@ -152,7 +152,7 @@ RenderScene StatusPresenter::makeScene(const StatusFeedback& feedback, GuiVector
     }
     y += 16.0F;
 
-    const auto hints = wrap("F1 / Esc: settings", columnsFor(width, hintSize));
+    const auto hints = wrap("F1 / Esc / Start: settings", columnsFor(width, hintSize));
     const float hintY = viewport.y - margin - static_cast<float>(hints.size()) * (hintSize + 8.0F);
     const bool showHint = hintY >= y;
     const float bodyEnd = showHint ? hintY - 16.0F : viewport.y - margin;

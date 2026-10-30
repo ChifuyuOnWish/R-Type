@@ -49,9 +49,31 @@ void menuTest()
     cancel.cancelCapture = true;
     (void)menu.handle(cancel);
     require(menu.isOpen() && !menu.isCapturing(), "Capture cancellation keeps menu open");
-    menu.select(12);
+    menu.select(19);
+    (void)menu.handle(activate);
+    require(menu.isCapturing(), "Gamepad binding capture");
+    MenuInput button;
+    button.gamepadButton = GuiGamepadButton::DpadUp;
+    (void)menu.handle(button);
+    require(menu.draft().gamepad.buttons[4] == GuiGamepadButton::DpadUp &&
+                menu.draft().gamepad.buttons[0] == GuiGamepadButton::South,
+            "Gamepad binding conflicts swap");
+    menu.select(13);
+    for (int index = 0; index < 30; ++index)
+        (void)menu.handle(activate);
+    require(menu.draft().gamepad.deadZone == 0.8F, "Dead zone upper bound");
+    MenuInput left;
+    left.horizontal = -1;
+    for (int index = 0; index < 30; ++index)
+        (void)menu.handle(left);
+    require(menu.draft().gamepad.deadZone == 0.05F, "Dead zone lower bound");
+    menu.select(15);
+    (void)menu.handle(left);
+    require(menu.draft().gamepad.buttons[0] == GuiGamepadButton::None,
+            "A pad binding can be cleared");
+    menu.select(21);
     require(menu.handle(activate) == MenuResult::Apply, "Apply request");
-    menu.select(11);
+    menu.select(20);
     (void)menu.handle(activate);
     require(menu.draft().visuals.tint == TintMode::Off && !menu.draft().audio.muted,
             "Defaults restored in draft");
@@ -59,7 +81,8 @@ void menuTest()
     (void)menu.handle(activate);
     (void)menu.handle(activate);
     require(menu.draft().visuals.textScale == 1.5F, "Text size");
-    for (std::size_t row = 0; row < 15; ++row) {
+    menu.setGamepadStatus("Active controller 1: Test controller");
+    for (std::size_t row = 0; row < 24; ++row) {
         menu.select(row);
         bool selectedVisible = false;
         for (const auto& item : menu.rows({640, 360}))
@@ -99,6 +122,10 @@ void persistenceTest(const std::filesystem::path& root)
             "Missing file uses defaults");
     preferences.keyboard.keys[0] = GuiKey::W;
     preferences.audio.muted = true;
+    preferences.gamepad.device = 2;
+    preferences.gamepad.deadZone = 0.35F;
+    preferences.gamepad.leftStick = false;
+    preferences.gamepad.buttons[4] = GuiGamepadButton::RightShoulder;
     preferences.visuals.backgroundMotion = false;
     preferences.visuals.textScale = 1.5F;
     preferences.visuals.tint = TintMode::Amber;
@@ -108,14 +135,20 @@ void persistenceTest(const std::filesystem::path& root)
     require(SettingsStore::load(path, loaded, error) && loaded.keyboard.keys[0] == GuiKey::W &&
                 loaded.audio.muted && !loaded.visuals.backgroundMotion &&
                 loaded.visuals.textScale == 1.5F && loaded.visuals.tint == TintMode::Amber &&
-                loaded.visuals.tintOpacity == 0.4F,
+                loaded.visuals.tintOpacity == 0.4F && loaded.gamepad.device == 2 &&
+                loaded.gamepad.deadZone == 0.35F && !loaded.gamepad.leftStick &&
+                loaded.gamepad.buttons[4] == GuiGamepadButton::RightShoulder,
             "Preference round trip");
     preferences.audio.volume = 0.2F;
     require(SettingsStore::save(path, preferences, error), "Replace existing file");
     require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.2F,
             "Replacement loaded");
     for (const auto& invalid :
-         {std::string("version=9\n"), std::string("version=1\nvolume=nan\n"),
+         {std::string("version=9\n"), std::string("version=1\ngamepad.device=4\n"),
+          std::string("version=1\ngamepad.dead-zone=nan\n"),
+          std::string("version=1\ngamepad.dead-zone=0\n"),
+          std::string("version=1\ngamepad.dead-zone=1\n"),
+          std::string("version=1\ngamepad.button.4=999\n"), std::string("version=1\nvolume=nan\n"),
           std::string("version=1\nkey.0=999\n"), std::string("version=1\ntint=9\n"),
           std::string("version=1\ntint-opacity=0.6\n"), std::string("version=1\nscale=9\n"),
           std::string("version=1\nmuted=0\nmuted=1\n"), std::string(17000, 'x')}) {
@@ -125,6 +158,11 @@ void persistenceTest(const std::filesystem::path& root)
                     loaded.audio.volume == 0.7F,
                 "Invalid file does not partially change preferences");
     }
+    std::ofstream(path) << "version=1\nvolume=0.4\nkey.0=6\n";
+    require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.4F &&
+                loaded.gamepad.enabled && loaded.gamepad.device == 0 &&
+                loaded.gamepad.buttons[4] == GuiGamepadButton::South,
+            "Existing keyboard-only settings load with gamepad defaults");
     const auto blocked = root / "ordinary-file";
     std::ofstream(blocked) << "keep";
     require(!SettingsStore::save(blocked / "settings.conf", preferences, error),

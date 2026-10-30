@@ -83,6 +83,14 @@ void SettingsStore::validate(const GuiPreferences& preferences)
         if (static_cast<std::size_t>(key) >= guiKeyCount)
             throw std::invalid_argument("Invalid keyboard binding");
     }
+    if (preferences.gamepad.device < 0 || preferences.gamepad.device > 3 ||
+        !std::isfinite(preferences.gamepad.deadZone) || preferences.gamepad.deadZone < 0.05F ||
+        preferences.gamepad.deadZone > 0.8F)
+        throw std::invalid_argument("Invalid gamepad device or dead zone");
+    for (const auto button : preferences.gamepad.buttons) {
+        if (static_cast<std::size_t>(button) >= guiGamepadButtonCount)
+            throw std::invalid_argument("Invalid gamepad button binding");
+    }
 }
 
 bool SettingsStore::load(const std::filesystem::path& path, GuiPreferences& output,
@@ -133,6 +141,20 @@ bool SettingsStore::load(const std::filesystem::path& path, GuiPreferences& outp
                 next.keyboard.keys[index] =
                     static_cast<GuiKey>(number<std::size_t>(values.at(key)));
         }
+        if (values.contains("gamepad.enabled"))
+            next.gamepad.enabled = boolean(values.at("gamepad.enabled"));
+        if (values.contains("gamepad.device"))
+            next.gamepad.device = number<int>(values.at("gamepad.device"));
+        if (values.contains("gamepad.dead-zone"))
+            next.gamepad.deadZone = number<float>(values.at("gamepad.dead-zone"));
+        if (values.contains("gamepad.left-stick"))
+            next.gamepad.leftStick = boolean(values.at("gamepad.left-stick"));
+        for (std::size_t index = 0; index < playerActionCount; ++index) {
+            const auto key = "gamepad.button." + std::to_string(index);
+            if (values.contains(key))
+                next.gamepad.buttons[index] =
+                    static_cast<GuiGamepadButton>(number<std::size_t>(values.at(key)));
+        }
         validate(next);
         output = next;
         return true;
@@ -167,6 +189,13 @@ bool SettingsStore::save(const std::filesystem::path& path, const GuiPreferences
         for (std::size_t index = 0; index < playerActionCount; ++index)
             file << "key." << index << '='
                  << static_cast<std::size_t>(preferences.keyboard.keys[index]) << '\n';
+        file << "gamepad.enabled=" << preferences.gamepad.enabled
+             << "\ngamepad.device=" << preferences.gamepad.device
+             << "\ngamepad.dead-zone=" << preferences.gamepad.deadZone
+             << "\ngamepad.left-stick=" << preferences.gamepad.leftStick << '\n';
+        for (std::size_t index = 0; index < playerActionCount; ++index)
+            file << "gamepad.button." << index << '='
+                 << static_cast<std::size_t>(preferences.gamepad.buttons[index]) << '\n';
         file.flush();
         const bool written = static_cast<bool>(file);
         file.close();

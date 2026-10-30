@@ -15,6 +15,7 @@ struct MenuInput
     bool back = false;
     bool cancelCapture = false;
     std::optional<GuiKey> key;
+    std::optional<GuiGamepadButton> gamepadButton;
 };
 
 enum class MenuResult
@@ -45,6 +46,7 @@ public:
     [[nodiscard]] std::size_t selected() const noexcept { return _selected; }
     void select(std::size_t row);
     void setNotice(std::string notice);
+    void setGamepadStatus(std::string status);
     [[nodiscard]] MenuResult handle(const MenuInput& input);
     [[nodiscard]] std::vector<SettingsRow> rows(GuiVector2 viewport) const;
     [[nodiscard]] RenderScene makeScene(GuiVector2 viewport) const;
@@ -57,6 +59,7 @@ private:
     std::size_t _selected = 0;
     GuiPreferences _draft;
     std::string _notice;
+    std::string _gamepadStatus;
 };
 
 } // namespace rtype::gui
