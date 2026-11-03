@@ -12,7 +12,7 @@ See [controls](controls.md) and [Settings](settings.md).
 A selected gamepad can control gameplay and navigate Settings. Its movement
 buttons, fire button and stick dead zone are configurable and saved. Disconnecting
 it releases its actions. Native device compatibility and menu usability still
-require the platform checks listed in [Settings](settings.md#gamepad-verification).
+require the platform checks listed in [Settings](settings.md#local-checks).
 
 Limitations: no toggle-to-fire mode or one-handed preset.
 Holding Fire is reported continuously; client/game systems own firing behavior.

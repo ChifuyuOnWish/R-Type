@@ -5,12 +5,12 @@ For each choice: the alternatives considered, the comparison, and why we picked 
 ## Contents
 
 1. [Engine architecture](#1-engine-architecture)
-2. [Algorithms & data structures](#2-algorithms--data-structures)
+2. [Algorithms & data structures](#2-algorithms-data-structures)
    - [2.1 ECS component storage](#21-ecs-component-storage)
    - [2.2 Collision detection](#22-collision-detection)
    - [2.3 Game loop](#23-game-loop)
-   - [2.4 Communication between systems](#25-communication-between-systems)
-   - [2.5 Summary](#26-summary)
+   - [2.4 Communication between systems](#24-communication-between-systems)
+   - [2.5 Summary](#25-summary)
 3. [Decision and implementation consequences](#3-decision-and-implementation-consequences)
 4. [References](#4-references)
 

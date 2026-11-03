@@ -43,7 +43,7 @@ options shown at once. Reset, Apply & save, Back and Quit remain fixed.
 
 An optional notebook background is loaded from `assets/ui/settings-background.png`.
 Without it, the GUI draws light paper, horizontal rules and a margin. See the
-[artwork guide](../assets/ui/README.md) for alignment and optional button images.
+[artwork guide](https://github.com/ChifuyuOnWish/R-Type/blob/main/assets/ui/README.md) for alignment and optional button images.
 
 ## Available settings
 

@@ -39,8 +39,8 @@ keeps the existing serialized InputMessage and increasing client tick.
 The title, Settings gear, fields, action buttons and two modes have optional
 image slots. Missing button artwork falls back to the supplied paper variants, then rectangles.
 The missing title uses text directly over the background. See
-[menu artwork](../assets/ui/README.md) for the filenames and fallback rules and
-[menu font](../assets/fonts/README.md) for Holidays Homework setup and licensing.
+[menu artwork](https://github.com/ChifuyuOnWish/R-Type/blob/main/assets/ui/README.md) for the filenames and fallback rules and
+[menu font](https://github.com/ChifuyuOnWish/R-Type/blob/main/assets/fonts/README.md) for Holidays Homework setup and licensing.
 Settings is reachable through the top-right control or F1. Its categories and fixed
 bottom actions are documented in [Settings](settings.md). The connection/lobby
 background can be replaced by `assets/ui/background.png`. Escape closes Settings;
