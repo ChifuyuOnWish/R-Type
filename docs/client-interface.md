@@ -78,5 +78,7 @@ Manual checks still required:
 - All supported text scales and window sizes, with the final font and artwork.
 - Record screenshots after the final artwork is available.
 
-Gamepad integration belongs to #108 and is not included in this change based on
-main. Narration and color-vision assistance remain separate accessibility work.
+Gamepad support is integrated from #108. D-pad/stick navigation, South/A
+confirmation, East/B cancellation and Start for Settings are available alongside
+keyboard and mouse. Editing the connection text fields still uses a keyboard.
+Narration and color-vision assistance remain separate accessibility work.

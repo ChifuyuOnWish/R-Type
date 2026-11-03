@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -21,6 +22,11 @@ float wheel = 0;
 int exitKey = -1;
 int aspectNumerator = 0, aspectDenominator = 0;
 int screenWidth = 1280, screenHeight = 720;
+std::array<bool, 4> padConnected{};
+std::array<bool, 4> padMapped{true, true, true, true};
+std::array<std::array<bool, 32>, 4> padButtons{}, padPresses{};
+std::array<std::array<float, 6>, 4> padAxes{};
+int mappingsRegistered = 0;
 RenderScene rendered;
 void check(bool condition, const char* message)
 {
@@ -31,6 +37,7 @@ PlayerActions poll(Gui& gui)
 {
     auto result = gui.pollActions();
     presses = {};
+    padPresses = {};
     clicked = false;
     wheel = 0;
     return result;
@@ -58,8 +65,13 @@ void clickSetting(Gui& gui, std::size_t id)
         }
         throw std::runtime_error("Settings control not found");
     };
-    if (id <= 10 || id == 15)
-        hit(16 + model.category());
+    if (id <= 10 || id == 15 || (id >= 20 && id <= 28))
+        hit(model.category() == 4 ? 29 : 16 + model.category());
+    if (id >= 25 && id <= 28) {
+        // The Gamepad category scrolls while its permanent action bar stays visible.
+        for (std::size_t option = 20; option < id; ++option)
+            press(gui, KEY_DOWN);
+    }
     hit(id);
 }
 bool fpsVisible()
@@ -73,10 +85,54 @@ bool fpsVisible()
         }
     return false;
 }
+void padPress(Gui& gui, int button)
+{
+    padButtons[0][static_cast<std::size_t>(button)] = true;
+    padPresses[0][static_cast<std::size_t>(button)] = true;
+    (void)poll(gui);
+    padButtons[0][static_cast<std::size_t>(button)] = false;
+    (void)poll(gui);
+}
 constexpr auto fire = static_cast<std::size_t>(PlayerAction::Fire);
 } // namespace
 
 extern "C" {
+int glfwJoystickIsGamepad(int joystick)
+{
+    return padMapped.at(static_cast<std::size_t>(joystick)) ? GLFW_TRUE : GLFW_FALSE;
+}
+const char* glfwGetJoystickGUID(int)
+{
+    return "test-guid";
+}
+
+bool IsGamepadAvailable(int gamepad)
+{
+    return padConnected.at(static_cast<std::size_t>(gamepad));
+}
+const char* GetGamepadName(int)
+{
+    return "Test controller";
+}
+bool IsGamepadButtonDown(int gamepad, int button)
+{
+    return padButtons.at(static_cast<std::size_t>(gamepad)).at(static_cast<std::size_t>(button));
+}
+bool IsGamepadButtonPressed(int gamepad, int button)
+{
+    return padPresses.at(static_cast<std::size_t>(gamepad)).at(static_cast<std::size_t>(button));
+}
+float GetGamepadAxisMovement(int gamepad, int axis)
+{
+    return padAxes.at(static_cast<std::size_t>(gamepad)).at(static_cast<std::size_t>(axis));
+}
+int SetGamepadMappings(const char*)
+{
+    ++mappingsRegistered;
+    return 1;
+}
+void TraceLog(int, const char*, ...) {}
+
 GLFWwindow* glfwGetCurrentContext()
 {
     static int token;
@@ -240,8 +296,12 @@ int main()
         GuiConfig config;
         config.audioEnabled = false;
         config.settingsPath = (root / "settings.conf").string();
-        Gui gui;
+        const auto assets = root / "assets";
+        std::filesystem::create_directories(assets / "input");
+        std::ofstream(assets / "input" / "gamecontrollerdb.txt") << "test mapping";
+        Gui gui(assets);
         gui.open(config);
+        check(mappingsRegistered == 1, "The controller mapping database loads at startup");
         check(exitKey == KEY_NULL, "Escape reserved for menu");
         (void)poll(gui);
         keys[KEY_SPACE] = true;
@@ -397,6 +457,69 @@ int main()
         gui.render(frontend);
         check(!rendered.rectangles.empty(), "Connection screen restored");
         gui.render({});
+        InputReader reader;
+        padConnected[0] = true;
+        padMapped[0] = false;
+        auto rawInput = reader.poll();
+        check(rawInput.gamepadDetected && !rawInput.gamepad.connected,
+              "An unmapped controller is detected but does not produce gameplay input");
+        padMapped[0] = true;
+        padConnected[1] = true;
+        padAxes[1][GAMEPAD_AXIS_LEFT_X] = 0.8F;
+        GamepadSettings secondPad;
+        secondPad.device = 1;
+        rawInput = reader.poll(secondPad);
+        check(rawInput.gamepad.connected && rawInput.gamepad.leftX == 0.8F &&
+                  rawInput.menu.horizontal == 0,
+              "Selected controller is sampled but held navigation waits for neutral");
+        padAxes[1][GAMEPAD_AXIS_LEFT_X] = 0;
+        (void)reader.poll(secondPad);
+        padAxes[1][GAMEPAD_AXIS_LEFT_X] = 0.8F;
+        check(reader.poll(secondPad).menu.horizontal == 1, "Neutral controller can navigate");
+        check(reader.poll(secondPad).menu.horizontal == 0,
+              "Held navigation waits before repeating");
+        bool repeated = false;
+        for (int frame = 0; frame < 30; ++frame)
+            repeated |= reader.poll(secondPad).menu.horizontal == 1;
+        check(repeated, "Held stick navigation repeats after a delay");
+        focused = false;
+        check(!reader.poll(secondPad).menu.activate && !reader.poll(secondPad).keyboard.focused,
+              "Unfocused controller input does not navigate menus");
+        focused = true;
+        padConnected[0] = false;
+        check(!reader.poll().gamepad.connected, "Disconnection is sampled");
+        padConnected[1] = false;
+        padAxes[1] = {};
+        padConnected[0] = true;
+        (void)poll(gui);
+        padButtons[0][GAMEPAD_BUTTON_RIGHT_FACE_DOWN] = true;
+        check(poll(gui).pressedActions[fire], "Gamepad gameplay fire");
+        padConnected[0] = false;
+        check(poll(gui).releasedActions[fire], "Unplugging releases gamepad fire");
+        padConnected[0] = true;
+        check(!poll(gui).heldActions[fire], "Reconnected held fire waits for neutral");
+        padButtons[0] = {};
+        (void)poll(gui);
+        padPress(gui, GAMEPAD_BUTTON_MIDDLE_RIGHT);
+        check(gui.isSettingsOpen(), "Start opens categorized Settings");
+        padPress(gui, GAMEPAD_BUTTON_LEFT_TRIGGER_1);
+        for (int row = 0; row < 8; ++row)
+            padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+        padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
+        padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
+        check(gui.isSettingsOpen(), "East is captured without closing Settings");
+        padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+        padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+        padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
+        check(gui.getPreferences().gamepad.buttons[fire] == GuiGamepadButton::East,
+              "Gamepad-only navigation applies a binding through the fixed action bar");
+        padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
+        check(!gui.isSettingsOpen(), "East closes Settings outside capture");
+        padButtons[0][GAMEPAD_BUTTON_RIGHT_FACE_RIGHT] = true;
+        check(poll(gui).pressedActions[fire], "Rebound button drives gameplay");
+        padButtons[0] = {};
+        (void)poll(gui);
+        padConnected[0] = false;
         press(gui, KEY_F1);
         clickSetting(gui, 14);
         check(gui.shouldClose(), "Explicit menu quit");

@@ -9,6 +9,7 @@ Assets are grouped by their main intended use:
 | boss/ | Large enemy sheets and associated parts or effects |
 | projectiles/ | Dedicated projectile and beam sheets |
 | effects/ | Dedicated explosion sheets |
+| input/ | Generic controller mapping database and its license |
 | audio/ | Generated placeholder effects used by server gameplay events |
 
 Names describe the artwork for this project's asset organization. They are not
@@ -62,3 +63,5 @@ No license information was included in the supplied archive.
 [Menu artwork](ui/README.md) lists the optional PNG slots for the title, Settings,
 fields and buttons. [Menu font](fonts/README.md) explains local font setup and the
 redistribution status. These assets are optional; placeholders remain available.
+
+Controller mappings and their source/license are documented in [input/README.md](input/README.md).

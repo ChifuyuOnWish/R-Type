@@ -240,7 +240,7 @@ FrontendAction FrontendMenu::handle(const InputFrame& frame, GuiVector2 viewport
                 (_selected == 1 || digit || (_selected == 2 && character == '.')))
                 target.push_back(character);
         }
-        if (frame.confirm)
+        if (frame.confirm || (frame.menu.activate && frame.menu.gamepadButton))
             return activate(4);
     }
     const int direction = frame.tab ? (frame.shift ? -1 : 1) : frame.menu.vertical;
@@ -262,7 +262,7 @@ FrontendAction FrontendMenu::handle(const InputFrame& frame, GuiVector2 viewport
     } else if (!editing && (frame.confirm || frame.menu.activate)) {
         return activate(_selected);
     }
-    if (frame.escape &&
+    if ((frame.escape || frame.menu.back) &&
         (_state.page == FrontendPage::Connecting || _state.page == FrontendPage::Waiting ||
          _state.page == FrontendPage::Error))
         return command(FrontendCommand::Cancel);

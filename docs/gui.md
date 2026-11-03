@@ -14,13 +14,14 @@ Paths below are relative to the repository root.
 | Public GUI contract | `gui/src/IGui.hpp`, `gui/include/GuiTypes.hpp` | Define lifecycle, action states, scenes, status feedback, preferences and sound events without native dependency types. |
 | Window and rendering | `gui/src/Gui.cpp`, `Window.cpp`, `Renderer.cpp`, `ScrollingBackground.cpp`, `StatusPresenter.cpp` | Manage the frame, window, world scaling, draw order, scrolling paper, fallback starfield and status pages. |
 | Visual resources | `gui/src/ResourceManager.cpp`, `gui/src/detail/ResourceManagerData.hpp` | Own native textures and fonts and resolve IDs used in scene data. |
-| Input and preferences | `gui/src/InputReader.cpp`, `InputMapper.cpp`, `SettingsMenu.cpp`, `SettingsStore.cpp` | Read keyboard/mouse state, map actions, edit preferences and persist applied settings. |
+| Input and preferences | `gui/src/InputReader.cpp`, `InputMapper.cpp`, `SettingsMenu.cpp`, `SettingsStore.cpp` | Read keyboard/mouse/gamepad state, map actions, edit preferences and persist applied settings. |
 | Audio | `gui/src/AudioSystem.cpp` | Own the device, sound resources and overlapping playback voices. |
 
 Native raylib types stay in implementation files and the private resource data
 header. `detail/` contains implementation data shared by the resource manager
 and renderer; it is not part of the client contract. GLFW calls for the native
-aspect-ratio constraint stay in `Window.cpp`. The project uses raylib's bundled
+aspect-ratio constraint stay in `Window.cpp`; controller mapping detection stays
+in `InputReader.cpp`. The project uses raylib's bundled
 GLFW headers and symbols rather than installing a second GLFW library.
 
 `IGui` is sufficient for frame processing. Concrete `Gui::resources()` and
@@ -38,7 +39,8 @@ GLFW headers and symbols rather than installing a second GLFW library.
 
 These are the steps used in `client/src/main.cpp`. Network transport runs on its
 own thread; scene construction and native GUI calls remain on the client thread.
-Opening Settings releases gameplay actions without stopping network updates.
+Keyboard and the selected controller share the same action contract. Controller
+mappings remain implementation details of the GUI. Opening Settings releases gameplay actions without stopping network updates.
 Native input events collected by rendering are sampled on the next iteration.
 
 See [use the GUI](how-to/use-gui.md) for a minimal consumer and
@@ -150,3 +152,8 @@ Turning off background motion freezes the current offset. Opening Settings or
 returning to a frontend page also stops background updates; resuming gameplay
 continues from the previous offset. A new GUI initialization resets it. If the
 texture is absent, the existing starfield remains available as a fallback.
+
+The categorized Settings menu includes Gamepad controls alongside keyboard and
+visual settings. LB/RB changes categories. Native controller mapping, neutral
+input gates, disconnection handling and saved pad preferences remain active.
+The Gamepad category scrolls its options while retaining the fixed action bar.

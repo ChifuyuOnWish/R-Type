@@ -49,6 +49,28 @@ void menuTest()
     cancel.cancelCapture = true;
     (void)menu.handle(cancel);
     require(menu.isOpen() && !menu.isCapturing(), "Capture cancellation keeps menu open");
+    menu.select(28);
+    (void)menu.handle(activate);
+    require(menu.isCapturing(), "Gamepad binding capture");
+    MenuInput button;
+    button.gamepadButton = GuiGamepadButton::DpadUp;
+    (void)menu.handle(button);
+    require(menu.draft().gamepad.buttons[4] == GuiGamepadButton::DpadUp &&
+                menu.draft().gamepad.buttons[0] == GuiGamepadButton::South,
+            "Gamepad binding conflicts swap");
+    menu.select(22);
+    for (int index = 0; index < 30; ++index)
+        (void)menu.handle(activate);
+    require(menu.draft().gamepad.deadZone == 0.8F, "Dead zone upper bound");
+    MenuInput left;
+    left.horizontal = -1;
+    for (int index = 0; index < 30; ++index)
+        (void)menu.handle(left);
+    require(menu.draft().gamepad.deadZone == 0.05F, "Dead zone lower bound");
+    menu.select(24);
+    (void)menu.handle(left);
+    require(menu.draft().gamepad.buttons[0] == GuiGamepadButton::None,
+            "A pad binding can be cleared");
     menu.select(12);
     require(menu.handle(activate) == MenuResult::Apply, "Apply request");
     menu.select(11);
@@ -59,7 +81,7 @@ void menuTest()
     (void)menu.handle(activate);
     (void)menu.handle(activate);
     require(menu.draft().visuals.textScale == 1.5F, "Text size");
-    for (std::size_t row = 0; row < 15; ++row) {
+    for (std::size_t row = 0; row < 30; ++row) {
         menu.select(row);
         bool selectedVisible = false;
         for (const auto& item : menu.rows({640, 360}))
@@ -129,6 +151,10 @@ void persistenceTest(const std::filesystem::path& root)
             "Missing file uses defaults");
     preferences.keyboard.keys[0] = GuiKey::W;
     preferences.audio.muted = true;
+    preferences.gamepad.device = 2;
+    preferences.gamepad.deadZone = 0.35F;
+    preferences.gamepad.leftStick = false;
+    preferences.gamepad.buttons[4] = GuiGamepadButton::RightShoulder;
     preferences.visuals.backgroundMotion = false;
     preferences.visuals.showFps = false;
     preferences.visuals.textScale = 1.5F;
@@ -139,7 +165,9 @@ void persistenceTest(const std::filesystem::path& root)
     require(SettingsStore::load(path, loaded, error) && loaded.keyboard.keys[0] == GuiKey::W &&
                 loaded.audio.muted && !loaded.visuals.backgroundMotion && !loaded.visuals.showFps &&
                 loaded.visuals.textScale == 1.5F && loaded.visuals.tint == TintMode::Amber &&
-                loaded.visuals.tintOpacity == 0.4F,
+                loaded.visuals.tintOpacity == 0.4F && loaded.gamepad.device == 2 &&
+                loaded.gamepad.deadZone == 0.35F && !loaded.gamepad.leftStick &&
+                loaded.gamepad.buttons[4] == GuiGamepadButton::RightShoulder,
             "Preference round trip");
     std::ofstream(path) << "version=1\nvolume=0.5\n";
     require(SettingsStore::load(path, loaded, error) && loaded.visuals.showFps,
@@ -149,11 +177,15 @@ void persistenceTest(const std::filesystem::path& root)
     require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.2F,
             "Replacement loaded");
     for (const auto& invalid :
-         {std::string("version=9\n"), std::string("version=1\nvolume=nan\n"),
-          std::string("version=1\nkey.0=999\n"), std::string("version=1\ntint=9\n"),
-          std::string("version=1\ntint-opacity=0.6\n"), std::string("version=1\nscale=9\n"),
-          std::string("version=1\nshow-fps=2\n"), std::string("version=1\nmuted=0\nmuted=1\n"),
-          std::string(17000, 'x')}) {
+         {std::string("version=1\ngamepad.device=4\n"),
+          std::string("version=1\ngamepad.dead-zone=nan\n"),
+          std::string("version=1\ngamepad.dead-zone=0\n"),
+          std::string("version=1\ngamepad.dead-zone=1\n"),
+          std::string("version=1\ngamepad.button.4=999\n"), std::string("version=9\n"),
+          std::string("version=1\nvolume=nan\n"), std::string("version=1\nkey.0=999\n"),
+          std::string("version=1\ntint=9\n"), std::string("version=1\ntint-opacity=0.6\n"),
+          std::string("version=1\nscale=9\n"), std::string("version=1\nshow-fps=2\n"),
+          std::string("version=1\nmuted=0\nmuted=1\n"), std::string(17000, 'x')}) {
         std::ofstream(path) << invalid;
         loaded.audio.volume = 0.7F;
         require(!SettingsStore::load(path, loaded, error) && !error.empty() &&

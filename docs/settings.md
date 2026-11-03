@@ -3,7 +3,8 @@
 ## Open the menu
 
 Press F1 or click the top-right Settings control from the connection screen,
-lobby or game. Escape also opens Settings during gameplay. Escape or F1 closes
+lobby or game. Start also opens Settings with a connected gamepad. Escape also opens
+Settings during gameplay. Escape, F1 or Start closes
 the menu, or cancels an active key capture first. Quit game is always available
 in the bottom action bar.
 
@@ -11,11 +12,11 @@ Use a window of at least 640 x 360.
 
 | Control | Effect |
 |---------|--------|
-| Tab / Shift+Tab | Next / previous category |
+| Tab / Shift+Tab or LB/RB | Next / previous category |
 | Up / Down | Select an option or bottom action in the current category |
 | Left / Right | Change a value |
-| Enter or Space | Activate the selected row |
-| Escape or F1 | Back, or cancel key capture |
+| Enter, Space or South/A | Activate the selected row |
+| Escape, F1, Start or East/B | Back; Start/Escape/F1 cancels capture, while East/B can be rebound |
 | Mouse wheel | Move the selection |
 | Click a row | Activate it |
 | Click its left/right arrow | Decrease/increase a value |
@@ -25,7 +26,7 @@ Menu controls stay fixed when gameplay controls are rebound.
 ## Layout and categories
 
 The menu uses the window width and height instead of a fixed 900-pixel column.
-Category buttons on the left select Display, Audio, Controls and Accessibility.
+Category buttons on the left select Display, Audio, Controls, Accessibility and Gamepad.
 Options are placed on notebook lines. Reset, Apply & save, Back and Quit game
 remain visible at the bottom in every category, without scrolling to find them.
 Text grows with the window and the configured text scale. On small windows, long
@@ -33,7 +34,12 @@ labels fit within their available area.
 
 Display contains text size and Show FPS. Audio contains volume and mute. Controls
 contains the keyboard bindings. Accessibility contains background motion, scene
-tint and tint strength. Changing category preserves the draft.
+tint and tint strength. Gamepad contains controller selection, dead zone, stick
+movement and button bindings. Changing category preserves the draft.
+
+LB/RB also changes categories. The Gamepad list scrolls through its nine options
+with Up/Down or the D-pad; the selected option remains visible, with at most five
+options shown at once. Reset, Apply & save, Back and Quit remain fixed.
 
 An optional notebook background is loaded from `assets/ui/settings-background.png`.
 Without it, the GUI draws light paper, horizontal rules and a margin. See the
@@ -51,6 +57,11 @@ Without it, the GUI draws light paper, horizontal rules and a margin. See the
 | Scene tint | Off, Red, Green, Blue, Amber | Off |
 | Tint opacity | 0 to 50%, steps of 5% | 15% |
 | Keyboard bindings | Movement and fire | Arrows and Space |
+| Gamepad | On / Off | On |
+| Controller | Slots 1 to 4 | 1 |
+| Stick dead zone | 5 to 80%, steps of 5% | 20% |
+| Left stick movement | On / Off | On |
+| Gamepad bindings | Movement and fire buttons | D-pad and South face button |
 
 The tint is a full-window colored rectangle blended over the game scene.
 It covers the background, sprites and scene text. UI rectangles, overlay text,
@@ -65,7 +76,7 @@ sprite destinations, origins and scene text are scaled to fit that world in
 the window; overlay text and Settings keep their screen-space layout. The client must choose suitable
 HUD positions and wrapping for larger text.
 
-Disabling background motion freezes the starfield. It does not pause gameplay,
+Disabling background motion freezes the scrolling paper or fallback starfield. It does not pause gameplay,
 stop network updates or hide entities.
 
 ## Rebind keys
@@ -77,6 +88,25 @@ Escape or F1 cancels capture.
 
 Supported keys are arrows, Space, A to Z, Enter, left/right Control and
 left/right Shift. Escape and F1 are reserved for menu navigation.
+
+## Configure a controller
+
+Use Start / Menu to open Settings. D-pad or left stick moves the selection,
+Left/Right edits a value, South (A/Cross) activates a row and East (B/Circle)
+goes back. These menu controls stay fixed when gameplay buttons are rebound.
+
+Choose a controller slot, then Apply and save before configuring that device.
+The status line describes the active device, not an unapplied draft selection.
+Activate a Pad row and press a new controller button. The activating press is
+not captured as its own replacement. Conflicting gameplay bindings are swapped.
+Left clears a Pad binding. Start, Escape or F1 cancels capture; East can be
+assigned as a gameplay button during capture.
+
+The left stick always uses the movement actions when enabled; Pad bindings add
+buttons to those actions. Disable left-stick movement for a button-only setup.
+Disabling Gamepad or choosing an unconnected slot requires keyboard/mouse to
+restore a usable input device. No reconnect or rebind operation should produce
+an unintended shot: release the controls before resuming gameplay.
 
 ## Apply and cancel
 

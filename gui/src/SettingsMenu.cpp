@@ -10,10 +10,10 @@
 namespace rtype::gui {
 namespace {
 
-constexpr std::size_t rowCount = 20;
+constexpr std::size_t rowCount = 30;
 constexpr float firstPaperLine = 107.0F / 360.0F;
 constexpr float paperLineSpacing = 30.0F / 360.0F;
-constexpr std::array categoryNames{"Display", "Audio", "Controls", "Accessibility"};
+constexpr std::array categoryNames{"Display", "Audio", "Controls", "Accessibility", "Gamepad"};
 constexpr std::array actionNames{"Up", "Down", "Left", "Right", "Fire"};
 constexpr std::array keyNames{
     "None", "Up", "Down",  "Left",      "Right",      "Space",      "A",          "B", "C", "D",
@@ -21,6 +21,35 @@ constexpr std::array keyNames{
     "O",    "P",  "Q",     "R",         "S",          "T",          "U",          "V", "W", "X",
     "Y",    "Z",  "Enter", "Left Ctrl", "Right Ctrl", "Left Shift", "Right Shift"};
 static_assert(keyNames.size() == guiKeyCount);
+constexpr std::array buttonNames{"None",
+                                 "D-pad Up",
+                                 "D-pad Down",
+                                 "D-pad Left",
+                                 "D-pad Right",
+                                 "South / A / Cross",
+                                 "East / B / Circle",
+                                 "West / X / Square",
+                                 "North / Y / Triangle",
+                                 "Left shoulder",
+                                 "Right shoulder",
+                                 "Left trigger",
+                                 "Right trigger",
+                                 "Left stick click",
+                                 "Right stick click"};
+static_assert(buttonNames.size() == guiGamepadButtonCount);
+constexpr bool isCategoryRow(std::size_t row)
+{
+    return (row >= 16 && row <= 19) || row == 29;
+}
+constexpr std::size_t categoryIndex(std::size_t row)
+{
+    return row == 29 ? 4 : row - 16;
+}
+constexpr std::size_t categoryRow(std::size_t category)
+{
+    return category == 4 ? 29 : 16 + category;
+}
+
 std::string percent(float value)
 {
     return std::to_string(static_cast<int>(std::round(value * 100.0F))) + "%";
@@ -47,6 +76,15 @@ std::string rowText(std::size_t index, const GuiPreferences& preferences)
         return "Tint opacity: " + percent(preferences.visuals.tintOpacity);
     case 15:
         return std::string("Show FPS: ") + (preferences.visuals.showFps ? "On" : "Off");
+    case 20:
+        return std::string("Gamepad: ") + (preferences.gamepad.enabled ? "On" : "Off");
+    case 21:
+        return "Controller: " + std::to_string(preferences.gamepad.device + 1);
+    case 22:
+        return "Stick dead zone: " + percent(preferences.gamepad.deadZone);
+    case 23:
+        return std::string("Left stick movement: ") +
+               (preferences.gamepad.leftStick ? "On" : "Off");
     case 11:
         return "Reset";
     case 12:
@@ -56,6 +94,9 @@ std::string rowText(std::size_t index, const GuiPreferences& preferences)
     case 14:
         return "Quit game";
     default:
+        if (index >= 24 && index <= 28)
+            return "Pad " + std::string(actionNames[index - 24]) + ": " +
+                   buttonNames[static_cast<std::size_t>(preferences.gamepad.buttons[index - 24])];
         return "Key " + std::string(actionNames[index - 6]) + ": " +
                keyNames[static_cast<std::size_t>(preferences.keyboard.keys[index - 6])];
     }
@@ -170,8 +211,10 @@ std::vector<std::size_t> SettingsMenu::categoryRows() const
         return {0, 1};
     case 2:
         return {6, 7, 8, 9, 10};
-    default:
+    case 3:
         return {2, 4, 5};
+    default:
+        return {20, 21, 22, 23, 24, 25, 26, 27, 28};
     }
 }
 
@@ -198,8 +241,10 @@ void SettingsMenu::select(std::size_t row)
     if (row >= rowCount || isCapturing())
         return;
     _selected = row;
-    if (row >= 16)
-        _category = row - 16;
+    if (isCategoryRow(row))
+        _category = categoryIndex(row);
+    else if (row >= 20)
+        _category = 4;
     else if (row == 3 || row == 15)
         _category = 0;
     else if (row <= 1)
@@ -208,6 +253,11 @@ void SettingsMenu::select(std::size_t row)
         _category = 2;
     else if (row == 2 || row == 4 || row == 5)
         _category = 3;
+}
+
+void SettingsMenu::setGamepadStatus(std::string status)
+{
+    _gamepadStatus = std::move(status);
 }
 
 void SettingsMenu::setNotice(std::string notice)
@@ -223,8 +273,15 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
         if (input.cancelCapture) {
             _capture = 0;
             _notice = "Binding change cancelled.";
-        } else if (input.key && static_cast<std::size_t>(*input.key) < guiKeyCount) {
+        } else if (_capture == 1 && input.key &&
+                   static_cast<std::size_t>(*input.key) < guiKeyCount) {
             replaceBinding(_draft.keyboard.keys, _selected - 6, *input.key);
+            _capture = 0;
+            _dirty = true;
+            _notice = "Binding changed. Apply and save to keep it.";
+        } else if (_capture == 2 && input.gamepadButton &&
+                   static_cast<std::size_t>(*input.gamepadButton) < guiGamepadButtonCount) {
+            replaceBinding(_draft.gamepad.buttons, _selected - 24, *input.gamepadButton);
             _capture = 0;
             _dirty = true;
             _notice = "Binding changed. Apply and save to keep it.";
@@ -237,7 +294,7 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
     }
     if (input.category != 0) {
         _category = static_cast<std::size_t>(
-            (static_cast<int>(_category) + (input.category < 0 ? -1 : 1) + 4) % 4);
+            (static_cast<int>(_category) + (input.category < 0 ? -1 : 1) + 5) % 5);
         _selected = categoryRows().front();
         return MenuResult::None;
     }
@@ -256,8 +313,8 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
         return MenuResult::None;
     const int direction = input.horizontal < 0 ? -1 : 1;
     _notice.clear();
-    if (_selected >= 16) {
-        _category = _selected - 16;
+    if (isCategoryRow(_selected)) {
+        _category = categoryIndex(_selected);
         _selected = categoryRows().front();
         return MenuResult::None;
     }
@@ -292,6 +349,21 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
     case 15:
         _draft.visuals.showFps = !_draft.visuals.showFps;
         break;
+    case 20:
+        _draft.gamepad.enabled = !_draft.gamepad.enabled;
+        break;
+    case 21:
+        _draft.gamepad.device = (_draft.gamepad.device + direction + 4) % 4;
+        break;
+    case 22:
+        _draft.gamepad.deadZone = std::clamp(
+            std::round((_draft.gamepad.deadZone + static_cast<float>(direction) * 0.05F) * 100.0F) /
+                100.0F,
+            0.05F, 0.8F);
+        break;
+    case 23:
+        _draft.gamepad.leftStick = !_draft.gamepad.leftStick;
+        break;
     case 11:
         _draft = {};
         _notice = "Defaults restored. Apply to keep them.";
@@ -306,11 +378,15 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
         close();
         return MenuResult::Quit;
     default:
-        if (input.horizontal < 0)
-            _draft.keyboard.keys[_selected - 6] = GuiKey::None;
-        else {
-            _capture = 1;
-            _notice = "Press a key. Escape or F1 cancels.";
+        if (input.horizontal < 0) {
+            if (_selected >= 24)
+                _draft.gamepad.buttons[_selected - 24] = GuiGamepadButton::None;
+            else
+                _draft.keyboard.keys[_selected - 6] = GuiKey::None;
+        } else {
+            _capture = _selected >= 24 ? 2 : 1;
+            _notice = _capture == 2 ? "Press a pad button. Start, Escape or F1 cancels."
+                                    : "Press a key. Start, Escape or F1 cancels.";
         }
         break;
     }
@@ -330,22 +406,26 @@ std::vector<SettingsRow> SettingsMenu::rows(GuiVector2 viewport) const
     const float sidebar = viewport.x * 0.23F;
     const float pitch = viewport.y * paperLineSpacing;
     const float firstLine = viewport.y * firstPaperLine;
-    for (std::size_t category = 0; category < 4; ++category)
-        result.push_back({16 + category,
+    for (std::size_t category = 0; category < categoryNames.size(); ++category)
+        result.push_back({categoryRow(category),
                           {{16, firstLine - pitch + 4 + static_cast<float>(category) * pitch},
                            sidebar - 24,
                            pitch - 8},
                           categoryNames[category]});
     const auto options = categoryRows();
-    for (std::size_t index = 0; index < options.size(); ++index) {
+    const auto selected = std::find(options.begin(), options.end(), _selected);
+    const std::size_t selectedIndex =
+        selected == options.end() ? 0 : static_cast<std::size_t>(selected - options.begin());
+    const std::size_t first = selectedIndex >= 5 ? selectedIndex - 4 : 0;
+    for (std::size_t index = first; index < std::min(options.size(), first + 5); ++index) {
         const auto id = options[index];
         result.push_back(
             {id,
-             {{sidebar + 24, firstLine - pitch + 4 + static_cast<float>(index) * pitch},
+             {{sidebar + 24, firstLine - pitch + 4 + static_cast<float>(index - first) * pitch},
               viewport.x - sidebar - 56,
               pitch - 4},
              rowText(id, _draft),
-             id <= 5 || id == 15});
+             id <= 5 || id == 15 || (id >= 20 && id <= 23)});
         auto& row = result.back();
         const float valueWidth = std::min(row.bounds.width * 0.40F, viewport.x * 0.22F);
         row.valueBounds = {{row.bounds.pos.x + row.bounds.width - valueWidth, row.bounds.pos.y},
@@ -400,25 +480,30 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
         std::min(std::clamp(viewport.y * 0.045F, 24.0F, 50.0F) * scale, pitch * 0.70F);
     const float titleY = viewport.y * (47.0F / 360.0F) - titleSize - 4.0F;
     text(scene, "Settings", {sidebar + 24, titleY}, titleSize, ink);
+    if (_category == 4 && !_gamepadStatus.empty())
+        text(scene, clipped(_gamepadStatus, viewport.x - sidebar - 48, 12.0F * scale, _measure),
+             {sidebar + 24, viewport.y * 0.16F}, 12.0F * scale, ink);
     for (const auto& row : rows(viewport)) {
-        const bool category = row.index >= 16;
+        const bool category = isCategoryRow(row.index);
         const bool action = row.index >= 11 && row.index <= 14;
         const bool selected = row.index == _selected;
         if (category || action) {
             constexpr std::array categoryImages{"settings-display", "settings-audio",
-                                                "settings-controls", "settings-accessibility"};
+                                                "settings-controls", "settings-accessibility",
+                                                "settings-gamepad"};
             constexpr std::array actionImages{"reset", "save", "back", "quit"};
             const std::string art =
-                category ? categoryImages[row.index - 16] : actionImages[row.index - 11];
-            const bool activeCategory = category && row.index - 16 == _category;
+                category ? categoryImages[categoryIndex(row.index)] : actionImages[row.index - 11];
+            const bool activeCategory = category && categoryIndex(row.index) == _category;
             const std::string paperId = activeCategory ? "paper-category-selected"
                                         : category     ? "paper-category"
                                                        : detail::paperArtwork(_artwork, row.bounds);
             const bool paper = image(paperId, row.bounds);
             if (!paper && !image(art, row.bounds) && !image("button", row.bounds))
-                scene.rectangles.push_back({row.bounds, category && row.index - 16 == _category
-                                                            ? GuiColor{220, 216, 200, 255}
-                                                            : GuiColor{255, 255, 255, 255}});
+                scene.rectangles.push_back(
+                    {row.bounds, category && categoryIndex(row.index) == _category
+                                     ? GuiColor{220, 216, 200, 255}
+                                     : GuiColor{255, 255, 255, 255}});
             if (activeCategory && !paper)
                 scene.rectangles.push_back(
                     {{{row.bounds.pos.x, row.bounds.pos.y}, 3, row.bounds.height}, ink});
@@ -443,8 +528,9 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
                 row.bounds.height},
                size, ink, false);
         if (hasValue) {
-            const std::string value =
-                isCapturing() && selected ? "Press a key..." : row.text.substr(separator + 2);
+            const std::string value = isCapturing() && selected
+                                          ? (_capture == 2 ? "Press a button..." : "Press a key...")
+                                          : row.text.substr(separator + 2);
             const float arrowWidth = row.adjustable ? 36.0F : 0.0F;
             fitted(value,
                    {{row.valueBounds.pos.x + arrowWidth, row.valueBounds.pos.y},
@@ -464,10 +550,10 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
     }
     const float buttonHeight = std::clamp(viewport.y * 0.085F, 40.0F, 76.0F);
     const float noticeSize = std::clamp(viewport.y * 0.025F, 12.0F, 20.0F) * scale;
-    const auto message =
-        !_notice.empty() ? _notice
-        : _dirty         ? "Unsaved changes. Apply and save to keep them."
-                         : "Tab: category   Up/Down: select   Left/Right: change   Enter: confirm";
+    const auto message = !_notice.empty() ? _notice
+                         : _dirty         ? "Unsaved changes. Apply and save to keep them."
+                                  : "Tab/LB/RB: category   Up/Down: scroll   Left/Right: change   "
+                                    "A/Enter: confirm   B: back";
     auto lines = wrapped(message, viewport.x - 48, noticeSize, _measure);
     const float noticeTop =
         viewport.y - 24 - buttonHeight - static_cast<float>(lines.size()) * (noticeSize + 2);

@@ -9,7 +9,12 @@ to be released before gameplay resumes.
 
 See [controls](controls.md) and [Settings](settings.md).
 
-Limitations: no controller support, toggle-to-fire mode or one-handed preset.
+A selected gamepad can control gameplay and navigate Settings. Its movement
+buttons, fire button and stick dead zone are configurable and saved. Disconnecting
+it releases its actions. Native device compatibility and menu usability still
+require the platform checks listed in [Settings](settings.md#gamepad-verification).
+
+Limitations: no toggle-to-fire mode or one-handed preset.
 Holding Fire is reported continuously; client/game systems own firing behavior.
 
 ## Audio and visual access
@@ -75,3 +80,4 @@ See the [Settings checklist](settings.md#local-checks). Automated checks cover
 settings, keyboard mapping, persistence, status layouts and tint drawing order.
 Physical rendering, audio and multiplayer integration require manual checks.
 No accessibility certification is claimed.
+
