@@ -1,5 +1,6 @@
 #include "Gui.hpp"
 
+#include "MenuArtwork.hpp"
 #include "Renderer.hpp"
 #include "SettingsStore.hpp"
 #include "StatusPresenter.hpp"
@@ -31,12 +32,8 @@ RenderScene withSettingsButton(RenderScene scene, GuiVector2 viewport, float sca
 {
     const auto button = settingsButton(viewport, scale);
     if (resources.hasTexture("ui-settings")) {
-        SpriteDraw sprite;
-        sprite.textureId = "ui-settings";
-        const auto size = resources.getTextureSize(sprite.textureId);
-        sprite.sourceRect = {{0, 0}, size.x, size.y};
-        sprite.destinationRect = button;
-        scene.sprites.push_back(std::move(sprite));
+        (void)detail::menuArtwork(scene, {{"settings", resources.getTextureSize("ui-settings")}},
+                                  "settings", button);
     } else {
         scene.rectangles.push_back({button, {255, 255, 255, 255}});
         TextDraw label;
@@ -137,12 +134,18 @@ void Gui::open(const GuiConfig& config)
     _frontend.setTextMeasure([this](const std::string& value, float size) {
         return _resources.measureText(_uiFont, value, size).x;
     });
-    for (const char* name : {"title",
+    for (const char* name : {"paper-button",
+                             "paper-action",
+                             "paper-category",
+                             "paper-category-selected",
+                             "paper-small",
+                             "paper-mode",
+                             "paper-square",
+                             "title",
                              "settings",
                              "input",
                              "button",
                              "campaign",
-                             "duel",
                              "infinite",
                              "name-field",
                              "ip-field",
@@ -164,7 +167,7 @@ void Gui::open(const GuiConfig& config)
                              "settings-audio",
                              "settings-controls",
                              "settings-accessibility"}) {
-        const auto path = std::filesystem::path("ui") / (std::string(name) + ".png");
+        auto path = std::filesystem::path("ui") / (std::string(name) + ".png");
         if (std::filesystem::is_regular_file(root / path)) {
             const auto id = "ui-" + std::string(name);
             _resources.loadTexture(id, path);
@@ -271,11 +274,10 @@ PlayerActions Gui::pollActions()
                     _menu.select(row.index);
                     frame.menu.activate = true;
                     if (row.adjustable) {
-                        if (frame.mouse.x >= row.bounds.pos.x + row.bounds.width - 40.0F)
+                        if (frame.mouse.x >= row.valueBounds.pos.x + row.valueBounds.width - 36.0F)
                             frame.menu.horizontal = 1;
-                        else if (frame.mouse.x >= row.bounds.pos.x + row.bounds.width * 0.60F &&
-                                 frame.mouse.x <
-                                     row.bounds.pos.x + row.bounds.width * 0.60F + 36.0F)
+                        else if (frame.mouse.x >= row.valueBounds.pos.x &&
+                                 frame.mouse.x < row.valueBounds.pos.x + 36.0F)
                             frame.menu.horizontal = -1;
                     }
                     break;
@@ -343,8 +345,21 @@ void Gui::render(const RenderScene& scene)
             counter.position = {12, 8};
             counter.color = {20, 20, 20, 255};
             const auto size = _resources.measureText(_uiFont, counter.text, counter.fontSize);
-            presented.rectangles.push_back(
-                {{{8, 4}, size.x + 8, size.y + 8}, {255, 255, 255, 255}});
+            if (_resources.hasTexture("ui-paper-small")) {
+                const auto paperSize = _resources.getTextureSize("ui-paper-small");
+                const float ratio = paperSize.x / paperSize.y;
+                const float width = std::max(size.x + 32.0F, (size.y + 20.0F) * ratio);
+                const GuiRectangle badge{{8, 4}, width, width / ratio};
+                (void)detail::menuArtwork(presented, {{"paper-small", paperSize}}, "paper-small",
+                                          badge);
+                presented.sprites.back().layer = 10000;
+                counter.position = {badge.pos.x + (badge.width - size.x) / 2,
+                                    badge.pos.y + (badge.height - size.y) / 2 +
+                                        counter.fontSize * 0.24F};
+            } else {
+                presented.rectangles.push_back(
+                    {{{8, 4}, size.x + 8, size.y + 8}, {255, 255, 255, 255}});
+            }
             presented.overlayTexts.push_back(std::move(counter));
         }
         Renderer(_resources).render(presented, stars);

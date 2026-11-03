@@ -33,6 +33,7 @@ struct SettingsRow
     GuiRectangle bounds;
     std::string text;
     bool adjustable = false;
+    GuiRectangle valueBounds{};
 };
 
 class SettingsMenu

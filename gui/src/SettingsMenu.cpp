@@ -1,5 +1,6 @@
 #include "SettingsMenu.hpp"
 
+#include "MenuArtwork.hpp"
 #include "SettingsStore.hpp"
 
 #include <algorithm>
@@ -10,8 +11,8 @@ namespace rtype::gui {
 namespace {
 
 constexpr std::size_t rowCount = 20;
-constexpr float firstPaperLine = 0.28F;
-constexpr float paperLineSpacing = 0.10F;
+constexpr float firstPaperLine = 107.0F / 360.0F;
+constexpr float paperLineSpacing = 30.0F / 360.0F;
 constexpr std::array categoryNames{"Display", "Audio", "Controls", "Accessibility"};
 constexpr std::array actionNames{"Up", "Down", "Left", "Right", "Fire"};
 constexpr std::array keyNames{
@@ -345,6 +346,11 @@ std::vector<SettingsRow> SettingsMenu::rows(GuiVector2 viewport) const
               pitch - 4},
              rowText(id, _draft),
              id <= 5 || id == 15});
+        auto& row = result.back();
+        const float valueWidth = std::min(row.bounds.width * 0.40F, viewport.x * 0.22F);
+        row.valueBounds = {{row.bounds.pos.x + row.bounds.width - valueWidth, row.bounds.pos.y},
+                           valueWidth,
+                           row.bounds.height};
     }
     const float gap = 12;
     const float buttonWidth = (viewport.x - 32 - 3 * gap) / 4;
@@ -364,44 +370,36 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
     RenderScene scene;
     scene.clearColor = {248, 246, 235, 255};
     const float scale = _draft.visuals.textScale;
-    const float size = std::clamp(viewport.y * 0.04F, 18.0F, 42.0F) * scale;
+    const float size = std::clamp(viewport.y * 0.030F, 16.0F, 34.0F) * scale;
     const float sidebar = viewport.x * 0.23F;
     const float pitch = viewport.y * paperLineSpacing;
     const float firstLine = viewport.y * firstPaperLine;
     constexpr GuiColor ink{30, 30, 35, 255};
     const auto image = [&](const std::string& id, GuiRectangle bounds) {
-        const auto found = _artwork.find(id);
-        if (found == _artwork.end())
-            return false;
-        SpriteDraw sprite;
-        sprite.textureId = "ui-" + id;
-        sprite.sourceRect = {{0, 0}, found->second.x, found->second.y};
-        sprite.destinationRect = bounds;
-        sprite.layer = id == "settings-background" ? -1000 : 0;
-        scene.sprites.push_back(std::move(sprite));
-        return true;
+        return detail::menuArtwork(scene, _artwork, id, bounds);
     };
     if (!image("settings-background", {{0, 0}, viewport.x, viewport.y})) {
         for (float y = firstLine; y < viewport.y - 90; y += pitch)
             scene.rectangles.push_back(
                 {{{sidebar + 12, y}, viewport.x - sidebar - 40, 1}, {155, 181, 206, 255}});
-        scene.rectangles.push_back(
-            {{{sidebar + 8, viewport.y * 0.18F}, 1, viewport.y * 0.60F}, {196, 122, 125, 255}});
     }
     const auto fitted = [&](const std::string& value, GuiRectangle bounds, float desired,
-                            GuiColor color, bool centered) {
-        float fontSize = desired;
+                            GuiColor color, bool centered, bool onLine = false) {
+        float fontSize = std::min(desired, bounds.height * 0.55F);
         while (fontSize > 14 && measuredWidth(value, fontSize, _measure) > bounds.width - 16)
             fontSize -= 1;
         const auto displayed = clipped(value, bounds.width - 16, fontSize, _measure);
         const float width = measuredWidth(displayed, fontSize, _measure);
         const float x = bounds.pos.x + (centered ? (bounds.width - width) / 2 : 8);
-        const float y = centered ? bounds.pos.y + (bounds.height - fontSize) / 2
-                                 : bounds.pos.y + bounds.height - fontSize - 3;
+        const float y = centered && !onLine
+                            ? bounds.pos.y + (bounds.height - fontSize) / 2 + fontSize * 0.24F
+                            : bounds.pos.y + bounds.height - fontSize - 3;
         text(scene, displayed, {x, y}, fontSize, color);
     };
-    text(scene, "Settings", {sidebar + 24, 18},
-         std::clamp(viewport.y * 0.055F, 24.0F, 58.0F) * scale, ink);
+    const float titleSize =
+        std::min(std::clamp(viewport.y * 0.045F, 24.0F, 50.0F) * scale, pitch * 0.70F);
+    const float titleY = viewport.y * (47.0F / 360.0F) - titleSize - 4.0F;
+    text(scene, "Settings", {sidebar + 24, titleY}, titleSize, ink);
     for (const auto& row : rows(viewport)) {
         const bool category = row.index >= 16;
         const bool action = row.index >= 11 && row.index <= 14;
@@ -412,57 +410,60 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
             constexpr std::array actionImages{"reset", "save", "back", "quit"};
             const std::string art =
                 category ? categoryImages[row.index - 16] : actionImages[row.index - 11];
-            if (!image(art, row.bounds) && !image("button", row.bounds))
+            const bool activeCategory = category && row.index - 16 == _category;
+            const std::string paperId = activeCategory ? "paper-category-selected"
+                                        : category     ? "paper-category"
+                                                       : detail::paperArtwork(_artwork, row.bounds);
+            const bool paper = image(paperId, row.bounds);
+            if (!paper && !image(art, row.bounds) && !image("button", row.bounds))
                 scene.rectangles.push_back({row.bounds, category && row.index - 16 == _category
                                                             ? GuiColor{220, 216, 200, 255}
                                                             : GuiColor{255, 255, 255, 255}});
-            if (category && row.index - 16 == _category)
+            if (activeCategory && !paper)
                 scene.rectangles.push_back(
                     {{{row.bounds.pos.x, row.bounds.pos.y}, 3, row.bounds.height}, ink});
-            if (selected) {
-                scene.rectangles.push_back(
-                    {{{row.bounds.pos.x, row.bounds.pos.y}, row.bounds.width, 2}, ink});
-                scene.rectangles.push_back(
-                    {{{row.bounds.pos.x, row.bounds.pos.y + row.bounds.height - 2},
-                      row.bounds.width,
-                      2},
-                     ink});
-            }
-            fitted(row.text, row.bounds, size * (category ? 0.8F : 0.85F), ink, true);
+            GuiRectangle label = row.bounds;
+            label.pos.x += label.width * 0.10F;
+            label.width *= 0.80F;
+            fitted(row.text, label, size * (category ? 0.9F : 0.85F), ink, true);
+            if (selected && action)
+                text(scene, ">",
+                     {row.bounds.pos.x + 8, row.bounds.pos.y + row.bounds.height * 0.30F},
+                     size * 0.65F, ink);
             continue;
         }
+        const float markerWidth = std::max(22.0F, viewport.x * 0.022F);
         if (selected)
-            text(scene, ">",
-                 {row.bounds.pos.x - 18, row.bounds.pos.y + row.bounds.height - size - 3}, size,
-                 ink);
+            fitted(">", {row.bounds.pos, markerWidth, row.bounds.height}, size * 0.7F, ink, false);
         const auto separator = row.text.find(": ");
         const bool hasValue = separator != std::string::npos;
-        const float labelWidth = row.bounds.width * 0.60F;
-        fitted(row.text.substr(0, separator), {row.bounds.pos, labelWidth, row.bounds.height}, size,
-               ink, false);
+        fitted(row.text.substr(0, separator),
+               {{row.bounds.pos.x + markerWidth, row.bounds.pos.y},
+                row.valueBounds.pos.x - row.bounds.pos.x - markerWidth - 12,
+                row.bounds.height},
+               size, ink, false);
         if (hasValue) {
-            std::string value =
+            const std::string value =
                 isCapturing() && selected ? "Press a key..." : row.text.substr(separator + 2);
-            const float padding = row.adjustable ? 36.0F : 0.0F;
+            const float arrowWidth = row.adjustable ? 36.0F : 0.0F;
             fitted(value,
-                   {{row.bounds.pos.x + labelWidth + padding, row.bounds.pos.y},
-                    row.bounds.width - labelWidth - 2 * padding,
-                    row.bounds.height},
-                   size, ink, false);
+                   {{row.valueBounds.pos.x + arrowWidth, row.valueBounds.pos.y},
+                    row.valueBounds.width - 2 * arrowWidth,
+                    row.valueBounds.height},
+                   size, ink, true, true);
             if (row.adjustable) {
-                fitted("<",
-                       {{row.bounds.pos.x + labelWidth, row.bounds.pos.y}, 36, row.bounds.height},
-                       size, ink, false);
+                fitted("<", {row.valueBounds.pos, 36, row.valueBounds.height}, size * 0.75F, ink,
+                       true, true);
                 fitted(">",
-                       {{row.bounds.pos.x + row.bounds.width - 36, row.bounds.pos.y},
+                       {{row.valueBounds.pos.x + row.valueBounds.width - 36, row.valueBounds.pos.y},
                         36,
-                        row.bounds.height},
-                       size, ink, false);
+                        row.valueBounds.height},
+                       size * 0.75F, ink, true, true);
             }
         }
     }
     const float buttonHeight = std::clamp(viewport.y * 0.085F, 40.0F, 76.0F);
-    const float noticeSize = std::clamp(viewport.y * 0.025F, 12.0F, 20.0F);
+    const float noticeSize = std::clamp(viewport.y * 0.025F, 12.0F, 20.0F) * scale;
     const auto message =
         !_notice.empty() ? _notice
         : _dirty         ? "Unsaved changes. Apply and save to keep them."

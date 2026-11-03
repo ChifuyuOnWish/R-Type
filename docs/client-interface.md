@@ -21,8 +21,8 @@ the connection is closed and the client offers retry. Disconnecting clears the
 local world and player names; reconnecting creates a new network client so events
 from a previous connection cannot enter the new session.
 
-Campaign maps to the protocol's Level mode. Infinite maps to Infinite. Duel is
-visible but disabled while PVP is unavailable. The GUI reflects the server's mode,
+The two mode choices are Campaign and Infinite. Campaign maps to the protocol's
+Level mode. Infinite maps to Infinite. The GUI reflects the server's mode,
 level names, unlocked stages and leader. Only the leader may change the selection
 and start the session. Previous/next select unlocked stages. Start remains disabled
 while a changed selection awaits confirmation; if the server does not confirm it
@@ -36,8 +36,9 @@ keeps the existing serialized InputMessage and increasing client tick.
 
 ## Presentation
 
-The title, Settings gear, fields, action buttons and three modes have optional
-image slots. Missing artwork is shown as rectangles. See
+The title, Settings gear, fields, action buttons and two modes have optional
+image slots. Missing button artwork falls back to the supplied paper variants, then rectangles.
+The missing title uses text directly over the background. See
 [menu artwork](../assets/ui/README.md) for the filenames and fallback rules and
 [menu font](../assets/fonts/README.md) for Holidays Homework setup and licensing.
 Settings is reachable through the top-right control or F1. Its categories and fixed
@@ -49,7 +50,10 @@ play it retains the existing Settings shortcut.
 Frontend layout is designed for the existing 16:9 window, down to 640 x 360, with
 100%, 125% and 150% text settings. Text is measured with its actual loaded font;
 long labels shrink to a minimum readable size and use an ellipsis if necessary.
-Keyboard focus is shown above and below the control; hover changes its tint.
+Only keyboard focus uses a warm paper tint; hover uses a neutral tint. The active
+game mode is identified by the selection caption, independently of focus.
+Labels fit the visible sprite with horizontal and vertical padding. Supporting
+copy uses dark ink on the light paper background.
 
 `gui/include/FrontendTypes.hpp` holds backend-independent state and commands.
 `gui/src/FrontendMenu` handles editing, navigation and drawing requests.
@@ -59,7 +63,7 @@ messages and the local world. The GUI does not decode packets or decide game rul
 
 ## Verification
 
-`frontend_menu` checks editing, port validation, unavailable modes, leader controls,
+`frontend_menu` checks editing, port validation, the two available modes, leader controls,
 selection acknowledgement gating, artwork fallback and supported layouts.
 `gui_settings_integration` checks frontend input suppression, submission and
 Settings access with an injected native backend. `client_session` connects to a

@@ -76,7 +76,10 @@ int main()
         state.unlocked = 2;
         state.levels = {"Stage 1", "Stage 2"};
         menu.setState(state);
-        check(click(menu, 11).command == FrontendCommand::None, "Duel unavailable");
+        const auto modeControls = menu.controls({1280, 720}, 1);
+        check(std::none_of(modeControls.begin(), modeControls.end(),
+                           [](const auto& row) { return row.id == 11; }),
+              "Only Campaign and Infinite are offered");
         check(click(menu, 12).mode == FrontendMode::Infinite, "Mode selection forwarded");
         check(click(menu, 14).level == 1, "Next unlocked level requested");
         state.unlocked = 1;
@@ -119,6 +122,28 @@ int main()
         }
         menu.setArtwork("title", {200, 60});
         check(!menu.makeScene({1280, 720}, 1).sprites.empty(), "Sprite replaces placeholder");
+        FrontendMenu focusMenu;
+        state.page = FrontendPage::Lobby;
+        state.leader = true;
+        focusMenu.setState(state);
+        focusMenu.setArtwork("paper-mode", {1214, 690});
+        focusMenu.setArtwork("paper-button", {3500, 425});
+        for (int step = 0; step < 6; ++step) {
+            InputFrame tab;
+            tab.tab = true;
+            (void)focusMenu.handle(tab, {1280, 720}, 1);
+            int focused = 0;
+            const auto focusedScene = focusMenu.makeScene({1280, 720}, 1);
+            const auto warm = [](GuiColor color) {
+                return color.red == 245 && color.green == 226 && color.blue == 190;
+            };
+            for (const auto& sprite : focusedScene.sprites)
+                focused += warm(sprite.tint) ? 1 : 0;
+            for (const auto& rectangle : focusedScene.rectangles)
+                focused += warm(rectangle.color) ? 1 : 0;
+            check(focused == 1,
+                  "Tab highlights only one control, independently of the active mode");
+        }
         state.page = FrontendPage::Gameplay;
         menu.setState(state);
         check(!menu.active(), "Gameplay leaves frontend");

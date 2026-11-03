@@ -15,7 +15,7 @@
 using namespace rtype::gui;
 namespace {
 std::array<bool, 512> keys{}, presses{};
-bool ready = false, focused = true, clicked = false;
+bool ready = false, focused = true, clicked = false, paperFps = false;
 Vector2 mouse{};
 float wheel = 0;
 int exitKey = -1;
@@ -66,7 +66,9 @@ bool fpsVisible()
 {
     for (const auto& draw : rendered.overlayTexts)
         if (draw.text.starts_with("FPS:")) {
-            check(draw.position.x == 12 && draw.position.y == 8, "FPS is anchored at the top");
+            check(draw.position.x >= 8 && draw.position.x < 80 && draw.position.y >= 4 &&
+                      draw.position.y < 80,
+                  "FPS is anchored at the top left");
             return true;
         }
     return false;
@@ -179,16 +181,16 @@ const std::filesystem::path& ResourceManager::getAssetRoot() const noexcept
 {
     return _impl->root;
 }
-bool ResourceManager::hasTexture(const std::string&) const
+bool ResourceManager::hasTexture(const std::string& id) const
 {
-    return false;
+    return paperFps && id == "ui-paper-small";
 }
 void ResourceManager::clear() noexcept {}
 void ResourceManager::loadFont(const std::string&, const std::filesystem::path&, int) {}
 void ResourceManager::loadTexture(const std::string&, const std::filesystem::path&) {}
-GuiVector2 ResourceManager::getTextureSize(const std::string&) const
+GuiVector2 ResourceManager::getTextureSize(const std::string& id) const
 {
-    return {100, 100};
+    return id == "ui-paper-small" ? GuiVector2{930, 425} : GuiVector2{100, 100};
 }
 GuiVector2 ResourceManager::measureText(const std::string&, const std::string& text, float size,
                                         float spacing) const
@@ -266,6 +268,19 @@ int main()
         for (int index = 0; index < 40; ++index)
             gui.render({});
         check(fpsVisible(), "FPS visible when enabled, including Settings");
+        paperFps = true;
+        gui.render({});
+        check(fpsVisible(), "FPS stays anchored with the paper artwork");
+        const auto& badge = rendered.sprites.back();
+        const auto& counter = rendered.overlayTexts.back();
+        check(badge.textureId == "ui-paper-small" && badge.layer == 10000,
+              "FPS uses paper above other sprites");
+        check(counter.position.x > badge.destinationRect.pos.x &&
+                  counter.position.y > badge.destinationRect.pos.y &&
+                  counter.position.y + counter.fontSize <
+                      badge.destinationRect.pos.y + badge.destinationRect.height,
+              "FPS label fits inside its paper badge");
+        paperFps = false;
         clickSetting(gui, 15);
         gui.render({});
         check(!fpsVisible(), "FPS toggle previews immediately");

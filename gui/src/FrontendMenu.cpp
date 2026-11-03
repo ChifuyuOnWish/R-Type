@@ -1,5 +1,7 @@
 #include "FrontendMenu.hpp"
 
+#include "MenuArtwork.hpp"
+
 #include <algorithm>
 #include <charconv>
 #include <utility>
@@ -87,7 +89,7 @@ std::vector<FrontendControl> FrontendMenu::controls(GuiVector2 viewport, float) 
     const float s = layoutScale(viewport);
     const float width = std::min(viewport.x - 32.0F, std::max(260.0F, 560.0F * s));
     const float left = (viewport.x - width) / 2.0F;
-    const float height = std::max(36.0F, std::min(68.0F, viewport.y * 0.105F));
+    const float height = std::max(34.0F, 68.0F * s);
     const float gap = std::max(8.0F, 16.0F * s);
     const float top = viewport.y * 0.30F;
     const float side = std::max(36.0F, 64.0F * s);
@@ -115,13 +117,13 @@ std::vector<FrontendControl> FrontendMenu::controls(GuiVector2 viewport, float) 
     } else if (_state.page == FrontendPage::Lobby) {
         const float modeWidth = 280.0F * s;
         const float modeGap = 32.0F * s;
-        const float start = (viewport.x - 3.0F * modeWidth - 2.0F * modeGap) / 2.0F;
+        const float start = (viewport.x - 2.0F * modeWidth - modeGap) / 2.0F;
         const bool allowed = _state.leader && !_state.selectionPending;
-        for (int index = 0; index < 3; ++index) {
-            constexpr const char* names[]{"Campaign", "Duel", "Infinite"};
-            constexpr const char* art[]{"campaign", "duel", "infinite"};
-            const bool enabled = allowed && index != 1 && (index != 0 || _state.unlocked > 0);
-            result.push_back({10 + index,
+        for (int index = 0; index < 2; ++index) {
+            constexpr const char* names[]{"Campaign", "Infinite"};
+            constexpr const char* art[]{"campaign", "infinite"};
+            const bool enabled = allowed && (index != 0 || _state.unlocked > 0);
+            result.push_back({index == 0 ? 10 : 12,
                               {{start + static_cast<float>(index) * (modeWidth + modeGap), top},
                                modeWidth,
                                150.0F * s},
@@ -270,7 +272,7 @@ FrontendAction FrontendMenu::handle(const InputFrame& frame, GuiVector2 viewport
 void FrontendMenu::text(RenderScene& scene, const std::string& value, GuiRectangle bounds,
                         float size, GuiColor color) const
 {
-    size = std::max(12.0F, size);
+    size = std::clamp(size, 12.0F, std::max(12.0F, bounds.height * 0.60F));
     std::string displayed = value;
     const auto measure = [&](const std::string& content) {
         return _measure ? _measure(content, size)
@@ -289,7 +291,7 @@ void FrontendMenu::text(RenderScene& scene, const std::string& value, GuiRectang
     draw.fontId = _font;
     draw.text = displayed;
     draw.position = {bounds.pos.x + (bounds.width - measure(displayed)) / 2.0F,
-                     bounds.pos.y + (bounds.height - size) / 2.0F};
+                     bounds.pos.y + (bounds.height - size) / 2.0F + size * 0.24F};
     draw.fontSize = size;
     draw.spacing = 1.0F;
     draw.color = color;
@@ -299,88 +301,63 @@ void FrontendMenu::text(RenderScene& scene, const std::string& value, GuiRectang
 RenderScene FrontendMenu::makeScene(GuiVector2 viewport, float scale) const
 {
     RenderScene scene;
-    scene.clearColor = {34, 35, 40, 255};
+    scene.clearColor = {248, 246, 235, 255};
+    constexpr GuiColor ink{30, 30, 35, 255};
     const float s = layoutScale(viewport);
-    const float size = std::max(16.0F, 28.0F * s) * scale;
+    const float size = std::max(16.0F, 24.0F * s) * scale;
     const auto artwork = [&](const std::string& id, GuiRectangle bounds, GuiColor tint) {
-        const auto found = _artwork.find(id);
-        if (found == _artwork.end())
-            return false;
-        const auto source = found->second;
-        const float fit = std::min(bounds.width / source.x, bounds.height / source.y);
-        SpriteDraw sprite;
-        sprite.textureId = "ui-" + id;
-        sprite.sourceRect = {{0, 0}, source.x, source.y};
-        sprite.destinationRect = {{bounds.pos.x + (bounds.width - source.x * fit) / 2.0F,
-                                   bounds.pos.y + (bounds.height - source.y * fit) / 2.0F},
-                                  source.x * fit,
-                                  source.y * fit};
-        sprite.tint = tint;
-        scene.sprites.push_back(std::move(sprite));
-        return true;
+        return detail::menuArtwork(scene, _artwork, id, bounds, tint);
     };
-    if (_artwork.contains("background")) {
-        SpriteDraw background;
-        background.textureId = "ui-background";
-        const auto source = _artwork.at("background");
-        background.sourceRect = {{0, 0}, source.x, source.y};
-        background.destinationRect = {{0, 0}, viewport.x, viewport.y};
-        background.layer = -1000;
-        scene.sprites.push_back(std::move(background));
-    }
-    const GuiRectangle title{{(viewport.x - 360.0F * s) / 2.0F, 26.0F * s}, 360.0F * s, 100.0F * s};
+    (void)artwork("background", {{0, 0}, viewport.x, viewport.y}, {});
+    const GuiRectangle title{{(viewport.x - 360.0F * s) / 2.0F, 16.0F * s}, 360.0F * s, 100.0F * s};
     if (!artwork("title", title, {})) {
-        scene.rectangles.push_back({title, {255, 255, 255, 255}});
         text(scene, "R-Type", title, size * 1.4F, {20, 20, 20, 255});
     }
     for (const auto& row : controls(viewport, scale)) {
-        if (row.id == _selected && row.enabled) {
-            const auto& b = row.bounds;
-            const GuiColor focus{255, 255, 255, 255};
-            scene.rectangles.push_back({{{b.pos.x - 4, b.pos.y - 4}, b.width + 8, 2}, focus});
-            scene.rectangles.push_back(
-                {{{b.pos.x - 4, b.pos.y + b.height + 2}, b.width + 8, 2}, focus});
-        }
-        const GuiColor tint = !row.enabled         ? GuiColor{155, 155, 155, 255}
-                              : row.id == _hovered ? GuiColor{225, 225, 225, 255}
-                                                   : GuiColor{};
+        const GuiColor tint = !row.enabled          ? GuiColor{190, 190, 190, 255}
+                              : row.id == _selected ? GuiColor{245, 226, 190, 255}
+                              : row.id == _hovered  ? GuiColor{230, 230, 220, 255}
+                                                    : GuiColor{};
         std::string art = row.artwork;
-        if (!_artwork.contains(art)) {
+        if (_artwork.find("background") != _artwork.end()) {
             const bool field = row.id >= 1 && row.id <= 3;
             if (field)
                 art = "input";
             else if (row.id != 0 && (row.id < 10 || row.id > 12))
                 art = "button";
         }
-        const bool image = artwork(art, row.bounds, tint);
+        bool image = artwork(art, row.bounds, tint);
+        if (!image && row.id != 0)
+            image = artwork(detail::paperArtwork(_artwork, row.bounds), row.bounds, tint);
         if (!image)
             scene.rectangles.push_back({row.bounds, tint});
-        if (!image || row.artwork != "settings")
-            text(scene, row.id == 0 ? "*" : row.label, row.bounds, size, {20, 20, 20, 255});
+        if (!image || row.artwork != "settings") {
+            GuiRectangle label = image ? scene.sprites.back().destinationRect : row.bounds;
+            label.pos.x += label.width * 0.10F;
+            label.width *= 0.80F;
+            text(scene, row.id == 0 ? "*" : row.label, label, size, ink);
+        }
     }
     if (_state.page == FrontendPage::Lobby) {
         const float top = viewport.y * 0.30F;
         const std::string selected = _state.mode == FrontendMode::Campaign   ? "Campaign selected"
                                      : _state.mode == FrontendMode::Infinite ? "Infinite selected"
-                                                                             : "Duel unavailable";
+                                                                             : "Choose a game mode";
         text(scene, selected + (_state.leader ? "" : " / Waiting for leader"),
-             {{16, top - 48.0F * s}, viewport.x - 32, 40.0F * s}, size * 0.7F, {});
-        text(scene, "Duel unavailable",
-             {{viewport.x / 2.0F - 140.0F * s, top + 152.0F * s}, 280.0F * s, 24.0F * s},
-             size * 0.6F, {});
+             {{16, top - 48.0F * s}, viewport.x - 32, 40.0F * s}, size * 0.7F, ink);
         if (_state.mode == FrontendMode::Campaign && _state.level < _state.levels.size())
             text(scene, _state.levels[_state.level],
                  {{viewport.x / 2.0F - 200.0F * s, top + 174.0F * s}, 400.0F * s, 44.0F * s},
-                 size * 0.8F, {});
+                 size * 0.8F, ink);
     }
     if (_state.page == FrontendPage::Connecting || _state.page == FrontendPage::Waiting ||
         _state.page == FrontendPage::Error) {
         const char* heading = _state.page == FrontendPage::Error     ? "Connection failed"
                               : _state.page == FrontendPage::Waiting ? "Waiting for the server"
                                                                      : "Connecting...";
-        text(scene, heading, {{16, viewport.y * 0.31F}, viewport.x - 32, 50.0F * s}, size, {});
+        text(scene, heading, {{16, viewport.y * 0.31F}, viewport.x - 32, 50.0F * s}, size, ink);
         text(scene, _state.message, {{16, viewport.y * 0.41F}, viewport.x - 32, 50.0F * s},
-             size * 0.8F, {});
+             size * 0.8F, ink);
     }
     const std::string notice = _notice.empty() ? (_state.page == FrontendPage::Lobby ||
                                                           _state.page == FrontendPage::Connection
@@ -391,7 +368,7 @@ RenderScene FrontendMenu::makeScene(GuiVector2 viewport, float scale) const
          {{130.0F * s + 16.0F, viewport.y - 48.0F * s - 12.0F},
           std::max(1.0F, viewport.x - 330.0F * s - 32.0F),
           44.0F * s},
-         size * 0.65F, {});
+         size * 0.65F, ink);
     return scene;
 }
 
