@@ -15,7 +15,7 @@
 using namespace rtype::gui;
 namespace {
 std::array<bool, 512> keys{}, presses{};
-bool ready = false, focused = true, clicked = false, paperFps = false;
+bool ready = false, focused = true, clicked = false, paperFps = false, paperGame = false;
 Vector2 mouse{};
 float wheel = 0;
 int exitKey = -1;
@@ -183,13 +183,15 @@ const std::filesystem::path& ResourceManager::getAssetRoot() const noexcept
 }
 bool ResourceManager::hasTexture(const std::string& id) const
 {
-    return paperFps && id == "ui-paper-small";
+    return (paperFps && id == "ui-paper-small") || (paperGame && id == "ui-game-background");
 }
 void ResourceManager::clear() noexcept {}
 void ResourceManager::loadFont(const std::string&, const std::filesystem::path&, int) {}
 void ResourceManager::loadTexture(const std::string&, const std::filesystem::path&) {}
 GuiVector2 ResourceManager::getTextureSize(const std::string& id) const
 {
+    if (id == "ui-game-background")
+        return {1280, 360};
     return id == "ui-paper-small" ? GuiVector2{930, 425} : GuiVector2{100, 100};
 }
 GuiVector2 ResourceManager::measureText(const std::string&, const std::string& text, float size,
@@ -350,6 +352,34 @@ int main()
         screenHeight = 720;
         check(aspectNumerator == 16 && aspectDenominator == 9,
               "The native window is configured once to preserve the 16:9 aspect ratio");
+        paperGame = true;
+        worldScene.background.enabled = true;
+        const auto paperX = [&] {
+            for (const auto& sprite : rendered.sprites)
+                if (sprite.textureId == "ui-game-background")
+                    return sprite.destinationRect.pos.x;
+            throw std::runtime_error("Gameplay paper was not submitted");
+        };
+        gui.render(worldScene);
+        const float paperStart = paperX();
+        check(!rendered.background.enabled, "Paper replaces the fallback starfield");
+        for (int frame = 0; frame < 60; ++frame)
+            gui.render(worldScene);
+        check(std::abs(paperX() - paperStart + 40.F) < 0.002F,
+              "Gameplay paper moves at 40 pixels per second");
+        const float beforeSettings = paperX();
+        press(gui, KEY_F1);
+        for (int frame = 0; frame < 60; ++frame)
+            gui.render(worldScene);
+        clickSetting(gui, 2);
+        clickSetting(gui, 12);
+        press(gui, KEY_ESCAPE);
+        for (int frame = 0; frame < 30; ++frame)
+            gui.render(worldScene);
+        check(std::abs(paperX() - beforeSettings) < 0.002F,
+              "Settings and reduced motion freeze the paper offset");
+        paperGame = false;
+        worldScene.background.enabled = false;
         RenderScene frontend;
         frontend.frontend.page = FrontendPage::Connection;
         gui.render(frontend);

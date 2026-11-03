@@ -12,7 +12,7 @@ Paths below are relative to the repository root.
 |------|----------|----------------|
 | Client coordination | `client/src/main.cpp`, `ClientSession.hpp`, `ClientNetwork.hpp`, `ClientWorld.hpp` | Decode server events, maintain visible entities and player names, send inputs, build scenes and sound events. |
 | Public GUI contract | `gui/src/IGui.hpp`, `gui/include/GuiTypes.hpp` | Define lifecycle, action states, scenes, status feedback, preferences and sound events without native dependency types. |
-| Window and rendering | `gui/src/Gui.cpp`, `Window.cpp`, `Renderer.cpp`, `ScrollingBackground.cpp`, `StatusPresenter.cpp` | Manage the frame, window, world scaling, draw order, starfield and status pages. |
+| Window and rendering | `gui/src/Gui.cpp`, `Window.cpp`, `Renderer.cpp`, `ScrollingBackground.cpp`, `StatusPresenter.cpp` | Manage the frame, window, world scaling, draw order, scrolling paper, fallback starfield and status pages. |
 | Visual resources | `gui/src/ResourceManager.cpp`, `gui/src/detail/ResourceManagerData.hpp` | Own native textures and fonts and resolve IDs used in scene data. |
 | Input and preferences | `gui/src/InputReader.cpp`, `InputMapper.cpp`, `SettingsMenu.cpp`, `SettingsStore.cpp` | Read keyboard/mouse state, map actions, edit preferences and persist applied settings. |
 | Audio | `gui/src/AudioSystem.cpp` | Own the device, sound resources and overlapping playback voices. |
@@ -52,7 +52,7 @@ See [use the GUI](how-to/use-gui.md) for a minimal consumer and
 | `sceneTexts` | Text attached to the game world, such as player names. |
 | `overlayTexts` | Text in window pixels, such as the title and FPS counter. |
 | `worldSize` | Logical world dimensions; `{0, 0}` keeps pixel coordinates. |
-| `background` | Whether the starfield is enabled, its color and scrolling speed. |
+| `background` | Whether the gameplay background is enabled and its scrolling speed; star color applies to the fallback starfield. |
 | `feedback` | Generic status-page feedback for GUI consumers. |
 | `frontend` | Connection form, loading, lobby or gameplay state supplied by client coordination. |
 | `PlayerActions::frontend` | Connection, cancellation, selection, start or disconnect command from the interface. |
@@ -132,3 +132,21 @@ successful multiplayer rendering on Linux and Windows; those need manual checks.
 The client starts on an editable connection form and follows server lobby state.
 See [client interface](client-interface.md) for navigation, module ownership,
 optional sprite slots, font setup and verification.
+
+## Scrolling gameplay background
+
+Gameplay uses `assets/ui/game-background.png` when present. It is a copy of the
+menu paper without its red page margin, followed by a mirrored copy so both tile
+boundaries match. Menu backgrounds stay fixed.
+
+`ScrollingBackground` advances the paper to the left by
+`scrollSpeed * elapsedSeconds`, in window pixels, independently of frame rate.
+The client currently supplies 100 pixels per second through `scene.background`.
+The renderer draws full tiles at a uniform scale matching the window height and
+repeats enough tiles to cover its width, behind entities and HUD. Resizing
+recomputes the tile dimensions without stretching the paper's proportions.
+
+Turning off background motion freezes the current offset. Opening Settings or
+returning to a frontend page also stops background updates; resuming gameplay
+continues from the previous offset. A new GUI initialization resets it. If the
+texture is absent, the existing starfield remains available as a fallback.

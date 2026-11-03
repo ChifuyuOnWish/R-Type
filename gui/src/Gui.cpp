@@ -160,6 +160,7 @@ void Gui::open(const GuiConfig& config)
                              "disconnect",
                              "quit",
                              "background",
+                             "game-background",
                              "settings-background",
                              "reset",
                              "save",
@@ -384,10 +385,20 @@ void Gui::render(const RenderScene& scene)
     }
     if (visual.backgroundMotion)
         _background.update(scene.background, _window.getFrameTime());
-    const auto stars = scene.background.enabled ? _background.getStars(_window.getSize())
-                                                : std::vector<GuiPosition>{};
+    const bool paperBackground =
+        scene.background.enabled && _resources.hasTexture("ui-game-background");
+    const auto stars = scene.background.enabled && !paperBackground
+                           ? _background.getStars(_window.getSize())
+                           : std::vector<GuiPosition>{};
     auto presented = scene;
     fitWorld(presented, _window.getSize());
+    if (paperBackground) {
+        const auto tiles =
+            _background.getTiles(_window.getSize(), _resources.getTextureSize("ui-game-background"),
+                                 "ui-game-background");
+        presented.sprites.insert(presented.sprites.end(), tiles.begin(), tiles.end());
+        presented.background.enabled = false;
+    }
     for (auto* texts : {&presented.sceneTexts, &presented.overlayTexts}) {
         for (auto& text : *texts) {
             text.fontSize *= visual.textScale;

@@ -9,6 +9,7 @@ Use PNG files, preferably with transparency. Restart the client after adding art
 | File | Purpose |
 |------|---------|
 | `background.png` | Full connection and lobby background |
+| `game-background.png` | Looping gameplay paper, derived from the existing menu background without its red margin and paired with a mirrored copy |
 | `settings-background.png` | Full notebook background for Settings |
 | `title.png` | R-Type title; no text is drawn over this image |
 | `settings.png` | Supplied gear image, with transparent outer margins removed offline |

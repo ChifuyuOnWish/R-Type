@@ -2,7 +2,9 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace rtype::gui {
 namespace {
@@ -30,8 +32,33 @@ void ScrollingBackground::update(const BackgroundConfig& config, float elapsedSe
     if (!config.enabled)
         return;
 
-    _offset =
-        std::fmod(_offset + static_cast<double>(config.scrollSpeed) * elapsedSeconds, tileSize);
+    const double distance = static_cast<double>(config.scrollSpeed) * elapsedSeconds;
+    _offset = std::fmod(_offset + distance, tileSize);
+    _paperDistance += distance;
+}
+
+std::vector<SpriteDraw> ScrollingBackground::getTiles(GuiVector2 viewport, GuiVector2 textureSize,
+                                                      const std::string& textureId) const
+{
+    if (!std::isfinite(viewport.x) || !std::isfinite(viewport.y) || !std::isfinite(textureSize.x) ||
+        !std::isfinite(textureSize.y) || textureSize.x <= 0 || textureSize.y <= 0)
+        throw std::invalid_argument("Paper background dimensions must be finite and positive");
+    if (viewport.x <= 0 || viewport.y <= 0)
+        return {};
+    const double width = static_cast<double>(textureSize.x) * viewport.y / textureSize.y;
+    if (!std::isfinite(width) || width > std::numeric_limits<float>::max())
+        throw std::invalid_argument("Paper background tile is too wide");
+    const double phase = std::fmod(_paperDistance, width);
+    std::vector<SpriteDraw> result;
+    for (double x = -phase; x < viewport.x || result.size() < 2; x += width) {
+        SpriteDraw tile;
+        tile.textureId = textureId;
+        tile.sourceRect = {{0, 0}, textureSize.x, textureSize.y};
+        tile.destinationRect = {{static_cast<float>(x), 0}, static_cast<float>(width), viewport.y};
+        tile.layer = std::numeric_limits<int>::lowest();
+        result.push_back(std::move(tile));
+    }
+    return result;
 }
 
 std::vector<GuiPosition> ScrollingBackground::getStars(GuiVector2 viewport) const

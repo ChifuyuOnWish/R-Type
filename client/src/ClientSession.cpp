@@ -274,7 +274,7 @@ ui::RenderScene ClientSession::makeScene()
         scene.clearColor = {20, 24, 32, 255};
         scene.worldSize = {1920, 1080};
         scene.background.enabled = true;
-        scene.background.scrollSpeed = 40;
+        scene.background.scrollSpeed = 100;
         addWorldSprites(scene, _world->registry(), _names);
     }
     return scene;

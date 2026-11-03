@@ -55,10 +55,65 @@ std::vector<GuiPosition> simulate(int fps)
     return background.getStars({1280.0F, 720.0F});
 }
 
+std::vector<SpriteDraw> simulatePaper(int fps)
+{
+    ScrollingBackground background;
+    BackgroundConfig config;
+    config.enabled = true;
+    for (int frame = 0; frame < fps * 3; ++frame)
+        background.update(config, 1.0F / static_cast<float>(fps));
+    return background.getTiles({1280, 720}, {1280, 360}, "paper");
+}
+
+void paperTest()
+{
+    const auto thirty = simulatePaper(30);
+    const auto sixty = simulatePaper(60);
+    const auto fast = simulatePaper(144);
+    require(thirty.size() == sixty.size() && sixty.size() == fast.size(),
+            "Paper tile counts differ");
+    for (std::size_t index = 0; index < thirty.size(); ++index)
+        require(near(thirty[index].destinationRect.pos.x, sixty[index].destinationRect.pos.x) &&
+                    near(sixty[index].destinationRect.pos.x, fast[index].destinationRect.pos.x),
+                "Paper speed must not depend on FPS");
+    ScrollingBackground background;
+    BackgroundConfig config;
+    config.enabled = true;
+    config.scrollSpeed = 64;
+    background.update(config, 0.5F);
+    auto tiles = background.getTiles({512, 512}, {512, 512}, "paper");
+    require(tiles.size() == 2 && near(tiles[0].destinationRect.pos.x, -32) &&
+                near(tiles[1].destinationRect.pos.x, 480),
+            "Paper moves left and covers both edges");
+    require(tiles[0].sourceRect.width == 512 && tiles[0].sourceRect.height == 512 &&
+                tiles[0].rotation == 0 && tiles[0].layer < 0,
+            "Whole paper tiles stay behind entities");
+    background.update(config, 7.5F);
+    tiles = background.getTiles({512, 512}, {512, 512}, "paper");
+    require(near(tiles[0].destinationRect.pos.x, 0), "Paper wraps after a full tile");
+    config.enabled = false;
+    background.update(config, 1);
+    require(near(background.getTiles({512, 512}, {512, 512}, "paper")[0].destinationRect.pos.x, 0),
+            "Disabled scrolling keeps its offset");
+    tiles = background.getTiles({1600, 1000}, {1280, 360}, "paper");
+    require(
+        near(tiles[0].destinationRect.width / tiles[0].destinationRect.height, 1280.F / 360.F) &&
+            tiles[0].destinationRect.height == 1000,
+        "Resizing preserves paper proportions");
+    require(background.getTiles({0, 0}, {512, 512}, "paper").empty(),
+            "Empty viewport has no tiles");
+    rejects([&] { (void)background.getTiles({512, 512}, {0, 512}, "paper"); });
+    rejects([&] {
+        (void)background.getTiles({512, 512}, {512, std::numeric_limits<float>::infinity()},
+                                  "paper");
+    });
+}
+
 } // namespace
 
 int main()
 {
+    paperTest();
     samePositions(simulate(30), simulate(60));
     samePositions(simulate(60), simulate(144));
 
