@@ -1,5 +1,6 @@
 #include "SettingsMenu.hpp"
 
+#include "MenuArtwork.hpp"
 #include "SettingsStore.hpp"
 
 #include <algorithm>
@@ -9,7 +10,10 @@
 namespace rtype::gui {
 namespace {
 
-constexpr std::size_t rowCount = 24;
+constexpr std::size_t rowCount = 30;
+constexpr float firstPaperLine = 107.0F / 360.0F;
+constexpr float paperLineSpacing = 30.0F / 360.0F;
+constexpr std::array categoryNames{"Display", "Audio", "Controls", "Accessibility", "Gamepad"};
 constexpr std::array actionNames{"Up", "Down", "Left", "Right", "Fire"};
 constexpr std::array keyNames{
     "None", "Up", "Down",  "Left",      "Right",      "Space",      "A",          "B", "C", "D",
@@ -33,6 +37,19 @@ constexpr std::array buttonNames{"None",
                                  "Left stick click",
                                  "Right stick click"};
 static_assert(buttonNames.size() == guiGamepadButtonCount);
+constexpr bool isCategoryRow(std::size_t row)
+{
+    return (row >= 16 && row <= 19) || row == 29;
+}
+constexpr std::size_t categoryIndex(std::size_t row)
+{
+    return row == 29 ? 4 : row - 16;
+}
+constexpr std::size_t categoryRow(std::size_t category)
+{
+    return category == 4 ? 29 : 16 + category;
+}
+
 std::string percent(float value)
 {
     return std::to_string(static_cast<int>(std::round(value * 100.0F))) + "%";
@@ -57,27 +74,29 @@ std::string rowText(std::size_t index, const GuiPreferences& preferences)
     }
     case 5:
         return "Tint opacity: " + percent(preferences.visuals.tintOpacity);
-    case 11:
+    case 15:
+        return std::string("Show FPS: ") + (preferences.visuals.showFps ? "On" : "Off");
+    case 20:
         return std::string("Gamepad: ") + (preferences.gamepad.enabled ? "On" : "Off");
-    case 12:
+    case 21:
         return "Controller: " + std::to_string(preferences.gamepad.device + 1);
-    case 13:
+    case 22:
         return "Stick dead zone: " + percent(preferences.gamepad.deadZone);
-    case 14:
+    case 23:
         return std::string("Left stick movement: ") +
                (preferences.gamepad.leftStick ? "On" : "Off");
-    case 20:
-        return "Restore defaults";
-    case 21:
-        return "Apply and save";
-    case 22:
+    case 11:
+        return "Reset";
+    case 12:
+        return "Apply & save";
+    case 13:
         return "Back";
-    case 23:
-        return "Quit application";
+    case 14:
+        return "Quit game";
     default:
-        if (index >= 15)
-            return "Pad " + std::string(actionNames[index - 15]) + ": " +
-                   buttonNames[static_cast<std::size_t>(preferences.gamepad.buttons[index - 15])];
+        if (index >= 24 && index <= 28)
+            return "Pad " + std::string(actionNames[index - 24]) + ": " +
+                   buttonNames[static_cast<std::size_t>(preferences.gamepad.buttons[index - 24])];
         return "Key " + std::string(actionNames[index - 6]) + ": " +
                keyNames[static_cast<std::size_t>(preferences.keyboard.keys[index - 6])];
     }
@@ -179,27 +198,33 @@ void SettingsMenu::setTextMeasure(TextMeasure measure)
     _measure = std::move(measure);
 }
 
-std::vector<std::string> SettingsMenu::footerLines(GuiVector2 viewport) const
+void SettingsMenu::setArtwork(std::string name, GuiVector2 size)
 {
-    const float x = std::max(20.0F, (viewport.x - 900.0F) / 2.0F);
-    const float width = std::max(1.0F, viewport.x - x * 2.0F);
-    const float size = 14.0F * _draft.visuals.textScale;
-    std::vector<std::string> result;
-    for (const auto& value : std::array<std::string, 3>{
-             "D-pad/stick or arrows: select",
-             isCapturing() ? "Start/Esc/F1: cancel" : "A/Enter: edit | B/Esc: back",
-             _notice.empty() ? "Apply and save keeps changes; Back cancels the draft." : _notice}) {
-        auto lines = wrapped(value, width, size, _measure);
-        result.insert(result.end(), lines.begin(), lines.end());
+    _artwork[std::move(name)] = size;
+}
+std::vector<std::size_t> SettingsMenu::categoryRows() const
+{
+    switch (_category) {
+    case 0:
+        return {3, 15};
+    case 1:
+        return {0, 1};
+    case 2:
+        return {6, 7, 8, 9, 10};
+    case 3:
+        return {2, 4, 5};
+    default:
+        return {20, 21, 22, 23, 24, 25, 26, 27, 28};
     }
-    return result;
 }
 
 void SettingsMenu::open(const GuiPreferences& preferences)
 {
     SettingsStore::validate(preferences);
     _draft = preferences;
-    _selected = 0;
+    _dirty = false;
+    _category = 0;
+    _selected = 3;
     _capture = 0;
     _notice.clear();
     _open = true;
@@ -213,8 +238,21 @@ void SettingsMenu::close() noexcept
 
 void SettingsMenu::select(std::size_t row)
 {
-    if (row < rowCount && !isCapturing())
-        _selected = row;
+    if (row >= rowCount || isCapturing())
+        return;
+    _selected = row;
+    if (isCategoryRow(row))
+        _category = categoryIndex(row);
+    else if (row >= 20)
+        _category = 4;
+    else if (row == 3 || row == 15)
+        _category = 0;
+    else if (row <= 1)
+        _category = 1;
+    else if (row >= 6 && row <= 10)
+        _category = 2;
+    else if (row == 2 || row == 4 || row == 5)
+        _category = 3;
 }
 
 void SettingsMenu::setGamepadStatus(std::string status)
@@ -239,11 +277,13 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
                    static_cast<std::size_t>(*input.key) < guiKeyCount) {
             replaceBinding(_draft.keyboard.keys, _selected - 6, *input.key);
             _capture = 0;
+            _dirty = true;
             _notice = "Binding changed. Apply and save to keep it.";
         } else if (_capture == 2 && input.gamepadButton &&
                    static_cast<std::size_t>(*input.gamepadButton) < guiGamepadButtonCount) {
-            replaceBinding(_draft.gamepad.buttons, _selected - 15, *input.gamepadButton);
+            replaceBinding(_draft.gamepad.buttons, _selected - 24, *input.gamepadButton);
             _capture = 0;
+            _dirty = true;
             _notice = "Binding changed. Apply and save to keep it.";
         }
         return MenuResult::None;
@@ -252,16 +292,32 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
         close();
         return MenuResult::Closed;
     }
+    if (input.category != 0) {
+        _category = static_cast<std::size_t>(
+            (static_cast<int>(_category) + (input.category < 0 ? -1 : 1) + 5) % 5);
+        _selected = categoryRows().front();
+        return MenuResult::None;
+    }
     if (input.vertical != 0) {
-        const int next = static_cast<int>(_selected) + (input.vertical < 0 ? -1 : 1);
-        _selected = static_cast<std::size_t>((next + static_cast<int>(rowCount)) %
-                                             static_cast<int>(rowCount));
+        auto navigation = categoryRows();
+        navigation.insert(navigation.end(), {11, 12, 13, 14});
+        const auto found = std::find(navigation.begin(), navigation.end(), _selected);
+        const int index =
+            found == navigation.end() ? 0 : static_cast<int>(found - navigation.begin());
+        const int count = static_cast<int>(navigation.size());
+        _selected = navigation[static_cast<std::size_t>(
+            (index + (input.vertical < 0 ? -1 : 1) + count) % count)];
         return MenuResult::None;
     }
     if (!input.activate && input.horizontal == 0)
         return MenuResult::None;
     const int direction = input.horizontal < 0 ? -1 : 1;
     _notice.clear();
+    if (isCategoryRow(_selected)) {
+        _category = categoryIndex(_selected);
+        _selected = categoryRows().front();
+        return MenuResult::None;
+    }
     switch (_selected) {
     case 0:
         _draft.audio.volume = std::clamp(
@@ -290,46 +346,52 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
                 100.0F,
             0.0F, 0.5F);
         break;
-    case 11:
+    case 15:
+        _draft.visuals.showFps = !_draft.visuals.showFps;
+        break;
+    case 20:
         _draft.gamepad.enabled = !_draft.gamepad.enabled;
         break;
-    case 12:
+    case 21:
         _draft.gamepad.device = (_draft.gamepad.device + direction + 4) % 4;
         break;
-    case 13:
+    case 22:
         _draft.gamepad.deadZone = std::clamp(
             std::round((_draft.gamepad.deadZone + static_cast<float>(direction) * 0.05F) * 100.0F) /
                 100.0F,
             0.05F, 0.8F);
         break;
-    case 14:
+    case 23:
         _draft.gamepad.leftStick = !_draft.gamepad.leftStick;
         break;
-    case 20:
+    case 11:
         _draft = {};
         _notice = "Defaults restored. Apply to keep them.";
         break;
-    case 21:
+    case 12:
+        _dirty = false;
         return MenuResult::Apply;
-    case 22:
+    case 13:
         close();
         return MenuResult::Closed;
-    case 23:
+    case 14:
         close();
         return MenuResult::Quit;
     default:
         if (input.horizontal < 0) {
-            if (_selected >= 15)
-                _draft.gamepad.buttons[_selected - 15] = GuiGamepadButton::None;
+            if (_selected >= 24)
+                _draft.gamepad.buttons[_selected - 24] = GuiGamepadButton::None;
             else
                 _draft.keyboard.keys[_selected - 6] = GuiKey::None;
         } else {
-            _capture = _selected >= 15 ? 2 : 1;
+            _capture = _selected >= 24 ? 2 : 1;
             _notice = _capture == 2 ? "Press a pad button. Start, Escape or F1 cancels."
                                     : "Press a key. Start, Escape or F1 cancels.";
         }
         break;
     }
+    if (!isCapturing())
+        _dirty = true;
     if (_notice.empty())
         _notice = "Unsaved changes. Apply and save to keep them.";
     return MenuResult::None;
@@ -338,76 +400,166 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
 std::vector<SettingsRow> SettingsMenu::rows(GuiVector2 viewport) const
 {
     std::vector<SettingsRow> result;
-    if (!std::isfinite(viewport.x) || !std::isfinite(viewport.y) || viewport.x < 100.0F ||
-        viewport.y < 100.0F)
+    if (!std::isfinite(viewport.x) || !std::isfinite(viewport.y) || viewport.x < 640 ||
+        viewport.y < 360)
         return result;
-    const float scale = _draft.visuals.textScale;
-    const float top = 64.0F * scale;
-    const float height = 50.0F * scale;
-    const float footerHeight =
-        (static_cast<float>(footerLines(viewport).size()) * 22.0F + 22.0F) * scale;
-    const float available = std::max(1.0F, std::floor((viewport.y - top - footerHeight) / height));
-    const auto visible = std::min(rowCount, static_cast<std::size_t>(available));
-    const std::size_t first = _selected < visible ? 0 : _selected - visible + 1;
-    const float width = std::min(900.0F, viewport.x - 40.0F);
-    const float x = (viewport.x - width) / 2.0F;
-    for (std::size_t index = first; index < std::min(rowCount, first + visible); ++index)
+    const float sidebar = viewport.x * 0.23F;
+    const float pitch = viewport.y * paperLineSpacing;
+    const float firstLine = viewport.y * firstPaperLine;
+    for (std::size_t category = 0; category < categoryNames.size(); ++category)
+        result.push_back({categoryRow(category),
+                          {{16, firstLine - pitch + 4 + static_cast<float>(category) * pitch},
+                           sidebar - 24,
+                           pitch - 8},
+                          categoryNames[category]});
+    const auto options = categoryRows();
+    const auto selected = std::find(options.begin(), options.end(), _selected);
+    const std::size_t selectedIndex =
+        selected == options.end() ? 0 : static_cast<std::size_t>(selected - options.begin());
+    const std::size_t first = selectedIndex >= 5 ? selectedIndex - 4 : 0;
+    for (std::size_t index = first; index < std::min(options.size(), first + 5); ++index) {
+        const auto id = options[index];
         result.push_back(
-            {index,
-             {{x, top + static_cast<float>(index - first) * height}, width, height - 2.0F},
-             rowText(index, _draft)});
+            {id,
+             {{sidebar + 24, firstLine - pitch + 4 + static_cast<float>(index - first) * pitch},
+              viewport.x - sidebar - 56,
+              pitch - 4},
+             rowText(id, _draft),
+             id <= 5 || id == 15 || (id >= 20 && id <= 23)});
+        auto& row = result.back();
+        const float valueWidth = std::min(row.bounds.width * 0.40F, viewport.x * 0.22F);
+        row.valueBounds = {{row.bounds.pos.x + row.bounds.width - valueWidth, row.bounds.pos.y},
+                           valueWidth,
+                           row.bounds.height};
+    }
+    const float gap = 12;
+    const float buttonWidth = (viewport.x - 32 - 3 * gap) / 4;
+    const float buttonHeight = std::clamp(viewport.y * 0.085F, 40.0F, 76.0F);
+    for (std::size_t index = 0; index < 4; ++index)
+        result.push_back({11 + index,
+                          {{16 + static_cast<float>(index) * (buttonWidth + gap),
+                            viewport.y - 16 - buttonHeight},
+                           buttonWidth,
+                           buttonHeight},
+                          rowText(11 + index, _draft)});
     return result;
 }
 
 RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
 {
     RenderScene scene;
-    scene.clearColor = {12, 16, 22, 255};
+    scene.clearColor = {248, 246, 235, 255};
     const float scale = _draft.visuals.textScale;
-    const float fontSize = 18.0F * scale;
-    const float x = std::max(20.0F, (viewport.x - 900.0F) / 2.0F);
-    constexpr GuiColor white{245, 245, 245, 255};
-    text(scene, "Settings", {x, 16.0F}, 28.0F * scale, white);
-    if (!_gamepadStatus.empty())
-        text(scene, clipped(_gamepadStatus, viewport.x - x * 2.0F, 12.0F * scale, _measure),
-             {x, 45.0F * scale}, 12.0F * scale, {180, 195, 210, 255});
+    const float size = std::clamp(viewport.y * 0.030F, 16.0F, 34.0F) * scale;
+    const float sidebar = viewport.x * 0.23F;
+    const float pitch = viewport.y * paperLineSpacing;
+    const float firstLine = viewport.y * firstPaperLine;
+    constexpr GuiColor ink{30, 30, 35, 255};
+    const auto image = [&](const std::string& id, GuiRectangle bounds) {
+        return detail::menuArtwork(scene, _artwork, id, bounds);
+    };
+    if (!image("settings-background", {{0, 0}, viewport.x, viewport.y})) {
+        for (float y = firstLine; y < viewport.y - 90; y += pitch)
+            scene.rectangles.push_back(
+                {{{sidebar + 12, y}, viewport.x - sidebar - 40, 1}, {155, 181, 206, 255}});
+    }
+    const auto fitted = [&](const std::string& value, GuiRectangle bounds, float desired,
+                            GuiColor color, bool centered, bool onLine = false) {
+        float fontSize = std::min(desired, bounds.height * 0.55F);
+        while (fontSize > 14 && measuredWidth(value, fontSize, _measure) > bounds.width - 16)
+            fontSize -= 1;
+        const auto displayed = clipped(value, bounds.width - 16, fontSize, _measure);
+        const float width = measuredWidth(displayed, fontSize, _measure);
+        const float x = bounds.pos.x + (centered ? (bounds.width - width) / 2 : 8);
+        const float y = centered && !onLine
+                            ? bounds.pos.y + (bounds.height - fontSize) / 2 + fontSize * 0.24F
+                            : bounds.pos.y + bounds.height - fontSize - 3;
+        text(scene, displayed, {x, y}, fontSize, color);
+    };
+    const float titleSize =
+        std::min(std::clamp(viewport.y * 0.045F, 24.0F, 50.0F) * scale, pitch * 0.70F);
+    const float titleY = viewport.y * (47.0F / 360.0F) - titleSize - 4.0F;
+    text(scene, "Settings", {sidebar + 24, titleY}, titleSize, ink);
+    if (_category == 4 && !_gamepadStatus.empty())
+        text(scene, clipped(_gamepadStatus, viewport.x - sidebar - 48, 12.0F * scale, _measure),
+             {sidebar + 24, viewport.y * 0.16F}, 12.0F * scale, ink);
     for (const auto& row : rows(viewport)) {
+        const bool category = isCategoryRow(row.index);
+        const bool action = row.index >= 11 && row.index <= 14;
         const bool selected = row.index == _selected;
-        const GuiColor background =
-            selected ? GuiColor{36, 66, 96, 255} : GuiColor{22, 28, 36, 255};
-        scene.rectangles.push_back({row.bounds, background});
+        if (category || action) {
+            constexpr std::array categoryImages{"settings-display", "settings-audio",
+                                                "settings-controls", "settings-accessibility",
+                                                "settings-gamepad"};
+            constexpr std::array actionImages{"reset", "save", "back", "quit"};
+            const std::string art =
+                category ? categoryImages[categoryIndex(row.index)] : actionImages[row.index - 11];
+            const bool activeCategory = category && categoryIndex(row.index) == _category;
+            const std::string paperId = activeCategory ? "paper-category-selected"
+                                        : category     ? "paper-category"
+                                                       : detail::paperArtwork(_artwork, row.bounds);
+            const bool paper = image(paperId, row.bounds);
+            if (!paper && !image(art, row.bounds) && !image("button", row.bounds))
+                scene.rectangles.push_back(
+                    {row.bounds, category && categoryIndex(row.index) == _category
+                                     ? GuiColor{220, 216, 200, 255}
+                                     : GuiColor{255, 255, 255, 255}});
+            if (activeCategory && !paper)
+                scene.rectangles.push_back(
+                    {{{row.bounds.pos.x, row.bounds.pos.y}, 3, row.bounds.height}, ink});
+            GuiRectangle label = row.bounds;
+            label.pos.x += label.width * 0.10F;
+            label.width *= 0.80F;
+            fitted(row.text, label, size * (category ? 0.9F : 0.85F), ink, true);
+            if (selected && action)
+                text(scene, ">",
+                     {row.bounds.pos.x + 8, row.bounds.pos.y + row.bounds.height * 0.30F},
+                     size * 0.65F, ink);
+            continue;
+        }
+        const float markerWidth = std::max(22.0F, viewport.x * 0.022F);
+        if (selected)
+            fitted(">", {row.bounds.pos, markerWidth, row.bounds.height}, size * 0.7F, ink, false);
         const auto separator = row.text.find(": ");
         const bool hasValue = separator != std::string::npos;
-        const auto label = (selected ? "> " : "  ") + row.text.substr(0, separator);
-        const float labelWidth =
-            row.bounds.width -
-            ((row.index <= 5 || (row.index >= 11 && row.index <= 14)) ? 86.0F : 8.0F);
-        const auto ink = white;
-        text(scene, clipped(label, labelWidth, 18.0F * scale, _measure),
-             {row.bounds.pos.x + 4.0F, row.bounds.pos.y + (hasValue ? 2.0F : 12.0F) * scale},
-             18.0F * scale, ink);
+        fitted(row.text.substr(0, separator),
+               {{row.bounds.pos.x + markerWidth, row.bounds.pos.y},
+                row.valueBounds.pos.x - row.bounds.pos.x - markerWidth - 12,
+                row.bounds.height},
+               size, ink, false);
         if (hasValue) {
-            const float valueWidth =
-                row.bounds.width -
-                ((row.index <= 5 || (row.index >= 11 && row.index <= 14)) ? 86.0F : 24.0F);
-            text(scene,
-                 clipped(row.text.substr(separator + 2), valueWidth, 14.0F * scale, _measure),
-                 {row.bounds.pos.x + 20.0F, row.bounds.pos.y + 25.0F * scale}, 14.0F * scale, ink);
-        }
-        if (row.index <= 5 || (row.index >= 11 && row.index <= 14)) {
-            text(scene, "<", {row.bounds.pos.x + row.bounds.width - 70.0F, row.bounds.pos.y + 3.0F},
-                 fontSize, white);
-            text(scene, ">", {row.bounds.pos.x + row.bounds.width - 32.0F, row.bounds.pos.y + 3.0F},
-                 fontSize, white);
+            const std::string value = isCapturing() && selected
+                                          ? (_capture == 2 ? "Press a button..." : "Press a key...")
+                                          : row.text.substr(separator + 2);
+            const float arrowWidth = row.adjustable ? 36.0F : 0.0F;
+            fitted(value,
+                   {{row.valueBounds.pos.x + arrowWidth, row.valueBounds.pos.y},
+                    row.valueBounds.width - 2 * arrowWidth,
+                    row.valueBounds.height},
+                   size, ink, true, true);
+            if (row.adjustable) {
+                fitted("<", {row.valueBounds.pos, 36, row.valueBounds.height}, size * 0.75F, ink,
+                       true, true);
+                fitted(">",
+                       {{row.valueBounds.pos.x + row.valueBounds.width - 36, row.valueBounds.pos.y},
+                        36,
+                        row.valueBounds.height},
+                       size * 0.75F, ink, true, true);
+            }
         }
     }
-    const float small = 14.0F * scale;
-    const auto footer = footerLines(viewport);
-    float y = viewport.y - 12.0F * scale - static_cast<float>(footer.size()) * 22.0F * scale;
-    for (const auto& value : footer) {
-        text(scene, value, {x, y}, small, white);
-        y += 22.0F * scale;
-    }
+    const float buttonHeight = std::clamp(viewport.y * 0.085F, 40.0F, 76.0F);
+    const float noticeSize = std::clamp(viewport.y * 0.025F, 12.0F, 20.0F) * scale;
+    const auto message = !_notice.empty() ? _notice
+                         : _dirty         ? "Unsaved changes. Apply and save to keep them."
+                                  : "Tab/LB/RB: category   Up/Down: scroll   Left/Right: change   "
+                                    "A/Enter: confirm   B: back";
+    auto lines = wrapped(message, viewport.x - 48, noticeSize, _measure);
+    const float noticeTop =
+        viewport.y - 24 - buttonHeight - static_cast<float>(lines.size()) * (noticeSize + 2);
+    for (std::size_t index = 0; index < lines.size(); ++index)
+        text(scene, lines[index], {24, noticeTop + static_cast<float>(index) * (noticeSize + 2)},
+             noticeSize, ink);
     return scene;
 }
 

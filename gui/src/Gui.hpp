@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AudioSystem.hpp"
+#include "FrontendMenu.hpp"
 #include "IGui.hpp"
 #include "InputMapper.hpp"
 #include "InputReader.hpp"
@@ -46,13 +47,18 @@ private:
     InputMapper _input;
     InputReader _reader;
     SettingsMenu _menu;
+    FrontendMenu _frontend;
     GuiPreferences _preferences;
     std::filesystem::path _settingsPath;
     std::string _settingsNotice;
+    std::string _uiFont;
     bool _keyOverride = false;
     bool _audioOverride = false;
     bool _quitRequested = false;
     bool _waitForNeutral = true;
+    float _fpsElapsed = 0.0F;
+    unsigned _fpsFrames = 0;
+    unsigned _displayedFps = 0;
 };
 
 } // namespace rtype::gui

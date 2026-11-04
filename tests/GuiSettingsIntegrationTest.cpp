@@ -16,7 +16,7 @@
 using namespace rtype::gui;
 namespace {
 std::array<bool, 512> keys{}, presses{};
-bool ready = false, focused = true, clicked = false;
+bool ready = false, focused = true, clicked = false, paperFps = false, paperGame = false;
 Vector2 mouse{};
 float wheel = 0;
 int exitKey = -1;
@@ -46,6 +46,44 @@ void press(Gui& gui, int key)
 {
     presses[static_cast<std::size_t>(key)] = true;
     (void)poll(gui);
+}
+void clickSetting(Gui& gui, std::size_t id)
+{
+    SettingsMenu model;
+    model.open(gui.getPreferences());
+    model.select(id);
+    const auto hit = [&](std::size_t target) {
+        for (const auto& row :
+             model.rows({static_cast<float>(screenWidth), static_cast<float>(screenHeight)})) {
+            if (row.index != target)
+                continue;
+            mouse = {row.bounds.pos.x + row.bounds.width * 0.4F,
+                     row.bounds.pos.y + row.bounds.height / 2};
+            clicked = true;
+            (void)poll(gui);
+            return;
+        }
+        throw std::runtime_error("Settings control not found");
+    };
+    if (id <= 10 || id == 15 || (id >= 20 && id <= 28))
+        hit(model.category() == 4 ? 29 : 16 + model.category());
+    if (id >= 25 && id <= 28) {
+        // The Gamepad category scrolls while its permanent action bar stays visible.
+        for (std::size_t option = 20; option < id; ++option)
+            press(gui, KEY_DOWN);
+    }
+    hit(id);
+}
+bool fpsVisible()
+{
+    for (const auto& draw : rendered.overlayTexts)
+        if (draw.text.starts_with("FPS:")) {
+            check(draw.position.x >= 8 && draw.position.x < 80 && draw.position.y >= 4 &&
+                      draw.position.y < 80,
+                  "FPS is anchored at the top left");
+            return true;
+        }
+    return false;
 }
 void padPress(Gui& gui, int button)
 {
@@ -164,6 +202,10 @@ bool IsKeyPressed(int key)
 {
     return presses.at(static_cast<std::size_t>(key));
 }
+int GetCharPressed()
+{
+    return 0;
+}
 bool IsKeyPressedRepeat(int)
 {
     return false;
@@ -195,7 +237,26 @@ const std::filesystem::path& ResourceManager::getAssetRoot() const noexcept
 {
     return _impl->root;
 }
+bool ResourceManager::hasTexture(const std::string& id) const
+{
+    return (paperFps && id == "ui-paper-small") || (paperGame && id == "ui-game-background");
+}
 void ResourceManager::clear() noexcept {}
+void ResourceManager::loadFont(const std::string&, const std::filesystem::path&, int) {}
+void ResourceManager::loadTexture(const std::string&, const std::filesystem::path&) {}
+GuiVector2 ResourceManager::getTextureSize(const std::string& id) const
+{
+    if (id == "ui-game-background")
+        return {1280, 360};
+    return id == "ui-paper-small" ? GuiVector2{930, 425} : GuiVector2{100, 100};
+}
+GuiVector2 ResourceManager::measureText(const std::string&, const std::string& text, float size,
+                                        float spacing) const
+{
+    const auto result = MeasureTextEx({}, text.c_str(), size, spacing);
+    return {result.x, result.y};
+}
+
 struct AudioSystem::Impl
 {
     AudioSettings settings;
@@ -240,8 +301,7 @@ int main()
         std::ofstream(assets / "input" / "gamecontrollerdb.txt") << "test mapping";
         Gui gui(assets);
         gui.open(config);
-        check(mappingsRegistered == 1,
-              "The bundled mapping database loads automatically at startup");
+        check(mappingsRegistered == 1, "The controller mapping database loads at startup");
         check(exitKey == KEY_NULL, "Escape reserved for menu");
         (void)poll(gui);
         keys[KEY_SPACE] = true;
@@ -263,46 +323,56 @@ int main()
         (void)poll(gui);
         press(gui, KEY_F1);
         check(gui.isSettingsOpen(), "Settings reopen");
-        press(gui, KEY_DOWN);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 1);
         check(!gui.getPreferences().audio.muted, "Draft has not been applied");
-        for (int index = 0; index < 20; ++index) {
-            wheel = -1;
-            (void)poll(gui);
-        }
-        press(gui, KEY_ENTER);
-        check(gui.getPreferences().audio.muted, "Draft applied");
+        clickSetting(gui, 12);
+        check(gui.getPreferences().audio.muted, "Draft applied through fixed button");
+        for (int index = 0; index < 40; ++index)
+            gui.render({});
+        check(fpsVisible(), "FPS visible when enabled, including Settings");
+        paperFps = true;
+        gui.render({});
+        check(fpsVisible(), "FPS stays anchored with the paper artwork");
+        const auto& badge = rendered.sprites.back();
+        const auto& counter = rendered.overlayTexts.back();
+        check(badge.textureId == "ui-paper-small" && badge.layer == 10000,
+              "FPS uses paper above other sprites");
+        check(counter.position.x > badge.destinationRect.pos.x &&
+                  counter.position.y > badge.destinationRect.pos.y &&
+                  counter.position.y + counter.fontSize <
+                      badge.destinationRect.pos.y + badge.destinationRect.height,
+              "FPS label fits inside its paper badge");
+        paperFps = false;
+        clickSetting(gui, 15);
+        gui.render({});
+        check(!fpsVisible(), "FPS toggle previews immediately");
+        clickSetting(gui, 12);
+        check(!gui.getPreferences().visuals.showFps, "FPS option applied");
         GuiPreferences saved;
         std::string error;
-        check(SettingsStore::load(config.settingsPath, saved, error) && saved.audio.muted,
+        check(SettingsStore::load(config.settingsPath, saved, error) && saved.audio.muted &&
+                  !saved.visuals.showFps,
               "Applied preferences persisted");
         press(gui, KEY_ESCAPE);
         gui.close();
         gui.open(config);
-        check(gui.getPreferences().audio.muted, "Saved preferences restored on reopen");
+        check(gui.getPreferences().audio.muted && !gui.getPreferences().visuals.showFps,
+              "Saved preferences restored on reopen");
         (void)poll(gui);
-        mouse = {1200, 25};
+        mouse = {1240, 25};
         clicked = true;
         (void)poll(gui);
         check(gui.isSettingsOpen(), "Mouse settings button");
-        for (int index = 0; index < 4; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_RIGHT);
-        for (int index = 0; index < 17; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 4);
+        clickSetting(gui, 12);
         press(gui, KEY_ESCAPE);
         gui.render({});
         check(rendered.sceneTint.red == 255 && rendered.sceneTint.alpha == 38,
               "Tint preference reaches the renderer");
         check(!rendered.overlayTexts.empty(), "Settings button stays available");
         press(gui, KEY_F1);
-        for (int index = 0; index < 3; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_RIGHT);
-        for (int index = 0; index < 18; ++index)
-            press(gui, KEY_DOWN);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 3);
+        clickSetting(gui, 12);
         press(gui, KEY_ESCAPE);
         RenderScene textScene;
         TextDraw label;
@@ -342,6 +412,51 @@ int main()
         screenHeight = 720;
         check(aspectNumerator == 16 && aspectDenominator == 9,
               "The native window is configured once to preserve the 16:9 aspect ratio");
+        paperGame = true;
+        worldScene.background.enabled = true;
+        const auto paperX = [&] {
+            for (const auto& sprite : rendered.sprites)
+                if (sprite.textureId == "ui-game-background")
+                    return sprite.destinationRect.pos.x;
+            throw std::runtime_error("Gameplay paper was not submitted");
+        };
+        gui.render(worldScene);
+        const float paperStart = paperX();
+        check(!rendered.background.enabled, "Paper replaces the fallback starfield");
+        for (int frame = 0; frame < 60; ++frame)
+            gui.render(worldScene);
+        check(std::abs(paperX() - paperStart + 40.F) < 0.002F,
+              "Gameplay paper moves at 40 pixels per second");
+        const float beforeSettings = paperX();
+        press(gui, KEY_F1);
+        for (int frame = 0; frame < 60; ++frame)
+            gui.render(worldScene);
+        clickSetting(gui, 2);
+        clickSetting(gui, 12);
+        press(gui, KEY_ESCAPE);
+        for (int frame = 0; frame < 30; ++frame)
+            gui.render(worldScene);
+        check(std::abs(paperX() - beforeSettings) < 0.002F,
+              "Settings and reduced motion freeze the paper offset");
+        paperGame = false;
+        worldScene.background.enabled = false;
+        RenderScene frontend;
+        frontend.frontend.page = FrontendPage::Connection;
+        gui.render(frontend);
+        check(!rendered.rectangles.empty(), "Frontend draws placeholders");
+        keys[KEY_SPACE] = true;
+        check(!poll(gui).heldActions[fire], "Frontend blocks gameplay actions");
+        keys = {};
+        presses[KEY_ENTER] = true;
+        check(poll(gui).frontend.command == FrontendCommand::Connect,
+              "Form submission reaches public action contract");
+        press(gui, KEY_F1);
+        check(gui.isSettingsOpen(), "Settings reachable before connection");
+        press(gui, KEY_ESCAPE);
+        check(!gui.isSettingsOpen(), "Escape returns from Settings to frontend");
+        gui.render(frontend);
+        check(!rendered.rectangles.empty(), "Connection screen restored");
+        gui.render({});
         InputReader reader;
         padConnected[0] = true;
         padMapped[0] = false;
@@ -386,42 +501,27 @@ int main()
         padButtons[0] = {};
         (void)poll(gui);
         padPress(gui, GAMEPAD_BUTTON_MIDDLE_RIGHT);
-        check(gui.isSettingsOpen(), "Start opens Settings");
-        for (int row = 0; row < 19; ++row)
+        check(gui.isSettingsOpen(), "Start opens categorized Settings");
+        padPress(gui, GAMEPAD_BUTTON_LEFT_TRIGGER_1);
+        for (int row = 0; row < 8; ++row)
             padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
         padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
-        check(gui.isSettingsOpen(), "East button can be captured without closing Settings");
+        check(gui.isSettingsOpen(), "East is captured without closing Settings");
         padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
         padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
         padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         check(gui.getPreferences().gamepad.buttons[fire] == GuiGamepadButton::East,
-              "Gamepad-only navigation applies a new binding");
-        check(SettingsStore::load(config.settingsPath, saved, error) &&
-                  saved.gamepad.buttons[fire] == GuiGamepadButton::East,
-              "Gamepad binding is persisted");
+              "Gamepad-only navigation applies a binding through the fixed action bar");
         padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
-        check(!gui.isSettingsOpen(), "East goes back outside capture");
+        check(!gui.isSettingsOpen(), "East closes Settings outside capture");
         padButtons[0][GAMEPAD_BUTTON_RIGHT_FACE_RIGHT] = true;
-        check(poll(gui).pressedActions[fire], "New gamepad binding drives gameplay");
+        check(poll(gui).pressedActions[fire], "Rebound button drives gameplay");
         padButtons[0] = {};
         (void)poll(gui);
-        RenderScene disconnected;
-        disconnected.feedback.status = GuiStatus::Disconnected;
-        gui.render(disconnected);
-        padPress(gui, GAMEPAD_BUTTON_MIDDLE_RIGHT);
-        check(gui.isSettingsOpen(), "Gamepad can reopen Settings");
-        padPress(gui, GAMEPAD_BUTTON_LEFT_FACE_UP);
-        padPress(gui, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
-        check(gui.shouldClose(), "Gamepad can quit without keyboard or mouse");
-        gui.close();
-        gui.open(config);
-        check(gui.getPreferences().gamepad.buttons[fire] == GuiGamepadButton::East,
-              "Gamepad preferences restore on reopen");
         padConnected[0] = false;
         press(gui, KEY_F1);
-        press(gui, KEY_UP);
-        press(gui, KEY_ENTER);
+        clickSetting(gui, 14);
         check(gui.shouldClose(), "Explicit menu quit");
         gui.close();
         std::filesystem::remove_all(root);

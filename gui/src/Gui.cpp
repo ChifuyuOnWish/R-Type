@@ -1,5 +1,6 @@
 #include "Gui.hpp"
 
+#include "MenuArtwork.hpp"
 #include "Renderer.hpp"
 #include "SettingsStore.hpp"
 #include "StatusPresenter.hpp"
@@ -22,32 +23,36 @@ bool contains(const GuiRectangle& rectangle, GuiPosition position)
 
 GuiRectangle settingsButton(GuiVector2 viewport, float scale)
 {
-    const float width = std::min(112.0F * scale, std::max(1.0F, viewport.x - 24.0F));
-    return {{std::max(12.0F, viewport.x - width - 12.0F), 12.0F}, width, 44.0F * scale};
+    const float side = std::max(36.0F, 48.0F * scale);
+    return {{std::max(12.0F, viewport.x - side - 12.0F), 12.0F}, side, side};
 }
 
-RenderScene withSettingsButton(RenderScene scene, GuiVector2 viewport, float scale)
+RenderScene withSettingsButton(RenderScene scene, GuiVector2 viewport, float scale,
+                               const ResourceManager& resources)
 {
     const auto button = settingsButton(viewport, scale);
-    scene.rectangles.push_back({button, {65, 79, 102, 255}});
-    const float border = scale;
-    scene.rectangles.push_back({{{button.pos.x + border, button.pos.y + border},
-                                 button.width - 2.0F * border,
-                                 button.height - 2.0F * border},
-                                {25, 33, 47, 255}});
-    const auto addLabel = [&](const char* value, float size, float offset, GuiColor color) {
+    if (resources.hasTexture("ui-settings")) {
+        (void)detail::menuArtwork(scene, {{"settings", resources.getTextureSize("ui-settings")}},
+                                  "settings", button);
+    } else {
+        scene.rectangles.push_back({button, {255, 255, 255, 255}});
         TextDraw label;
-        label.text = value;
-        label.fontSize = size * scale;
-        label.spacing = scale;
-        const auto measured = MeasureTextEx(GetFontDefault(), value, label.fontSize, label.spacing);
-        label.position = {button.pos.x + (button.width - measured.x) / 2.0F,
-                          button.pos.y + offset * scale};
-        label.color = color;
+        label.text = "*";
+        label.fontSize = 24.0F * scale;
+        label.color = {20, 20, 20, 255};
+        label.position = {button.pos.x + button.width * 0.35F,
+                          button.pos.y + button.height * 0.25F};
         scene.overlayTexts.push_back(std::move(label));
-    };
-    addLabel("Settings", 14.0F, 7.0F, {240, 244, 250, 255});
-    addLabel("F1 / Esc / Start", 10.0F, 27.0F, {172, 185, 206, 255});
+    }
+    return scene;
+}
+
+RenderScene withUiFont(RenderScene scene, const std::string& font)
+{
+    for (auto* texts : {&scene.sceneTexts, &scene.overlayTexts})
+        for (auto& text : *texts)
+            if (text.fontId.empty())
+                text.fontId = font;
     return scene;
 }
 
@@ -119,9 +124,68 @@ void Gui::open(const GuiConfig& config)
     _window.open(config);
     _reader.reset();
     _reader.loadMappings(_resources.getAssetRoot() / "input" / "gamecontrollerdb.txt");
-    _menu.setTextMeasure([](const std::string& value, float size) {
-        return MeasureTextEx(GetFontDefault(), value.c_str(), size, 1.0F).x;
+    _frontend.reset();
+    _menu = SettingsMenu{};
+    const auto root = _resources.getAssetRoot();
+    _uiFont.clear();
+    const auto fontPath = root / "fonts/holidays-homework.ttf";
+    if (std::filesystem::is_regular_file(fontPath)) {
+        _resources.loadFont("ui-handwriting", "fonts/holidays-homework.ttf", 96);
+        _uiFont = "ui-handwriting";
+        _frontend.setFont(_uiFont);
+    }
+    _frontend.setTextMeasure([this](const std::string& value, float size) {
+        return _resources.measureText(_uiFont, value, size).x;
     });
+    for (const char* name : {"paper-button",
+                             "paper-action",
+                             "paper-category",
+                             "paper-category-selected",
+                             "paper-small",
+                             "paper-mode",
+                             "paper-square",
+                             "title",
+                             "settings",
+                             "input",
+                             "button",
+                             "campaign",
+                             "infinite",
+                             "name-field",
+                             "ip-field",
+                             "port-field",
+                             "connect",
+                             "retry",
+                             "cancel",
+                             "back",
+                             "start",
+                             "previous",
+                             "next",
+                             "disconnect",
+                             "quit",
+                             "background",
+                             "game-background",
+                             "settings-background",
+                             "reset",
+                             "save",
+                             "settings-display",
+                             "settings-audio",
+                             "settings-controls",
+                             "settings-accessibility",
+                             "settings-gamepad"}) {
+        auto path = std::filesystem::path("ui") / (std::string(name) + ".png");
+        if (std::filesystem::is_regular_file(root / path)) {
+            const auto id = "ui-" + std::string(name);
+            _resources.loadTexture(id, path);
+            _frontend.setArtwork(name, _resources.getTextureSize(id));
+            _menu.setArtwork(name, _resources.getTextureSize(id));
+        }
+    }
+    _menu.setTextMeasure([this](const std::string& value, float size) {
+        return _resources.measureText(_uiFont, value, size).x;
+    });
+    _fpsElapsed = 0;
+    _fpsFrames = 0;
+    _displayedFps = 0;
     _quitRequested = false;
     _background = {};
     _input.reset();
@@ -177,6 +241,20 @@ PlayerActions Gui::pollActions()
                                ? "Active controller " + device + ": " + frame.gamepadName
                            : frame.gamepadDetected ? "Controller " + device + ": layout unavailable"
                                                    : "Controller " + device + ": not connected");
+    if (_frontend.active() && !_menu.isOpen()) {
+        _waitForNeutral = true;
+        auto actions = _input.map(KeyboardState{false});
+        actions.frontend =
+            _frontend.handle(frame, _window.getSize(), _preferences.visuals.textScale);
+        if (actions.frontend.command == FrontendCommand::Quit)
+            _quitRequested = true;
+        if (_frontend.takeSettingsRequest() || frame.settingsShortcut ||
+            (frame.toggleSettings && !frame.escape)) {
+            _menu.open(_preferences);
+            _menu.setNotice(_settingsNotice);
+        }
+        return actions;
+    }
     bool handledToggle = false;
     if (frame.toggleSettings) {
         handledToggle = true;
@@ -207,10 +285,11 @@ PlayerActions Gui::pollActions()
                         continue;
                     _menu.select(row.index);
                     frame.menu.activate = true;
-                    if (row.index <= 5 || (row.index >= 11 && row.index <= 14)) {
-                        if (frame.mouse.x >= row.bounds.pos.x + row.bounds.width - 40.0F)
+                    if (row.adjustable) {
+                        if (frame.mouse.x >= row.valueBounds.pos.x + row.valueBounds.width - 36.0F)
                             frame.menu.horizontal = 1;
-                        else if (frame.mouse.x >= row.bounds.pos.x + row.bounds.width - 80.0F)
+                        else if (frame.mouse.x >= row.valueBounds.pos.x &&
+                                 frame.mouse.x < row.valueBounds.pos.x + 36.0F)
                             frame.menu.horizontal = -1;
                     }
                     break;
@@ -261,33 +340,88 @@ void Gui::render(const RenderScene& scene)
 {
     if (!_window.isOpen())
         throw std::logic_error("Cannot render before opening the GUI");
+    _fpsElapsed += _window.getFrameTime();
+    ++_fpsFrames;
+    if (_fpsElapsed >= 0.5F) {
+        _displayedFps =
+            static_cast<unsigned>(std::lround(static_cast<float>(_fpsFrames) / _fpsElapsed));
+        _fpsElapsed = 0;
+        _fpsFrames = 0;
+    }
+    const auto draw = [this](RenderScene presented, std::span<const GuiPosition> stars = {}) {
+        const auto& visual = _menu.isOpen() ? _menu.draft().visuals : _preferences.visuals;
+        if (visual.showFps && _displayedFps != 0) {
+            TextDraw counter;
+            counter.fontId = _uiFont;
+            counter.text = "FPS: " + std::to_string(_displayedFps);
+            counter.fontSize = 18.0F * visual.textScale;
+            counter.position = {12, 8};
+            counter.color = {20, 20, 20, 255};
+            const auto size = _resources.measureText(_uiFont, counter.text, counter.fontSize);
+            if (_resources.hasTexture("ui-paper-small")) {
+                const auto paperSize = _resources.getTextureSize("ui-paper-small");
+                const float ratio = paperSize.x / paperSize.y;
+                const float width = std::max(size.x + 32.0F, (size.y + 20.0F) * ratio);
+                const GuiRectangle badge{{8, 4}, width, width / ratio};
+                (void)detail::menuArtwork(presented, {{"paper-small", paperSize}}, "paper-small",
+                                          badge);
+                presented.sprites.back().layer = 10000;
+                counter.position = {badge.pos.x + (badge.width - size.x) / 2,
+                                    badge.pos.y + (badge.height - size.y) / 2 +
+                                        counter.fontSize * 0.24F};
+            } else {
+                presented.rectangles.push_back(
+                    {{{8, 4}, size.x + 8, size.y + 8}, {255, 255, 255, 255}});
+            }
+            presented.overlayTexts.push_back(std::move(counter));
+        }
+        Renderer(_resources).render(presented, stars);
+    };
+    _frontend.setState(scene.frontend);
     if (_menu.isOpen()) {
-        Renderer(_resources).render(_menu.makeScene(_window.getSize()));
+        draw(withUiFont(_menu.makeScene(_window.getSize()), _uiFont));
+        return;
+    }
+    if (_frontend.active()) {
+        draw(_frontend.makeScene(_window.getSize(), _preferences.visuals.textScale));
         return;
     }
     const auto& visual = _preferences.visuals;
     if (scene.feedback.status != GuiStatus::None) {
         const auto statusScene =
             StatusPresenter::makeScene(scene.feedback, _window.getSize(), visual.textScale);
-        Renderer(_resources)
-            .render(withSettingsButton(statusScene, _window.getSize(), visual.textScale));
+        draw(withUiFont(
+            withSettingsButton(statusScene, _window.getSize(), visual.textScale, _resources),
+            _uiFont));
         return;
     }
     if (visual.backgroundMotion)
         _background.update(scene.background, _window.getFrameTime());
-    const auto stars = scene.background.enabled ? _background.getStars(_window.getSize())
-                                                : std::vector<GuiPosition>{};
+    const bool paperBackground =
+        scene.background.enabled && _resources.hasTexture("ui-game-background");
+    const auto stars = scene.background.enabled && !paperBackground
+                           ? _background.getStars(_window.getSize())
+                           : std::vector<GuiPosition>{};
     auto presented = scene;
     fitWorld(presented, _window.getSize());
+    if (paperBackground) {
+        const auto tiles =
+            _background.getTiles(_window.getSize(), _resources.getTextureSize("ui-game-background"),
+                                 "ui-game-background");
+        presented.sprites.insert(presented.sprites.end(), tiles.begin(), tiles.end());
+        presented.background.enabled = false;
+    }
     for (auto* texts : {&presented.sceneTexts, &presented.overlayTexts}) {
         for (auto& text : *texts) {
             text.fontSize *= visual.textScale;
             text.spacing *= visual.textScale;
         }
     }
-    presented = withSettingsButton(std::move(presented), _window.getSize(), visual.textScale);
+    presented =
+        withSettingsButton(std::move(presented), _window.getSize(), visual.textScale, _resources);
+    presented = withUiFont(std::move(presented), _uiFont);
     presented.sceneTint = sceneTint(visual);
-    Renderer(_resources).render(presented, stars);
+    draw(std::move(presented), stars);
 }
 
 void Gui::setAudioSettings(const AudioSettings& settings)

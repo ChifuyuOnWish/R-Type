@@ -1,11 +1,6 @@
-#include "ClientNetwork.hpp"
-#include "ClientWorld.hpp"
+#include "ClientSession.hpp"
 #include "Gui.hpp"
-#include "MessageType.hpp"
-#include "Messages.hpp"
-#include "systems/RenderSystem.hpp"
 
-#include <array>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -14,16 +9,10 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace {
-
-namespace net = rtype::network;
-namespace proto = rtype::protocol;
-
-using PlayerNames = std::unordered_map<std::uint32_t, std::string>;
 
 struct NetworkOptions
 {
@@ -32,14 +21,6 @@ struct NetworkOptions
     std::uint16_t port = 0;
     std::string name = "Player";
 };
-
-rtype::gui::TextDraw label(const std::string& text, float x, float y)
-{
-    rtype::gui::TextDraw result;
-    result.text = text;
-    result.position = {x, y};
-    return result;
-}
 
 void parseEndpoint(std::string_view value, NetworkOptions& options)
 {
@@ -91,67 +72,6 @@ void configureClient(int argc, char** argv, rtype::gui::GuiConfig& config,
     }
 }
 
-rtype::gui::RenderScene makeScene(rtype::client::ClientWorld& world, const PlayerNames& playerNames,
-                                  bool online)
-{
-    rtype::gui::RenderScene scene;
-    scene.clearColor = {20, 24, 32, 255};
-    scene.worldSize = {1920.0F, 1080.0F};
-    scene.background.enabled = true;
-    scene.background.scrollSpeed = 40.0F;
-    rtype::client::addWorldSprites(scene, world.registry(), playerNames);
-    scene.overlayTexts.push_back(label("R-Type", 20.0F, 20.0F));
-    if (!online)
-        scene.overlayTexts.push_back(
-            label("Connect with --connect host:port --name NAME", 20.0F, 70.0F));
-    return scene;
-}
-
-std::string failureText(net::ConnectFailure reason)
-{
-    switch (reason) {
-    case net::ConnectFailure::Full:
-        return "server full";
-    case net::ConnectFailure::BadVersion:
-        return "bad protocol version";
-    case net::ConnectFailure::Banned:
-        return "banned";
-    case net::ConnectFailure::Timeout:
-        return "timeout";
-    }
-    return "unknown";
-}
-
-std::string disconnectText(net::DisconnectReason reason)
-{
-    switch (reason) {
-    case net::DisconnectReason::Quit:
-        return "disconnected";
-    case net::DisconnectReason::Timeout:
-        return "connection lost (timeout)";
-    case net::DisconnectReason::Kicked:
-        return "kicked";
-    case net::DisconnectReason::ServerShutdown:
-        return "server shut down";
-    }
-    return "disconnected";
-}
-
-std::vector<std::uint8_t> encodeInput(std::uint32_t& clientTick,
-                                      const std::array<bool, rtype::gui::playerActionCount>& held)
-{
-    std::uint8_t mask = 0;
-    for (std::size_t index = 0; index < held.size(); ++index)
-        if (held[index])
-            mask = static_cast<std::uint8_t>(mask | (1U << index));
-
-    proto::InputMessage message{clientTick++, mask};
-    proto::ByteWriter writer;
-    if (!message.serialize(writer))
-        throw std::runtime_error("failed to encode input message");
-    return writer.data();
-}
-
 } // namespace
 
 int main(int argc, char** argv)
@@ -161,7 +81,6 @@ int main(int argc, char** argv)
         config.width = 1920;
         config.height = 1080;
         rtype::gui::AudioSettings audioSettings{0.5F, false};
-        rtype::gui::StatusFeedback feedback;
         NetworkOptions networkOptions;
         bool overrideAudio = false;
         configureClient(argc, argv, config, audioSettings, overrideAudio, networkOptions);
@@ -181,7 +100,7 @@ int main(int argc, char** argv)
             if (!hitLoaded)
                 std::cerr << gui.audio().getLastError() << '\n';
         }
-        if (feedback.status == rtype::gui::GuiStatus::None) {
+        {
             try {
                 auto& resources = gui.resources();
                 resources.loadTexture("players", "player/ship-variants.gif");
@@ -189,142 +108,41 @@ int main(int argc, char** argv)
                 resources.loadTexture("enemy", "enemy/red-fighter.gif");
                 resources.loadTexture("enemy-weapons", "projectiles/red-beam-and-effects.gif");
             } catch (const std::exception& error) {
-                feedback.status = rtype::gui::GuiStatus::Error;
-                feedback.message = "Could not load visual resources: " + std::string(error.what());
-                std::cerr << feedback.message << '\n';
+                throw std::runtime_error("Could not load visual resources: " +
+                                         std::string(error.what()));
             }
         }
 
-        rtype::client::ClientNetwork network;
-        std::uint32_t clientTick = 1;
-        rtype::client::ClientWorld remoteWorld;
-        PlayerNames playerNames;
-        std::vector<rtype::gui::SoundEvent> soundEvents;
-
-        if (networkOptions.enabled && feedback.status == rtype::gui::GuiStatus::None) {
-            feedback.status = rtype::gui::GuiStatus::Connecting;
-            feedback.message = "Connecting to " + networkOptions.host + ":" +
-                               std::to_string(networkOptions.port) + "...";
-            network.onConnected([&](net::PeerId id, const std::string& name) {
-                playerNames[id] = name;
-                feedback.status = rtype::gui::GuiStatus::None;
-                feedback.message.clear();
-                std::cout << "Connected as client " << id << '\n';
-            });
-            network.onConnectionFailed([&](net::ConnectFailure reason) {
-                feedback.status = rtype::gui::GuiStatus::Rejected;
-                feedback.message = "Connection failed: " + failureText(reason);
-                std::cerr << "Connection failed: " << failureText(reason) << '\n';
-            });
-            network.onDisconnected([&](net::PeerId, net::DisconnectReason reason) {
-                feedback.status = rtype::gui::GuiStatus::Disconnected;
-                feedback.message = disconnectText(reason);
-                std::cout << "Disconnected: " << disconnectText(reason) << '\n';
-            });
-
-            network.registerHandler(
-                proto::MessageType::PlayerJoined, [&](std::span<const std::uint8_t> payload) {
-                    proto::ByteReader reader(payload.data(), payload.size());
-                    if (const auto joined = proto::PlayerJoinedMessage::deserialize(reader))
-                        playerNames[joined->clientId] = joined->name;
-                });
-            network.registerHandler(
-                proto::MessageType::PlayerLeft, [&](std::span<const std::uint8_t> payload) {
-                    proto::ByteReader reader(payload.data(), payload.size());
-                    if (const auto left = proto::PlayerLeftMessage::deserialize(reader))
-                        playerNames.erase(left->clientId);
-                });
-            network.registerHandler(
-                proto::MessageType::EntitySpawn, [&](std::span<const std::uint8_t> payload) {
-                    proto::ByteReader reader(payload.data(), payload.size());
-                    const auto spawn = proto::EntitySpawnMessage::deserialize(reader);
-                    if (!spawn)
-                        return;
-                    remoteWorld.spawn(*spawn);
-                });
-            network.registerHandler(
-                proto::MessageType::EntityDestroy, [&](std::span<const std::uint8_t> payload) {
-                    proto::ByteReader reader(payload.data(), payload.size());
-                    const auto destroy = proto::EntityDestroyMessage::deserialize(reader);
-                    if (!destroy)
-                        return;
-                    remoteWorld.destroy(*destroy);
-                });
-            network.registerHandler(
-                proto::MessageType::Snapshot, [&](std::span<const std::uint8_t> payload) {
-                    proto::ByteReader reader(payload.data(), payload.size());
-                    const auto snap = proto::SnapshotMessage::deserialize(reader);
-                    if (!snap)
-                        return;
-                    remoteWorld.applySnapshot(*snap);
-                });
-            network.registerHandler(
-                proto::MessageType::GameEvent, [&](std::span<const std::uint8_t> payload) {
-                    proto::ByteReader reader(payload.data(), payload.size());
-                    const auto event = proto::GameEventMessage::deserialize(reader);
-                    if (!event || gui.isSettingsOpen() ||
-                        feedback.status != rtype::gui::GuiStatus::None)
-                        return;
-                    const char* soundId = nullptr;
-                    switch (event->event) {
-                    case proto::GameEventType::Shoot:
-                        if (shotLoaded)
-                            soundId = "shot";
-                        break;
-                    case proto::GameEventType::Hit:
-                        if (hitLoaded)
-                            soundId = "hit";
-                        break;
-                    case proto::GameEventType::Kill:
-                        if (hitLoaded)
-                            soundId = "hit";
-                        break;
-                    case proto::GameEventType::PlayerDeath:
-                        if (hitLoaded)
-                            soundId = "hit";
-                        break;
-                    }
-                    if (soundId != nullptr)
-                        soundEvents.push_back({soundId});
-                });
-            if (const auto ec = network.connect(networkOptions.host, networkOptions.port,
-                                                networkOptions.name)) {
-                feedback.status = rtype::gui::GuiStatus::Error;
-                feedback.message = "Connect error: " + ec.message();
-                std::cerr << "connect: " << ec.message() << '\n';
-            }
+        rtype::gui::ConnectionDetails connection;
+        connection.name = networkOptions.name;
+        if (networkOptions.enabled) {
+            connection.host = networkOptions.host;
+            connection.port = networkOptions.port;
         }
+        rtype::client::ClientSession session(connection);
+        if (networkOptions.enabled) {
+            rtype::gui::FrontendAction action;
+            action.command = rtype::gui::FrontendCommand::Connect;
+            action.connection = connection;
+            session.handle(action);
+        }
+        gui.render(session.makeScene());
 
-        float fpsElapsed = 0.0F;
-        unsigned fpsFrames = 0;
-        unsigned displayedFps = 0;
         while (!gui.shouldClose()) {
             const auto actions = gui.pollActions();
 
-            soundEvents.clear();
-            network.update();
-            remoteWorld.update(gui.getFrameTime());
-            gui.playAudio(soundEvents);
-            if (network.isConnected())
-                network.sendUnreliable(proto::MessageType::Input,
-                                       encodeInput(clientTick, actions.heldActions));
-
-            auto scene = makeScene(remoteWorld, playerNames, networkOptions.enabled);
-            scene.feedback = feedback;
-            if (displayedFps != 0) {
-                auto fpsLabel = label("FPS: " + std::to_string(displayedFps), 20.0F, 52.0F);
-                fpsLabel.fontSize = 14.0F;
-                scene.overlayTexts.push_back(std::move(fpsLabel));
+            session.handle(actions.frontend);
+            session.update(gui.getFrameTime(), actions);
+            if (!gui.isSettingsOpen()) {
+                std::vector<rtype::gui::SoundEvent> sounds;
+                for (const auto& event : session.sounds())
+                    if ((event.soundId == "shot" && shotLoaded) ||
+                        (event.soundId == "hit" && hitLoaded))
+                        sounds.push_back(event);
+                gui.playAudio(sounds);
             }
+            auto scene = session.makeScene();
             gui.render(scene);
-            fpsElapsed += gui.getFrameTime();
-            ++fpsFrames;
-            if (fpsElapsed >= 0.5F) {
-                displayedFps =
-                    static_cast<unsigned>(std::lround(static_cast<float>(fpsFrames) / fpsElapsed));
-                fpsElapsed = 0.0F;
-                fpsFrames = 0;
-            }
         }
         gui.close();
         return 0;

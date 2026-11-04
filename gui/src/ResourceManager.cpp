@@ -9,6 +9,19 @@
 #include <utility>
 
 namespace rtype::gui {
+GuiVector2 ResourceManager::measureText(const std::string& fontId, const std::string& text,
+                                        float size, float spacing) const
+{
+    Font font = GetFontDefault();
+    if (!fontId.empty()) {
+        const auto found = _impl->fonts.find(fontId);
+        if (found == _impl->fonts.end())
+            throw std::out_of_range("Unknown font ID: " + fontId);
+        font = found->second->value;
+    }
+    const auto measured = MeasureTextEx(font, text.c_str(), size, spacing);
+    return {measured.x, measured.y};
+}
 namespace {
 
 std::string pathText(const std::filesystem::path& path)

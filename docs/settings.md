@@ -2,23 +2,48 @@
 
 ## Open the menu
 
-Press F1 or Escape, press Start on the selected controller, or click the Settings button. The menu also remains
-available on connection status pages. Escape opens or closes Settings; use
-the window close button or Quit application to exit.
+Press F1 or click the top-right Settings control from the connection screen,
+lobby or game. Start also opens Settings with a connected gamepad. Escape also opens
+Settings during gameplay. Escape, F1 or Start closes
+the menu, or cancels an active key capture first. Quit game is always available
+in the bottom action bar.
 
 Use a window of at least 640 x 360.
 
 | Control | Effect |
 |---------|--------|
-| Up / Down | Select a row |
+| Tab / Shift+Tab or LB/RB | Next / previous category |
+| Up / Down | Select an option or bottom action in the current category |
 | Left / Right | Change a value |
-| Enter or Space | Activate the selected row |
-| Escape or F1 | Back, or cancel key capture |
+| Enter, Space or South/A | Activate the selected row |
+| Escape, F1, Start or East/B | Back; Start/Escape/F1 cancels capture, while East/B can be rebound |
 | Mouse wheel | Move the selection |
 | Click a row | Activate it |
 | Click its left/right arrow | Decrease/increase a value |
 
 Menu controls stay fixed when gameplay controls are rebound.
+
+## Layout and categories
+
+The menu uses the window width and height instead of a fixed 900-pixel column.
+Category buttons on the left select Display, Audio, Controls, Accessibility and Gamepad.
+Options are placed on notebook lines. Reset, Apply & save, Back and Quit game
+remain visible at the bottom in every category, without scrolling to find them.
+Text grows with the window and the configured text scale. On small windows, long
+labels fit within their available area.
+
+Display contains text size and Show FPS. Audio contains volume and mute. Controls
+contains the keyboard bindings. Accessibility contains background motion, scene
+tint and tint strength. Gamepad contains controller selection, dead zone, stick
+movement and button bindings. Changing category preserves the draft.
+
+LB/RB also changes categories. The Gamepad list scrolls through its nine options
+with Up/Down or the D-pad; the selected option remains visible, with at most five
+options shown at once. Reset, Apply & save, Back and Quit remain fixed.
+
+An optional notebook background is loaded from `assets/ui/settings-background.png`.
+Without it, the GUI draws light paper, horizontal rules and a margin. See the
+[artwork guide](https://github.com/ChifuyuOnWish/R-Type/blob/main/assets/ui/README.md) for alignment and optional button images.
 
 ## Available settings
 
@@ -28,6 +53,7 @@ Menu controls stay fixed when gameplay controls are rebound.
 | Mute | On / Off | Off |
 | Background motion | On / Off | On |
 | UI text size | 100%, 125%, 150% | 100% |
+| Show FPS | On / Off | On |
 | Scene tint | Off, Red, Green, Blue, Amber | Off |
 | Tint opacity | 0 to 50%, steps of 5% | 15% |
 | Keyboard bindings | Movement and fire | Arrows and Space |
@@ -50,7 +76,7 @@ sprite destinations, origins and scene text are scaled to fit that world in
 the window; overlay text and Settings keep their screen-space layout. The client must choose suitable
 HUD positions and wrapping for larger text.
 
-Disabling background motion freezes the starfield. It does not pause gameplay,
+Disabling background motion freezes the scrolling paper or fallback starfield. It does not pause gameplay,
 stop network updates or hide entities.
 
 ## Rebind keys
@@ -84,12 +110,13 @@ an unintended shot: release the controls before resuming gameplay.
 
 ## Apply and cancel
 
-Changes stay in a draft until Apply and save is selected. The menu previews its
-text size immediately. Apply updates the running GUI and writes preferences to
+Changes stay in a draft until the fixed Apply & save button is selected. The menu
+previews its text size and FPS visibility immediately. Apply updates the running GUI and writes preferences to
 disk; the menu stays open and reports the result. Back, Escape or F1 discards
 changes made since the last Apply.
 
-Restore defaults resets the draft. Apply it to keep the defaults.
+Reset restores defaults in the draft. Apply & save keeps them. Quit game closes
+the application; it does not save pending edits automatically.
 
 Opening Settings releases gameplay actions. On startup, after API rebinding,
 and after closing Settings, all sampled gameplay keys must be released before
@@ -112,9 +139,8 @@ An explicit `GuiConfig::settingsPath` replaces the default location. The client
 exposes it through `--settings path`. If no default directory is available,
 settings still apply for the session and saving reports an error.
 
-Existing version 1 files without gamepad entries remain valid and use default
-gamepad settings. The version 1 text format stores volume, mute, background motion, text scale,
-tint mode/opacity, five keyboard bindings and gamepad preferences. Missing optional values use
+The version 1 text format stores volume, mute, background motion, text scale,
+tint mode/opacity, `show-fps` and five keyboard bindings. Missing optional values use
 defaults, and unknown entries are ignored. Unsupported versions, duplicate
 entries, invalid values or files larger than 16 KiB are rejected without
 partially applying settings.
@@ -144,7 +170,7 @@ To use a separate test file on Linux:
 ./r-type_client --settings /tmp/rtype-settings-check.conf
 ```
 
-Without --connect, the client shows an empty background with Settings available.
+Without --connect, the client shows the connection form with Settings available.
 To check movement against the authoritative server, use two terminals:
 
 ```sh
@@ -175,37 +201,20 @@ placement, preserving its aspect ratio.
 9. Apply settings, restart and check that they are restored.
 10. Change a setting then Back. Reopen and check that the change was discarded.
 11. Connect to an unavailable port, wait for failure and verify Settings remains reachable.
+12. Switch categories and verify all four bottom actions remain available.
+13. Disable Show FPS, save, restart and verify the preference remains disabled.
+14. Enable Show FPS and verify the counter is at the top left in menus and gameplay.
+15. Quit through the bottom action in Settings.
 
 Automated tests cover draft edits, binding swaps, persistence/error paths,
-menu transitions, text scaling and tint drawing order using fake native
+menu transitions, categories, fixed footer actions, FPS visibility and persistence,
+text scaling and tint drawing order using fake native
 boundaries. These tests do not validate actual window rendering or audio
 hardware. Record manual results on supported platforms before merging.
 
+## FPS counter
 
-
-
-## Gamepad verification
-
-Automated checks cover action transitions, dead zones, reconnect safety,
-keyboard coexistence, menu navigation, button capture, persistence and older
-keyboard-only settings. Native devices are replaced by injected states.
-
-Manual verification is still required on both platforms. Record the controller
-model, firmware if known, wired/Bluetooth connection, OS and result. Check every
-row, save/restart, focus changes, disconnect while firing, reconnect with a held
-button, and navigation on connection status pages. An empty result is pending,
-not a pass.
-
-| Platform | Controller / connection | Result |
-|----------|-------------------------|--------|
-| Linux | To record during testing | Pending |
-| Windows | To record during testing | Pending |
-
-
-## Included controller layouts
-
-Controller layouts are loaded from bundled data at startup. The included project
-mapping proposes support for the wired Elite 2 revision 0517 reported in testing.
-It reuses the known wired layout and remains pending hardware verification.
-Players do not need to create a mapping file for this entry. The entry is included in the bundled database, loaded automatically without
-a user-created mapping file.
+The GUI calculates the average frame rate over approximately half a second.
+When enabled, the counter is positioned at x=12, y=8 in window pixels, independently
+of world scaling. It remains at the top in gameplay, the connection screen, lobby
+and Settings. The option controls display only; it does not change the target FPS.

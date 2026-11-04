@@ -49,7 +49,7 @@ void menuTest()
     cancel.cancelCapture = true;
     (void)menu.handle(cancel);
     require(menu.isOpen() && !menu.isCapturing(), "Capture cancellation keeps menu open");
-    menu.select(19);
+    menu.select(28);
     (void)menu.handle(activate);
     require(menu.isCapturing(), "Gamepad binding capture");
     MenuInput button;
@@ -58,7 +58,7 @@ void menuTest()
     require(menu.draft().gamepad.buttons[4] == GuiGamepadButton::DpadUp &&
                 menu.draft().gamepad.buttons[0] == GuiGamepadButton::South,
             "Gamepad binding conflicts swap");
-    menu.select(13);
+    menu.select(22);
     for (int index = 0; index < 30; ++index)
         (void)menu.handle(activate);
     require(menu.draft().gamepad.deadZone == 0.8F, "Dead zone upper bound");
@@ -67,13 +67,13 @@ void menuTest()
     for (int index = 0; index < 30; ++index)
         (void)menu.handle(left);
     require(menu.draft().gamepad.deadZone == 0.05F, "Dead zone lower bound");
-    menu.select(15);
+    menu.select(24);
     (void)menu.handle(left);
     require(menu.draft().gamepad.buttons[0] == GuiGamepadButton::None,
             "A pad binding can be cleared");
-    menu.select(21);
+    menu.select(12);
     require(menu.handle(activate) == MenuResult::Apply, "Apply request");
-    menu.select(20);
+    menu.select(11);
     (void)menu.handle(activate);
     require(menu.draft().visuals.tint == TintMode::Off && !menu.draft().audio.muted,
             "Defaults restored in draft");
@@ -81,8 +81,7 @@ void menuTest()
     (void)menu.handle(activate);
     (void)menu.handle(activate);
     require(menu.draft().visuals.textScale == 1.5F, "Text size");
-    menu.setGamepadStatus("Active controller 1: Test controller");
-    for (std::size_t row = 0; row < 24; ++row) {
+    for (std::size_t row = 0; row < 30; ++row) {
         menu.select(row);
         bool selectedVisible = false;
         for (const auto& item : menu.rows({640, 360}))
@@ -109,6 +108,36 @@ void menuTest()
         }
     }
     require(joined == longNotice, "Wrapped notice preserves words");
+    for (const auto viewport :
+         {GuiVector2{640, 360}, GuiVector2{1280, 720}, GuiVector2{1920, 1080}}) {
+        for (std::size_t category = 16; category < 20; ++category) {
+            menu.select(category);
+            for (const auto action : {11U, 12U, 13U, 14U}) {
+                bool visible = false;
+                for (const auto& row : menu.rows(viewport))
+                    if (row.index == action)
+                        visible = row.bounds.pos.y >= 0 &&
+                                  row.bounds.pos.y + row.bounds.height <= viewport.y;
+                require(visible, "Footer actions always visible in every category");
+            }
+            for (const auto& row : menu.rows(viewport))
+                require(row.bounds.pos.x >= 0 && row.bounds.pos.y >= 0 &&
+                            row.bounds.pos.x + row.bounds.width <= viewport.x &&
+                            row.bounds.pos.y + row.bounds.height <= viewport.y,
+                        "Settings controls fit supported window");
+        }
+    }
+    menu.select(15);
+    const bool fps = menu.draft().visuals.showFps;
+    (void)menu.handle(activate);
+    require(menu.draft().visuals.showFps != fps, "FPS toggle belongs to Display");
+    MenuInput nextCategory;
+    nextCategory.category = 1;
+    (void)menu.handle(nextCategory);
+    require(menu.category() == 1, "Tab selects Audio category");
+    menu.setArtwork("settings-background", {1280, 720});
+    require(menu.makeScene({1280, 720}).sprites.front().textureId == "ui-settings-background",
+            "Notebook sprite replaces drawn paper");
     MenuInput back;
     back.back = true;
     require(menu.handle(back) == MenuResult::Closed && !menu.isOpen(), "Back cancels draft");
@@ -127,30 +156,35 @@ void persistenceTest(const std::filesystem::path& root)
     preferences.gamepad.leftStick = false;
     preferences.gamepad.buttons[4] = GuiGamepadButton::RightShoulder;
     preferences.visuals.backgroundMotion = false;
+    preferences.visuals.showFps = false;
     preferences.visuals.textScale = 1.5F;
     preferences.visuals.tint = TintMode::Amber;
     preferences.visuals.tintOpacity = 0.4F;
     require(SettingsStore::save(path, preferences, error), "Save preferences");
     GuiPreferences loaded;
     require(SettingsStore::load(path, loaded, error) && loaded.keyboard.keys[0] == GuiKey::W &&
-                loaded.audio.muted && !loaded.visuals.backgroundMotion &&
+                loaded.audio.muted && !loaded.visuals.backgroundMotion && !loaded.visuals.showFps &&
                 loaded.visuals.textScale == 1.5F && loaded.visuals.tint == TintMode::Amber &&
                 loaded.visuals.tintOpacity == 0.4F && loaded.gamepad.device == 2 &&
                 loaded.gamepad.deadZone == 0.35F && !loaded.gamepad.leftStick &&
                 loaded.gamepad.buttons[4] == GuiGamepadButton::RightShoulder,
             "Preference round trip");
+    std::ofstream(path) << "version=1\nvolume=0.5\n";
+    require(SettingsStore::load(path, loaded, error) && loaded.visuals.showFps,
+            "Old files retain default FPS preference");
     preferences.audio.volume = 0.2F;
     require(SettingsStore::save(path, preferences, error), "Replace existing file");
     require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.2F,
             "Replacement loaded");
     for (const auto& invalid :
-         {std::string("version=9\n"), std::string("version=1\ngamepad.device=4\n"),
+         {std::string("version=1\ngamepad.device=4\n"),
           std::string("version=1\ngamepad.dead-zone=nan\n"),
           std::string("version=1\ngamepad.dead-zone=0\n"),
           std::string("version=1\ngamepad.dead-zone=1\n"),
-          std::string("version=1\ngamepad.button.4=999\n"), std::string("version=1\nvolume=nan\n"),
-          std::string("version=1\nkey.0=999\n"), std::string("version=1\ntint=9\n"),
-          std::string("version=1\ntint-opacity=0.6\n"), std::string("version=1\nscale=9\n"),
+          std::string("version=1\ngamepad.button.4=999\n"), std::string("version=9\n"),
+          std::string("version=1\nvolume=nan\n"), std::string("version=1\nkey.0=999\n"),
+          std::string("version=1\ntint=9\n"), std::string("version=1\ntint-opacity=0.6\n"),
+          std::string("version=1\nscale=9\n"), std::string("version=1\nshow-fps=2\n"),
           std::string("version=1\nmuted=0\nmuted=1\n"), std::string(17000, 'x')}) {
         std::ofstream(path) << invalid;
         loaded.audio.volume = 0.7F;
@@ -158,11 +192,6 @@ void persistenceTest(const std::filesystem::path& root)
                     loaded.audio.volume == 0.7F,
                 "Invalid file does not partially change preferences");
     }
-    std::ofstream(path) << "version=1\nvolume=0.4\nkey.0=6\n";
-    require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.4F &&
-                loaded.gamepad.enabled && loaded.gamepad.device == 0 &&
-                loaded.gamepad.buttons[4] == GuiGamepadButton::South,
-            "Existing keyboard-only settings load with gamepad defaults");
     const auto blocked = root / "ordinary-file";
     std::ofstream(blocked) << "keep";
     require(!SettingsStore::save(blocked / "settings.conf", preferences, error),

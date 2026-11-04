@@ -110,6 +110,10 @@ InputFrame InputReader::poll(const GamepadSettings& settings)
         KEY_RIGHT_SHIFT,
     };
     InputFrame frame;
+    for (int codepoint = GetCharPressed(); codepoint != 0; codepoint = GetCharPressed()) {
+        if (codepoint >= 32 && codepoint <= 126)
+            frame.text.push_back(static_cast<char>(codepoint));
+    }
     frame.keyboard.focused = IsWindowFocused();
     if (_device != settings.device) {
         reset();
@@ -147,6 +151,13 @@ InputFrame InputReader::poll(const GamepadSettings& settings)
     frame.menu.back = IsKeyPressed(KEY_ESCAPE);
     frame.toggleSettings = IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_F1);
     frame.menu.cancelCapture = frame.toggleSettings;
+    frame.backspace = pressed(KEY_BACKSPACE);
+    frame.tab = IsKeyPressed(KEY_TAB);
+    frame.shift = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+    frame.menu.category = frame.tab ? (frame.shift ? -1 : 1) : 0;
+    frame.confirm = IsKeyPressed(KEY_ENTER);
+    frame.escape = IsKeyPressed(KEY_ESCAPE);
+    frame.settingsShortcut = IsKeyPressed(KEY_F1);
     const auto mouse = GetMousePosition();
     frame.mouse = {mouse.x, mouse.y};
     frame.mouseClick = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
@@ -192,6 +203,11 @@ InputFrame InputReader::poll(const GamepadSettings& settings)
         frame.menu.activate |=
             IsGamepadButtonPressed(settings.device, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         frame.menu.back |= IsGamepadButtonPressed(settings.device, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
+        if (frame.menu.category == 0)
+            frame.menu.category =
+                IsGamepadButtonPressed(settings.device, GAMEPAD_BUTTON_LEFT_TRIGGER_1)    ? -1
+                : IsGamepadButtonPressed(settings.device, GAMEPAD_BUTTON_RIGHT_TRIGGER_1) ? 1
+                                                                                          : 0;
         const bool start = IsGamepadButtonPressed(settings.device, GAMEPAD_BUTTON_MIDDLE_RIGHT);
         frame.toggleSettings |= start;
         frame.menu.cancelCapture |= start;

@@ -51,8 +51,7 @@ buttons or axes can trigger gameplay. Disconnecting it releases its actions;
 keyboard actions can continue. Opening Settings releases gameplay actions, and
 closing it waits for keyboard keys and relevant pad inputs to return to neutral.
 
-The GUI loads the generic mapping database at
-the single bundled database at `assets/input/gamecontrollerdb.txt`. Missing mappings are reported
+The GUI loads the single bundled mapping database at `assets/input/gamecontrollerdb.txt`. Missing mappings are reported
 in Settings and logged with the GUID. This distinguishes an unmapped device
 from an unplugged controller. See `assets/input/README.md` for provenance and
 updates. Physical device support still requires a manual check.
@@ -94,3 +93,15 @@ conflicting bindings. Invalid key values throw without changing the bindings.
 See [Settings](settings.md) for saving, restoring and local verification.
 
 
+
+## Connection and lobby
+
+Use Tab / Shift+Tab or Up / Down to select controls, Enter to confirm, and click
+a field to edit it. Backspace removes the last character. Escape cancels a pending
+connection or returns from its error page. F1 and the top-right control open Settings.
+Mode and level controls are available only to the lobby leader. See
+[client interface](client-interface.md).
+
+In Settings, LB/RB changes categories, the D-pad or left stick moves through
+options, South/A confirms and East/B goes back. Start opens or closes Settings.
+Long categories scroll automatically to keep the selected option visible.
