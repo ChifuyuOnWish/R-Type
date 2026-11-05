@@ -103,7 +103,7 @@ int main(int argc, char** argv)
         {
             try {
                 auto& resources = gui.resources();
-                resources.loadTexture("players", "player/plane.png");
+                resources.loadTexture("players", "player/player_plane.png");
                 resources.loadTexture("player-weapons", "player/ship-and-effects.gif");
                 resources.loadTexture("enemy", "enemy/red-fighter.gif");
                 resources.loadTexture("enemy-weapons", "projectiles/red-beam-and-effects.gif");

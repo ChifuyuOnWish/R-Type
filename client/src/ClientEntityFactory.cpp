@@ -24,7 +24,7 @@ ClientEntityFactory::ClientEntityFactory()
 {
     for (std::uint16_t i = 0; i < 4; i++) {
         _defs[static_cast<std::uint16_t>(raw(Type::Player1) + i)] = {
-            "players", {0.F, 0.F, 256.F, 117.F}, 192.F, 88.F, 10};
+            "players", {static_cast<float>(i) * 256.F, 0.F, 256.F, 128.F}, 192.F, 96.F, 10};
     }
 
     _defs[raw(Type::EnemyBasic)] = {"enemy_basic", {0.F, 0.F, 243.F, 256.F}, 122.F, 128.F, 10};
