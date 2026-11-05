@@ -1,7 +1,7 @@
 {
   "$schema": "schema/enemies.schema.json",
   "enemies": {
-    "bydo_basic": {
+    "enemy_basic": {
       "type": "enemy_basic",
       "health": 1,
       "contactDamage": 1,
@@ -11,7 +11,7 @@
       "weapon": { "projectile": "enemy_missile", "cooldown": 2.5, "damage": 1 },
       "score": 100
     },
-    "bydo_wave": {
+    "enemy_wave": {
       "type": "enemy_wave",
       "health": 2,
       "contactDamage": 1,
@@ -21,7 +21,7 @@
       "weapon": null,
       "score": 150
     },
-    "bydo_tank": {
+    "enemy_tank": {
       "type": "enemy_tank",
       "health": 6,
       "contactDamage": 2,
