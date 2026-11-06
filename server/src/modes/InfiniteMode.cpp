@@ -33,7 +33,9 @@ void InfiniteMode::update(GameContext& ctx, float dt)
     std::uniform_real_distribution<float> height(SpawnMargin, WorldHeight - SpawnMargin);
     std::uniform_real_distribution<float> firstShot(MinFirstShot, MaxFirstShot);
     _spawnTimer = next(ctx.rng);
-    ctx.spawner.spawnBasicEnemy(Position{WorldWidth + 40.F, height(ctx.rng)}, firstShot(ctx.rng));
+    std::bernoulli_distribution bat(0.4);
+    ctx.spawner.spawnInfiniteEnemy(Position{WorldWidth + 40.F, height(ctx.rng)}, bat(ctx.rng),
+                                   firstShot(ctx.rng));
 }
 
 void InfiniteMode::resolve(GameContext& ctx, float)

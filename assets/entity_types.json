@@ -10,8 +10,8 @@
     "enemy_wave":       { "id": 11, "sprite": "enemy_bat.png",  "frames": 6, "fps": 8 },
     "enemy_tank":       { "id": 12, "sprite": "enemy_tank.png",  "frames": 4, "fps": 6 },
 
-    "player_missile":   { "id": 20, "sprite": "player_missile.png" },
-    "enemy_missile":    { "id": 21, "sprite": "enemy_missile.png", "frames": 4, "fps": 12 },
+    "player_missile":   { "id": 14, "sprite": "player_missile.png" },
+    "enemy_missile":    { "id": 15, "sprite": "enemy_missile.png", "frames": 4, "fps": 12 },
 
     "rock":             { "id": 30, "sprite": "tiles.png", "tile": 0 },
     "crate":            { "id": 31, "sprite": "tiles.png", "tile": 1 },
