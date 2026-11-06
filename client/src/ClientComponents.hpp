@@ -32,4 +32,9 @@ struct PlayerSlot
     std::uint8_t index = 0;
 };
 
+struct Extrapolation
+{
+    float left = 0.F;
+};
+
 } // namespace rtype::client

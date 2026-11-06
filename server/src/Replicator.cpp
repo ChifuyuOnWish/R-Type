@@ -11,7 +11,7 @@ using namespace protocol;
 using network::PeerId;
 
 namespace {
-constexpr unsigned StepsPerSnapshot = 3;
+constexpr unsigned StepsPerSnapshot = 1;
 
 bool outsideWorld(float x, float y)
 {

@@ -121,9 +121,17 @@ int main()
     motion.applySnapshot({1, {moving(1, 100.0F, 200.0F, 2.0F, -1.0F)}});
     assert(near(find(motion, 1).dx, 120.0F));
     assert(near(find(motion, 1).dy, -60.0F));
+
+    constexpr float step = 0.005F;
+    motion.update(step);
+    assert(near(find(motion, 1).x, 100.0F + 120.0F * step));
+    assert(near(find(motion, 1).y, 200.0F - 60.0F * step));
+
     motion.update(0.5F);
-    assert(near(find(motion, 1).x, 160.0F));
-    assert(near(find(motion, 1).y, 170.0F));
+    assert(near(find(motion, 1).x, 100.0F + 120.0F * 0.01F));
+    assert(near(find(motion, 1).y, 200.0F - 60.0F * 0.01F));
+    motion.update(0.5F);
+    assert(near(find(motion, 1).x, 100.0F + 120.0F * 0.01F));
 
     client::ClientWorld rollover;
     rollover.spawn(spawn(1, Enemy));

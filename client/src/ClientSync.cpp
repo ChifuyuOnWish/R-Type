@@ -8,6 +8,10 @@
 
 namespace rtype::client {
 
+namespace {
+constexpr float MaxExtrapolation = 0.01F;
+}
+
 ClientSync::ClientSync(engine::Registry& registry) : _registry(registry) {}
 
 void ClientSync::spawn(const protocol::EntitySpawnMessage& message)
@@ -18,6 +22,7 @@ void ClientSync::spawn(const protocol::EntitySpawnMessage& message)
     const engine::Entity entity = _registry.createEntity();
     _registry.addComponent(entity, engine::Position{message.x.toFloat(), message.y.toFloat()});
     _registry.addComponent(entity, engine::Velocity{0.F, 0.F});
+    _registry.addComponent(entity, Extrapolation{});
     _registry.addComponent(entity, NetworkId{message.entityId});
     if (!_factory.populate(_registry, entity, message.entityType)) {
         _registry.destroyEntity(entity);
@@ -61,6 +66,7 @@ void ClientSync::applySnapshot(const protocol::SnapshotMessage& message)
         position.y = entry.y.toFloat();
         velocity.dx = entry.vx.toFloat() * PerSecond;
         velocity.dy = entry.vy.toFloat() * PerSecond;
+        _registry.getComponent<Extrapolation>(it->second).left = MaxExtrapolation;
     }
 }
 

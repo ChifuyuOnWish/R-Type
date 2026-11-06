@@ -49,7 +49,7 @@ auto level = nlohmann::json::parse(file, /*cb*/ nullptr, /*allow_exceptions*/ tr
 ### Waves
 
 ```json
-{ "formation": "pyramid", "roster": { "bydo_basic": 0.5, "bydo_wave": 0.3, "bydo_tank": 0.2 }, "y": "random", "delay": 3.0, "waitForClear": true }
+{ "formation": "pyramid", "roster": { "enemy_basic": 0.5, "enemy_wave": 0.3, "enemy_tank": 0.2 }, "y": "random", "delay": 3.0, "waitForClear": true }
 ```
 
 - `formation` is your "pattern". I renamed it because the engine already has `EnemyPattern` (straight, sine...) for how an enemy *moves*; "formation" is the *shape* the group spawns in. Both exist in the files: formation per wave, movement per enemy type.

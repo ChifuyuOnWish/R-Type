@@ -11,8 +11,11 @@ enum class EntityType : std::uint16_t
     Player3 = 3,
     Player4 = 4,
     EnemyBasic = 10,
-    PlayerMissile = 20,
-    EnemyMissile = 21,
+    EnemyWave = 11,
+    EnemyTank = 12,
+    Boss = 13,
+    PlayerMissile = 14,
+    EnemyMissile = 15,
 };
 
 inline EntityType playerShipType(std::uint32_t clientId)
