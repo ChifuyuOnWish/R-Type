@@ -21,6 +21,33 @@ struct TextureOwner
     }
 };
 
+struct ColorPass
+{
+    Shader shader{};
+    RenderTexture2D target{};
+    int rows = -1;
+
+    ~ColorPass()
+    {
+        if (target.id != 0)
+            UnloadRenderTexture(target);
+        if (shader.id != 0 && rows >= 0)
+            UnloadShader(shader);
+    }
+};
+
+struct InkPass
+{
+    Shader shader{};
+    int modeLocation = -1;
+
+    ~InkPass()
+    {
+        if (shader.id != 0 && modeLocation >= 0)
+            UnloadShader(shader);
+    }
+};
+
 struct FontOwner
 {
     Font value{};
@@ -40,6 +67,8 @@ struct FontOwner
 struct ResourceManager::Impl
 {
     std::filesystem::path root;
+    std::unique_ptr<detail::ColorPass> colorPass;
+    std::unique_ptr<detail::InkPass> inkPass;
     std::unordered_map<std::string, std::unique_ptr<detail::TextureOwner>> textures;
     std::unordered_map<std::string, std::unique_ptr<detail::FontOwner>> fonts;
 

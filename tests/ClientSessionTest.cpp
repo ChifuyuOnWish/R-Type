@@ -1,5 +1,6 @@
 #include "ClientSession.hpp"
 
+#include "EntityType.hpp"
 #include "NetworkServer.hpp"
 
 #include <chrono>
@@ -131,6 +132,26 @@ int main()
                 check(decoded && decoded->clientTick > 0 && (decoded->buttons & proto::ButtonShoot),
                       "Input payload is serialized");
             }
+        const auto coord = proto::Fixed::fromFloat(200.0F);
+        constexpr std::uint32_t bat = 50;
+        send(server, peer,
+             proto::EntitySpawnMessage{
+                 bat, static_cast<std::uint16_t>(proto::EntityType::EnemyWave), coord, coord});
+        send(server, peer,
+             proto::EntitySpawnMessage{
+                 51, static_cast<std::uint16_t>(proto::EntityType::PlayerMissile), coord, coord});
+        send(server, peer, proto::EntitySpawnMessage{52, 21, coord, coord});
+        check(wait([&] { return session.makeScene().sprites.size() == 3; }),
+              "Both projectile types reach the rendered scene, including legacy campaign data");
+        send(server, peer, proto::GameEventMessage{proto::GameEventType::Shoot, bat, 0});
+        check(wait([&] {
+                  for (const auto& sprite : session.makeScene().sprites)
+                      if (sprite.entityId.index == bat && sprite.sourceRect.pos.y == 320.0F)
+                          return true;
+                  return false;
+              }),
+              "A network shot event opens the shooting bat's mouth");
+
         state.phase = proto::LobbyPhase::GameOver;
         state.leaderId = static_cast<std::uint8_t>(peer + 1);
         send(server, peer, state);

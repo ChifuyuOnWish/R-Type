@@ -33,8 +33,8 @@ Text grows with the window and the configured text scale. On small windows, long
 labels fit within their available area.
 
 Display contains text size and Show FPS. Audio contains volume and mute. Controls
-contains the keyboard bindings. Accessibility contains background motion, scene
-tint and tint strength. Gamepad contains controller selection, dead zone, stick
+contains the keyboard bindings. Accessibility contains the color filter, filter strength and background motion.
+Gamepad contains controller selection, dead zone, stick
 movement and button bindings. Changing category preserves the draft.
 
 LB/RB also changes categories. The Gamepad list scrolls through its nine options
@@ -54,20 +54,14 @@ Without it, the GUI draws light paper, horizontal rules and a margin. See the
 | Background motion | On / Off | On |
 | UI text size | 100%, 125%, 150% | 100% |
 | Show FPS | On / Off | On |
-| Scene tint | Off, Red, Green, Blue, Amber | Off |
-| Tint opacity | 0 to 50%, steps of 5% | 15% |
+| Color vision | Off, Protanopia, Deuteranopia, Tritanopia | Off |
+| Filter strength | 0% to 100%, in 10% steps | 100% |
 | Keyboard bindings | Movement and fire | Arrows and Space |
 | Gamepad | On / Off | On |
 | Controller | Slots 1 to 4 | 1 |
 | Stick dead zone | 5 to 80%, steps of 5% | 20% |
 | Left stick movement | On / Off | On |
 | Gamepad bindings | Movement and fire buttons | D-pad and South face button |
-
-The tint is a full-window colored rectangle blended over the game scene.
-It covers the background, sprites and scene text. UI rectangles, overlay text,
-Settings and connection status pages remain un-tinted. It requires no image
-asset or shader. It is a visual preference; it is not a color-vision correction
-or a simulation of a color-vision deficiency.
 
 Text size scales menu text, connection status text and the scene/overlay text
 submitted by the client. The GUI scales the font size and character spacing;
@@ -78,6 +72,14 @@ HUD positions and wrapping for larger text.
 
 Disabling background motion freezes the scrolling paper or fallback starfield. It does not pause gameplay,
 stop network updates or hide entities.
+
+## Preview color vision assistance
+
+Open **Accessibility** and change **Color vision** or **Filter strength**. The
+swatches show the selected filter before saving. Use **Apply & save** to apply
+it to the current game or **Back** to discard changes. At 0% or Off the
+scene is unchanged. See [color vision filters](color-vision-assistance.md)
+for the method and verification checklist.
 
 ## Rebind keys
 
@@ -140,7 +142,7 @@ exposes it through `--settings path`. If no default directory is available,
 settings still apply for the session and saving reports an error.
 
 The version 1 text format stores volume, mute, background motion, text scale,
-tint mode/opacity, `show-fps` and five keyboard bindings. Missing optional values use
+color vision mode/strength, `show-fps` and five keyboard bindings. Missing optional values use
 defaults, and unknown entries are ignored. Unsupported versions, duplicate
 entries, invalid values or files larger than 16 KiB are rejected without
 partially applying settings.
@@ -195,7 +197,7 @@ placement, preserving its aspect ratio.
    and mute, apply, restart and verify the saved values. Mute and --no-audio must
    suppress sound without preventing movement or rendering.
 6. Disable background motion and check that the stars stop scrolling.
-7. Apply each tint and change its opacity. The scene changes color while
+7. Apply each filter and change its strength. The scene changes color while
    Settings and overlay text remain readable.
 8. Set text size to 150% and resize. Check labels, footer messages and HUD text.
 9. Apply settings, restart and check that they are restored.
@@ -204,11 +206,12 @@ placement, preserving its aspect ratio.
 12. Switch categories and verify all four bottom actions remain available.
 13. Disable Show FPS, save, restart and verify the preference remains disabled.
 14. Enable Show FPS and verify the counter is at the top left in menus and gameplay.
-15. Quit through the bottom action in Settings.
+15. Use Leave game in a match and check that the connection menu returns.
+    Use Quit game outside a match to close the client.
 
 Automated tests cover draft edits, binding swaps, persistence/error paths,
 menu transitions, categories, fixed footer actions, FPS visibility and persistence,
-text scaling and tint drawing order using fake native
+text scaling and filter drawing order using fake native
 boundaries. These tests do not validate actual window rendering or audio
 hardware. Record manual results on supported platforms before merging.
 

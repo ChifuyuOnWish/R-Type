@@ -1,5 +1,6 @@
 #include "SettingsMenu.hpp"
 
+#include "ColorVision.hpp"
 #include "MenuArtwork.hpp"
 #include "SettingsStore.hpp"
 
@@ -10,8 +11,11 @@
 namespace rtype::gui {
 namespace {
 
+constexpr std::size_t colorVisionModeRow = 4;
+constexpr std::size_t colorVisionStrengthRow = 5;
 constexpr std::size_t rowCount = 30;
-constexpr float firstPaperLine = 107.0F / 360.0F;
+constexpr float sidebarRatio = 0.29F;
+constexpr float firstPaperLine = 4.0F / 12.0F;
 constexpr float paperLineSpacing = 30.0F / 360.0F;
 constexpr std::array categoryNames{"Display", "Audio", "Controls", "Accessibility", "Gamepad"};
 constexpr std::array actionNames{"Up", "Down", "Left", "Right", "Fire"};
@@ -67,13 +71,13 @@ std::string rowText(std::size_t index, const GuiPreferences& preferences)
                (preferences.visuals.backgroundMotion ? "On" : "Off");
     case 3:
         return "UI text size: " + percent(preferences.visuals.textScale);
-    case 4: {
-        constexpr std::array names{"Off", "Red", "Green", "Blue", "Amber"};
-        return "Scene tint: " +
-               std::string(names[static_cast<std::size_t>(preferences.visuals.tint)]);
+    case colorVisionModeRow: {
+        constexpr std::array names{"Off", "Protanopia", "Deuteranopia", "Tritanopia"};
+        return "Color vision: " +
+               std::string(names[static_cast<std::size_t>(preferences.visuals.colorVision)]);
     }
-    case 5:
-        return "Tint opacity: " + percent(preferences.visuals.tintOpacity);
+    case colorVisionStrengthRow:
+        return "Filter strength: " + percent(preferences.visuals.colorVisionStrength);
     case 15:
         return std::string("Show FPS: ") + (preferences.visuals.showFps ? "On" : "Off");
     case 20:
@@ -212,7 +216,7 @@ std::vector<std::size_t> SettingsMenu::categoryRows() const
     case 2:
         return {6, 7, 8, 9, 10};
     case 3:
-        return {2, 4, 5};
+        return {colorVisionModeRow, colorVisionStrengthRow, 2};
     default:
         return {20, 21, 22, 23, 24, 25, 26, 27, 28};
     }
@@ -243,7 +247,7 @@ void SettingsMenu::select(std::size_t row)
     _selected = row;
     if (isCategoryRow(row))
         _category = categoryIndex(row);
-    else if (row >= 20)
+    else if (row >= 20 && row <= 28)
         _category = 4;
     else if (row == 3 || row == 15)
         _category = 0;
@@ -251,7 +255,7 @@ void SettingsMenu::select(std::size_t row)
         _category = 1;
     else if (row >= 6 && row <= 10)
         _category = 2;
-    else if (row == 2 || row == 4 || row == 5)
+    else if (row == 2 || row == colorVisionModeRow || row == colorVisionStrengthRow)
         _category = 3;
 }
 
@@ -335,16 +339,15 @@ MenuResult SettingsMenu::handle(const MenuInput& input)
         _draft.visuals.textScale = std::clamp(
             _draft.visuals.textScale + static_cast<float>(direction) * 0.25F, 1.0F, 1.5F);
         break;
-    case 4:
-        _draft.visuals.tint =
-            static_cast<TintMode>((static_cast<int>(_draft.visuals.tint) + direction + 5) % 5);
+    case colorVisionModeRow:
+        _draft.visuals.colorVision = static_cast<ColorVisionMode>(
+            (static_cast<int>(_draft.visuals.colorVision) + direction + 4) % 4);
         break;
-    case 5:
-        _draft.visuals.tintOpacity = std::clamp(
-            std::round((_draft.visuals.tintOpacity + static_cast<float>(direction) * 0.05F) *
-                       100.0F) /
-                100.0F,
-            0.0F, 0.5F);
+    case colorVisionStrengthRow:
+        _draft.visuals.colorVisionStrength = std::clamp(
+            std::round(_draft.visuals.colorVisionStrength * 10.0F + static_cast<float>(direction)) /
+                10.0F,
+            0.0F, 1.0F);
         break;
     case 15:
         _draft.visuals.showFps = !_draft.visuals.showFps;
@@ -403,7 +406,7 @@ std::vector<SettingsRow> SettingsMenu::rows(GuiVector2 viewport) const
     if (!std::isfinite(viewport.x) || !std::isfinite(viewport.y) || viewport.x < 640 ||
         viewport.y < 360)
         return result;
-    const float sidebar = viewport.x * 0.23F;
+    const float sidebar = viewport.x * sidebarRatio;
     const float pitch = viewport.y * paperLineSpacing;
     const float firstLine = viewport.y * firstPaperLine;
     for (std::size_t category = 0; category < categoryNames.size(); ++category)
@@ -427,7 +430,9 @@ std::vector<SettingsRow> SettingsMenu::rows(GuiVector2 viewport) const
              rowText(id, _draft),
              id <= 5 || id == 15 || (id >= 20 && id <= 23)});
         auto& row = result.back();
-        const float valueWidth = std::min(row.bounds.width * 0.40F, viewport.x * 0.22F);
+        const float valueWidth = id == colorVisionModeRow
+                                     ? row.bounds.width * 0.53F
+                                     : std::min(row.bounds.width * 0.40F, viewport.x * 0.22F);
         row.valueBounds = {{row.bounds.pos.x + row.bounds.width - valueWidth, row.bounds.pos.y},
                            valueWidth,
                            row.bounds.height};
@@ -441,7 +446,7 @@ std::vector<SettingsRow> SettingsMenu::rows(GuiVector2 viewport) const
                             viewport.y - 16 - buttonHeight},
                            buttonWidth,
                            buttonHeight},
-                          rowText(11 + index, _draft)});
+                          index == 3 && _inGame ? "Leave game" : rowText(11 + index, _draft)});
     return result;
 }
 
@@ -451,7 +456,7 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
     scene.clearColor = {248, 246, 235, 255};
     const float scale = _draft.visuals.textScale;
     const float size = std::clamp(viewport.y * 0.030F, 16.0F, 34.0F) * scale;
-    const float sidebar = viewport.x * 0.23F;
+    const float sidebar = viewport.x * sidebarRatio;
     const float pitch = viewport.y * paperLineSpacing;
     const float firstLine = viewport.y * firstPaperLine;
     constexpr GuiColor ink{30, 30, 35, 255};
@@ -464,9 +469,10 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
                 {{{sidebar + 12, y}, viewport.x - sidebar - 40, 1}, {155, 181, 206, 255}});
     }
     const auto fitted = [&](const std::string& value, GuiRectangle bounds, float desired,
-                            GuiColor color, bool centered, bool onLine = false) {
+                            GuiColor color, bool centered, bool onLine = false,
+                            float minSize = 14.0F) {
         float fontSize = std::min(desired, bounds.height * 0.55F);
-        while (fontSize > 14 && measuredWidth(value, fontSize, _measure) > bounds.width - 16)
+        while (fontSize > minSize && measuredWidth(value, fontSize, _measure) > bounds.width - 16)
             fontSize -= 1;
         const auto displayed = clipped(value, bounds.width - 16, fontSize, _measure);
         const float width = measuredWidth(displayed, fontSize, _measure);
@@ -483,6 +489,23 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
     if (_category == 4 && !_gamepadStatus.empty())
         text(scene, clipped(_gamepadStatus, viewport.x - sidebar - 48, 12.0F * scale, _measure),
              {sidebar + 24, viewport.y * 0.16F}, 12.0F * scale, ink);
+    if (_category == 3 && viewport.x >= 640 && viewport.y >= 360) {
+        constexpr std::array samples{GuiColor{231, 230, 216}, GuiColor{70, 130, 210},
+                                     GuiColor{202, 64, 66}, GuiColor{78, 166, 89}};
+        const float left = sidebar + 24;
+        const float top = viewport.y * 0.15F;
+        const float height = std::clamp(viewport.y * 0.06F, 20.0F, 36.0F);
+        constexpr float labelWidth = 86.0F;
+        const float width = std::min(46.0F, (viewport.x - left - labelWidth - 24) / 4.0F - 4.0F);
+        fitted("Preview", {{left, top}, labelWidth, height}, size, ink, false, false, 10.0F);
+        const auto matrix = detail::assistanceMatrix(_draft.visuals.colorVision,
+                                                     _draft.visuals.colorVisionStrength);
+        for (std::size_t index = 0; index < samples.size(); ++index) {
+            const GuiRectangle sample{
+                {left + labelWidth + static_cast<float>(index) * (width + 4), top}, width, height};
+            scene.rectangles.push_back({sample, detail::previewColor(samples[index], matrix)});
+        }
+    }
     for (const auto& row : rows(viewport)) {
         const bool category = isCategoryRow(row.index);
         const bool action = row.index >= 11 && row.index <= 14;
@@ -495,18 +518,20 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
             const std::string art =
                 category ? categoryImages[categoryIndex(row.index)] : actionImages[row.index - 11];
             const bool activeCategory = category && categoryIndex(row.index) == _category;
-            const std::string paperId = activeCategory ? "paper-category-selected"
-                                        : category     ? "paper-category"
-                                                       : detail::paperArtwork(_artwork, row.bounds);
+            const std::string paperId =
+                category ? "paper-category" : detail::paperArtwork(_artwork, row.bounds);
             const bool paper = image(paperId, row.bounds);
+            const auto paperBounds = paper ? scene.sprites.back().destinationRect : row.bounds;
             if (!paper && !image(art, row.bounds) && !image("button", row.bounds))
-                scene.rectangles.push_back(
-                    {row.bounds, category && categoryIndex(row.index) == _category
-                                     ? GuiColor{220, 216, 200, 255}
-                                     : GuiColor{255, 255, 255, 255}});
-            if (activeCategory && !paper)
-                scene.rectangles.push_back(
-                    {{{row.bounds.pos.x, row.bounds.pos.y}, 3, row.bounds.height}, ink});
+                scene.rectangles.push_back({row.bounds, activeCategory
+                                                            ? GuiColor{220, 216, 200, 255}
+                                                            : GuiColor{255, 255, 255, 255}});
+            if (activeCategory)
+                scene.rectangles.push_back({{{paperBounds.pos.x + paperBounds.width * 0.06F,
+                                              paperBounds.pos.y + paperBounds.height * 0.18F},
+                                             2.0F,
+                                             paperBounds.height * 0.64F},
+                                            {191, 78, 78, 255}});
             GuiRectangle label = row.bounds;
             label.pos.x += label.width * 0.10F;
             label.width *= 0.80F;
@@ -536,7 +561,7 @@ RenderScene SettingsMenu::makeScene(GuiVector2 viewport) const
                    {{row.valueBounds.pos.x + arrowWidth, row.valueBounds.pos.y},
                     row.valueBounds.width - 2 * arrowWidth,
                     row.valueBounds.height},
-                   size, ink, true, true);
+                   size, ink, true, true, row.index == colorVisionModeRow ? 10.0F : 14.0F);
             if (row.adjustable) {
                 fitted("<", {row.valueBounds.pos, 36, row.valueBounds.height}, size * 0.75F, ink,
                        true, true);

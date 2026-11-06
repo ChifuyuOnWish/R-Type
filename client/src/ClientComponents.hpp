@@ -13,6 +13,16 @@ struct SpriteRect
     float h = 0.F;
 };
 
+enum class SpriteMotion
+{
+    None,
+    Plane,
+    Bat,
+    Hover,
+    AlliedFire,
+    EnemyFire
+};
+
 struct Sprite
 {
     std::string textureId;
@@ -20,6 +30,8 @@ struct Sprite
     float width = 0.F;
     float height = 0.F;
     int layer = 0;
+    SpriteMotion motion = SpriteMotion::None;
+    float shotPoseRemaining = 0.0F;
 };
 
 struct NetworkId
@@ -35,6 +47,8 @@ struct PlayerSlot
 struct Extrapolation
 {
     float left = 0.F;
+    float offsetX = 0.F;
+    float offsetY = 0.F;
 };
 
 } // namespace rtype::client

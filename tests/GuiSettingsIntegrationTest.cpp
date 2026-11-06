@@ -47,7 +47,7 @@ void press(Gui& gui, int key)
     presses[static_cast<std::size_t>(key)] = true;
     (void)poll(gui);
 }
-void clickSetting(Gui& gui, std::size_t id)
+PlayerActions clickSetting(Gui& gui, std::size_t id)
 {
     SettingsMenu model;
     model.open(gui.getPreferences());
@@ -60,8 +60,7 @@ void clickSetting(Gui& gui, std::size_t id)
             mouse = {row.bounds.pos.x + row.bounds.width * 0.4F,
                      row.bounds.pos.y + row.bounds.height / 2};
             clicked = true;
-            (void)poll(gui);
-            return;
+            return poll(gui);
         }
         throw std::runtime_error("Settings control not found");
     };
@@ -72,7 +71,7 @@ void clickSetting(Gui& gui, std::size_t id)
         for (std::size_t option = 20; option < id; ++option)
             press(gui, KEY_DOWN);
     }
-    hit(id);
+    return hit(id);
 }
 bool fpsVisible()
 {
@@ -363,12 +362,8 @@ int main()
         clicked = true;
         (void)poll(gui);
         check(gui.isSettingsOpen(), "Mouse settings button");
-        clickSetting(gui, 4);
-        clickSetting(gui, 12);
         press(gui, KEY_ESCAPE);
         gui.render({});
-        check(rendered.sceneTint.red == 255 && rendered.sceneTint.alpha == 38,
-              "Tint preference reaches the renderer");
         check(!rendered.overlayTexts.empty(), "Settings button stays available");
         press(gui, KEY_F1);
         clickSetting(gui, 3);
@@ -402,6 +397,23 @@ int main()
               "HUD keeps its size independently of world scaling");
         check(worldScene.sprites.front().destinationRect.width == 96.0F,
               "Rendering does not mutate the submitted scene");
+        check(rendered.colorVision == ColorVisionMode::Off, "Off leaves gameplay unfiltered");
+        for (const auto mode : {ColorVisionMode::Protanopia, ColorVisionMode::Deuteranopia,
+                                ColorVisionMode::Tritanopia, ColorVisionMode::Off}) {
+            press(gui, KEY_F1);
+            clickSetting(gui, 4);
+            clickSetting(gui, 12);
+            gui.render(worldScene);
+            check(rendered.colorVision == ColorVisionMode::Off, "Settings stays unfiltered");
+            press(gui, KEY_ESCAPE);
+            check(gui.getPreferences().visuals.colorVision == mode,
+                  "Apply updates the active mode");
+            gui.render(worldScene);
+            check(rendered.colorVision == mode, "Gameplay receives the selected filter");
+            check(rendered.overlayTexts.front().text == "HUD" &&
+                      rendered.overlayTexts.front().fontSize == 25.0F,
+                  "Filter preserves HUD text");
+        }
         screenWidth = 1600;
         screenHeight = 1000;
         gui.render(worldScene);
@@ -520,6 +532,16 @@ int main()
         padButtons[0] = {};
         (void)poll(gui);
         padConnected[0] = false;
+        RenderScene gameplay;
+        gameplay.frontend.page = FrontendPage::Gameplay;
+        gui.render(gameplay);
+        press(gui, KEY_F1);
+        check(clickSetting(gui, 14).frontend.command == FrontendCommand::Disconnect &&
+                  !gui.shouldClose(),
+              "Leaving a game returns a disconnect action without closing the client");
+        RenderScene connection;
+        connection.frontend.page = FrontendPage::Connection;
+        gui.render(connection);
         press(gui, KEY_F1);
         clickSetting(gui, 14);
         check(gui.shouldClose(), "Explicit menu quit");

@@ -92,9 +92,8 @@ std::vector<FrontendControl> FrontendMenu::controls(GuiVector2 viewport, float) 
     const float height = std::max(34.0F, 68.0F * s);
     const float gap = std::max(8.0F, 16.0F * s);
     const float top = viewport.y * 0.30F;
-    const float side = std::max(36.0F, 64.0F * s);
     std::vector<FrontendControl> result{
-        {0, {{viewport.x - side - 16.0F, 12.0F}, side, side}, "Settings", "settings"},
+        {0, detail::settingsButtonBounds(viewport), "Settings", "settings"},
         {9, {{16.0F, viewport.y - 44.0F * s - 12.0F}, 100.0F * s, 44.0F * s}, "Quit", "quit"}};
     const auto row = [&](int id, int index, std::string label, std::string art,
                          bool enabled = true) {
@@ -326,9 +325,13 @@ RenderScene FrontendMenu::makeScene(GuiVector2 viewport, float scale) const
             else if (row.id != 0 && (row.id < 10 || row.id > 12))
                 art = "button";
         }
-        bool image = artwork(art, row.bounds, tint);
+        const bool coolerPaper =
+            row.artwork == "quit" || row.artwork == "campaign" || row.artwork == "infinite";
+        const auto paperTint =
+            coolerPaper && row.enabled && row.id != _selected ? detail::warmPaper(tint) : tint;
+        bool image = artwork(art, row.bounds, paperTint);
         if (!image && row.id != 0)
-            image = artwork(detail::paperArtwork(_artwork, row.bounds), row.bounds, tint);
+            image = artwork(detail::paperArtwork(_artwork, row.bounds), row.bounds, paperTint);
         if (!image)
             scene.rectangles.push_back({row.bounds, tint});
         if (!image || row.artwork != "settings") {

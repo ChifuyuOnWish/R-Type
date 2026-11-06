@@ -31,9 +31,9 @@ Connection statuses use explicit headings and messages instead of color or
 sound alone. They use light text on a dark background, wrap messages and
 truncate when the available vertical space is exhausted.
 
-An optional scene tint offers red, green, blue or amber at adjustable opacity.
-This is a visual preference, not a validated color-vision correction.
-Essential information must remain identifiable without color.
+[Color vision filters](color-vision-assistance.md) provide adjustable visual
+presets for the gameplay scene. Their effect on role discrimination has not
+been validated. Player names and sprite shapes provide existing non-color cues.
 
 Text-size settings apply to Settings, status pages and client-supplied scene
 and overlay text. Scene text follows world scaling; HUD positions remain in
@@ -77,7 +77,7 @@ Rendering a status does not clear the client world or stop existing audio.
 ## Verification
 
 See the [Settings checklist](settings.md#local-checks). Automated checks cover
-settings, keyboard mapping, persistence, status layouts and tint drawing order.
+settings, keyboard mapping, persistence, status layouts and filter drawing order.
 Physical rendering, audio and multiplayer integration require manual checks.
 No accessibility certification is claimed.
 

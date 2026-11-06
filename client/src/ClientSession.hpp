@@ -32,6 +32,7 @@ private:
     std::unordered_map<std::uint32_t, std::string> _names;
     std::vector<gui::SoundEvent> _sounds;
     std::uint32_t _clientTick = 1;
+    float _animationSeconds = 0.0F;
     std::chrono::steady_clock::time_point _waitingSince;
     gui::FrontendAction _pending;
 };

@@ -16,13 +16,14 @@ Rules:
 | 2 | `Player2` | - | Player 2 ship | `players` |
 | 3 | `Player3` | - | Player 3 ship | `players` |
 | 4 | `Player4` | - | Player 4 ship | `players` |
-| 10 | `EnemyScreamer` | `enemy_screamer` | screamer enemy | `enemy_screamer` |
-| 10 | `EnemySlug` | `enemy_slug` | slug enemy | `enemy_slug` |
-| 11 | `EnemyBat` | `enemy_bat` | Flying enemy with a wave movement (bat) | `enemy_bat` |
+| 10 | `EnemyBasic` | `enemy_basic` | Small hovering enemy | `enemy_basic` |
+| 11 | `EnemyWave` | `enemy_wave` | Animated bat with a wave movement | `enemy_wave` |
 | 12 | `EnemyTank` | `enemy_tank` | Heavy enemy (spiked ball) | `enemy_tank` |
 | 13 | `Boss` | `boss` | Reserved (future bosses) | - |
-| 14 | `PlayerMissile` |  | Player shot | `player-weapons` |
-| 15 | `EnemyMissile` | - | Enemy shot | `enemy-weapons` |
+| 14 | `PlayerMissile` | - | Player fireball, facing right | `fireball` |
+| 15 | `EnemyMissile` | - | Enemy fireball, facing left | `fireball` |
+
+The client also accepts legacy projectile IDs 20 and 21 from older campaign data.
 
 ### Adding a new entity
 

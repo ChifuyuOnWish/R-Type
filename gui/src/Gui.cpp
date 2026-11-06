@@ -21,19 +21,14 @@ bool contains(const GuiRectangle& rectangle, GuiPosition position)
            position.y >= rectangle.pos.y && position.y < rectangle.pos.y + rectangle.height;
 }
 
-GuiRectangle settingsButton(GuiVector2 viewport, float scale)
-{
-    const float side = std::max(36.0F, 48.0F * scale);
-    return {{std::max(12.0F, viewport.x - side - 12.0F), 12.0F}, side, side};
-}
-
 RenderScene withSettingsButton(RenderScene scene, GuiVector2 viewport, float scale,
                                const ResourceManager& resources)
 {
-    const auto button = settingsButton(viewport, scale);
+    const auto button = detail::settingsButtonBounds(viewport);
     if (resources.hasTexture("ui-settings")) {
-        (void)detail::menuArtwork(scene, {{"settings", resources.getTextureSize("ui-settings")}},
-                                  "settings", button);
+        if (detail::menuArtwork(scene, {{"settings", resources.getTextureSize("ui-settings")}},
+                                "settings", button))
+            scene.sprites.back().layer = 10000;
     } else {
         scene.rectangles.push_back({button, {255, 255, 255, 255}});
         TextDraw label;
@@ -84,20 +79,6 @@ void fitWorld(RenderScene& scene, GuiVector2 viewport)
     }
 }
 
-GuiColor sceneTint(const VisualSettings& visual)
-{
-    constexpr std::array<GuiColor, 5> colors{{{0, 0, 0, 0},
-                                              {255, 80, 80, 255},
-                                              {80, 255, 120, 255},
-                                              {80, 140, 255, 255},
-                                              {255, 190, 80, 255}}};
-    auto color = colors[static_cast<std::size_t>(visual.tint)];
-    color.alpha = visual.tint == TintMode::Off
-                      ? 0
-                      : static_cast<std::uint8_t>(std::round(visual.tintOpacity * 255.0F));
-    return color;
-}
-
 } // namespace
 
 Gui::Gui(std::filesystem::path assetRoot)
@@ -140,7 +121,6 @@ void Gui::open(const GuiConfig& config)
     for (const char* name : {"paper-button",
                              "paper-action",
                              "paper-category",
-                             "paper-category-selected",
                              "paper-small",
                              "paper-mode",
                              "paper-square",
@@ -269,7 +249,7 @@ PlayerActions Gui::pollActions()
         _waitForNeutral = true;
     }
     if (!_menu.isOpen() && !handledToggle && frame.mouseClick &&
-        contains(settingsButton(_window.getSize(), _preferences.visuals.textScale), frame.mouse)) {
+        contains(detail::settingsButtonBounds(_window.getSize()), frame.mouse)) {
         _menu.open(_preferences);
         _menu.setNotice(_settingsNotice);
         _waitForNeutral = true;
@@ -306,6 +286,11 @@ PlayerActions Gui::pollActions()
                 }
                 _menu.setNotice(_settingsNotice);
             } else if (result == MenuResult::Quit) {
+                if (_menu.inGame()) {
+                    auto actions = _input.map(KeyboardState{false});
+                    actions.frontend.command = FrontendCommand::Disconnect;
+                    return actions;
+                }
                 _quitRequested = true;
             }
         }
@@ -378,6 +363,7 @@ void Gui::render(const RenderScene& scene)
         Renderer(_resources).render(presented, stars);
     };
     _frontend.setState(scene.frontend);
+    _menu.setInGame(scene.frontend.page == FrontendPage::Gameplay);
     if (_menu.isOpen()) {
         draw(withUiFont(_menu.makeScene(_window.getSize()), _uiFont));
         return;
@@ -420,7 +406,8 @@ void Gui::render(const RenderScene& scene)
     presented =
         withSettingsButton(std::move(presented), _window.getSize(), visual.textScale, _resources);
     presented = withUiFont(std::move(presented), _uiFont);
-    presented.sceneTint = sceneTint(visual);
+    presented.colorVision = visual.colorVision;
+    presented.colorVisionStrength = visual.colorVisionStrength;
     draw(std::move(presented), stars);
 }
 
