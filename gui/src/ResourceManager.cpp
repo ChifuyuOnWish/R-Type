@@ -112,6 +112,11 @@ void ResourceManager::loadTexture(const std::string& id, const std::filesystem::
     texture->value = LoadTextureFromImage(image.value);
     if (!IsTextureValid(texture->value))
         throw loadError(id, resolved, "texture upload failed");
+    if (extension == ".png") {
+        GenTextureMipmaps(&texture->value);
+        SetTextureFilter(texture->value, texture->value.mipmaps > 1 ? TEXTURE_FILTER_TRILINEAR
+                                                                    : TEXTURE_FILTER_BILINEAR);
+    }
     _impl->textures.emplace(id, std::move(texture));
 }
 
@@ -177,6 +182,8 @@ const std::filesystem::path& ResourceManager::getAssetRoot() const noexcept
 
 void ResourceManager::clear() noexcept
 {
+    _impl->colorPass.reset();
+    _impl->inkPass.reset();
     _impl->fonts.clear();
     _impl->textures.clear();
 }

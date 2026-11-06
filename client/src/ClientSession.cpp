@@ -3,6 +3,7 @@
 #include "systems/RenderSystem.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace rtype::client {
@@ -73,6 +74,7 @@ ClientSession::ClientSession(gui::ConnectionDetails connection)
 void ClientSession::resetWorld()
 {
     _world = std::make_unique<ClientWorld>();
+    _animationSeconds = 0.0F;
     _names.clear();
     _sounds.clear();
     _frontend.selectionPending = false;
@@ -157,6 +159,8 @@ void ClientSession::installHandlers()
             const auto event = proto::GameEventMessage::deserialize(reader);
             if (!event)
                 return;
+            if (event->event == proto::GameEventType::Shoot)
+                _world->sync().markShot(event->sourceId);
             _sounds.push_back({event->event == proto::GameEventType::Shoot ? "shot" : "hit"});
         });
 }
@@ -165,6 +169,7 @@ void ClientSession::lobby(const proto::LobbyStateMessage& state)
     const bool playing = state.phase == proto::LobbyPhase::Playing;
     if (!playing && _frontend.page == ui::FrontendPage::Gameplay)
         _world = std::make_unique<ClientWorld>();
+    _animationSeconds = 0.0F;
     _frontend.page = playing ? ui::FrontendPage::Gameplay : ui::FrontendPage::Lobby;
     _frontend.leader = state.leaderId == _network->clientId();
     _frontend.mode = mode(state.kind);
@@ -259,6 +264,7 @@ void ClientSession::update(float dt, const ui::PlayerActions& actions)
     if (_frontend.page != ui::FrontendPage::Gameplay || !_network->isConnected())
         return;
     _world->update(dt);
+    _animationSeconds = std::fmod(_animationSeconds + dt, 12.0F);
     std::uint8_t buttons = 0;
     for (std::size_t index = 0; index < actions.heldActions.size(); ++index)
         if (actions.heldActions[index])
@@ -275,7 +281,7 @@ ui::RenderScene ClientSession::makeScene()
         scene.worldSize = {1920, 1080};
         scene.background.enabled = true;
         scene.background.scrollSpeed = 100;
-        addWorldSprites(scene, _world->registry(), _names);
+        addWorldSprites(scene, _world->registry(), _names, _animationSeconds);
     }
     return scene;
 }

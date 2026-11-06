@@ -23,6 +23,7 @@ private:
         float width = 0.F;
         float height = 0.F;
         int layer = 0;
+        SpriteMotion motion = SpriteMotion::None;
     };
 
     std::unordered_map<std::uint16_t, Def> _defs;

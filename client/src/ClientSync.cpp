@@ -9,7 +9,7 @@
 namespace rtype::client {
 
 namespace {
-constexpr float MaxExtrapolation = 0.01F;
+constexpr float MaxExtrapolation = 0.05F;
 }
 
 ClientSync::ClientSync(engine::Registry& registry) : _registry(registry) {}
@@ -45,6 +45,17 @@ void ClientSync::destroy(const protocol::EntityDestroyMessage& message)
     _byNetId.erase(it);
 }
 
+void ClientSync::markShot(std::uint32_t sourceId)
+{
+    const auto it = _byNetId.find(sourceId);
+    if (it == _byNetId.end())
+        return;
+
+    auto& sprite = _registry.getComponent<Sprite>(it->second);
+    if (sprite.motion == SpriteMotion::Bat)
+        sprite.shotPoseRemaining = 0.20F;
+}
+
 void ClientSync::applySnapshot(const protocol::SnapshotMessage& message)
 {
     if (_hasTick && message.serverTick != _lastTick &&
@@ -62,11 +73,18 @@ void ClientSync::applySnapshot(const protocol::SnapshotMessage& message)
         }
         auto& position = _registry.getComponent<engine::Position>(it->second);
         auto& velocity = _registry.getComponent<engine::Velocity>(it->second);
-        position.x = entry.x.toFloat();
-        position.y = entry.y.toFloat();
+        auto& extrapolation = _registry.getComponent<Extrapolation>(it->second);
+        const float nextX = entry.x.toFloat();
+        const float nextY = entry.y.toFloat();
+        const float dx = position.x + extrapolation.offsetX - nextX;
+        const float dy = position.y + extrapolation.offsetY - nextY;
+        constexpr float snapDistance = 96.0F;
+        const bool snap = dx * dx + dy * dy > snapDistance * snapDistance;
+        extrapolation = {MaxExtrapolation, snap ? 0.0F : dx, snap ? 0.0F : dy};
+        position.x = nextX;
+        position.y = nextY;
         velocity.dx = entry.vx.toFloat() * PerSecond;
         velocity.dy = entry.vy.toFloat() * PerSecond;
-        _registry.getComponent<Extrapolation>(it->second).left = MaxExtrapolation;
     }
 }
 

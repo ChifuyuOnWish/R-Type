@@ -53,6 +53,8 @@ public:
     void select(std::size_t row);
     void setNotice(std::string notice);
     void setGamepadStatus(std::string status);
+    void setInGame(bool value) noexcept { _inGame = value; }
+    [[nodiscard]] bool inGame() const noexcept { return _inGame; }
     [[nodiscard]] MenuResult handle(const MenuInput& input);
     [[nodiscard]] std::vector<SettingsRow> rows(GuiVector2 viewport) const;
     [[nodiscard]] RenderScene makeScene(GuiVector2 viewport) const;
@@ -64,6 +66,7 @@ private:
     std::size_t _category = 0;
     bool _dirty = false;
     bool _open = false;
+    bool _inGame = false;
     int _capture = 0;
     std::size_t _selected = 0;
     GuiPreferences _draft;

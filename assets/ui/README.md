@@ -9,14 +9,13 @@ Use PNG files, preferably with transparency. Restart the client after adding art
 | File | Purpose |
 |------|---------|
 | `background.png` | Full connection and lobby background |
-| `game-background.png` | Looping gameplay paper, derived from the existing menu background without its red margin and paired with a mirrored copy |
+| `game-background.png` | Notebook texture with slightly wavy rules and a mirrored half for a seamless horizontal loop |
 | `settings-background.png` | Full notebook background for Settings |
 | `title.png` | R-Type title; no text is drawn over this image |
-| `settings.png` | Supplied gear image, with transparent outer margins removed offline |
+| `settings.png` | Original hand-drawn gear design isolated as transparent graphite linework |
 | `paper-button.png` | Wide paper for connection fields and long buttons |
 | `paper-action.png` | Medium paper for bottom actions |
 | `paper-category.png` | Paper for Settings categories, without a red margin |
-| `paper-category-selected.png` | Active category paper, with its red margin on the left |
 | `paper-small.png` | Short buttons and the top-left FPS badge |
 | `paper-mode.png` | Larger game-mode buttons |
 | `paper-square.png` | Small square controls |
@@ -50,22 +49,18 @@ rotate paper or stretch textures to fill controls. Generic controls choose the
 paper variant with the closest aspect ratio. Their full control rectangle remains
 clickable.
 
-The supplied atlas was separated into complete paper pieces by removing only
-transparent surrounding space. The red line was repaired locally on copies,
-without changing the original transparency. Wider and square variants were
-prepared offline by extending the centre and keeping the end pieces; textures
-and edge transitions were joined locally. No generated images are used.
-Only the active Settings category uses a red margin, already placed on the left
-in its image. The gear also has only its transparent outer margins removed.
-
-Record the source and redistribution license of every image before committing it.
+The generic paper variants and notebook textures were generated from
+the project's notebook art direction. Transparent sheets were exported as
+individual PNGs without stretching the paper shapes. The UI draws a red mark only on the active Settings category. PNG textures use smooth sampling
+when displayed at a different size. The Settings gear shares one size and
+position across gameplay and the frontend.
 
 ## Notebook alignment
 
 Background images fill the 16:9 window; use a 16:9 canvas to avoid stretching.
-For the Settings notebook, the first option baseline is at 107/360 of image height
+For the Settings notebook, the first option baseline is at 4/12 of image height
 and following lines are spaced by 30/360 of image height. At 1280 x 720 this is
-214 pixels and a 60-pixel pitch. Leave the left 23% for categories, the top for
+240 pixels and a 60-pixel pitch. Leave the left 23% for categories, the top for
 the heading and the bottom for fixed actions and notices. Option text sits just
 above each rule. Match these guides when drawing the paper, or adjust
 `firstPaperLine` and `paperLineSpacing` in `SettingsMenu.cpp` to the final asset.

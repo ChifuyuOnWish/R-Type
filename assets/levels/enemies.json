@@ -8,7 +8,7 @@
       "hitbox": [64, 64],
       "speed": 150,
       "movement": { "type": "straight" },
-      "weapon": { "projectile": "enemy_missile", "cooldown": 2.5, "damage": 1 },
+      "weapon": null,
       "score": 100
     },
     "enemy_wave": {
@@ -18,7 +18,7 @@
       "hitbox": [64, 48],
       "speed": 180,
       "movement": { "type": "sine", "amplitude": 120, "frequency": 0.8 },
-      "weapon": null,
+      "weapon": { "projectile": "enemy_missile", "cooldown": 2.5, "damage": 1 },
       "score": 150
     },
     "enemy_tank": {
@@ -28,7 +28,7 @@
       "hitbox": [96, 96],
       "speed": 80,
       "movement": { "type": "straight" },
-      "weapon": { "projectile": "enemy_missile", "cooldown": 1.5, "damage": 1, "aim": "nearest_player" },
+      "weapon": null,
       "score": 400,
       "drops": { "force_pod": 0.15, "speed_up": 0.1 }
     }

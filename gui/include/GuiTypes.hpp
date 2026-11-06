@@ -52,6 +52,13 @@ struct GuiConfig
     std::string settingsPath;
 };
 
+enum class SpriteInk
+{
+    Original,
+    ColoredPencil,
+    BoldGraphite
+};
+
 struct SpriteDraw
 {
     GuiEntityId entityId;
@@ -62,6 +69,7 @@ struct SpriteDraw
     float rotation = 0.0F;
     GuiColor tint;
     int layer = 0;
+    SpriteInk ink = SpriteInk::Original;
 };
 
 struct TextDraw
@@ -184,22 +192,21 @@ struct AudioSettings
     bool muted = false;
 };
 
-enum class TintMode
+enum class ColorVisionMode
 {
     Off,
-    Red,
-    Green,
-    Blue,
-    Amber
+    Protanopia,
+    Deuteranopia,
+    Tritanopia
 };
 
 struct VisualSettings
 {
     bool backgroundMotion = true;
     float textScale = 1.0F;
-    TintMode tint = TintMode::Off;
-    float tintOpacity = 0.15F;
     bool showFps = true;
+    ColorVisionMode colorVision = ColorVisionMode::Off;
+    float colorVisionStrength = 1.0F;
 };
 
 struct GuiPreferences
@@ -251,7 +258,8 @@ struct RenderScene
     std::vector<TextDraw> overlayTexts;
     BackgroundConfig background;
     StatusFeedback feedback;
-    GuiColor sceneTint{0, 0, 0, 0};
+    ColorVisionMode colorVision = ColorVisionMode::Off;
+    float colorVisionStrength = 0.0F;
     std::vector<RectangleDraw> rectangles;
     GuiVector2 worldSize;
     FrontendState frontend;

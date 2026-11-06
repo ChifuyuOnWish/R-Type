@@ -20,6 +20,7 @@ public:
     void onEntityDestroyed(DestroyedHandler fn) { _onDestroyed = std::move(fn); }
     void spawn(const protocol::EntitySpawnMessage& message);
     void destroy(const protocol::EntityDestroyMessage& message);
+    void markShot(std::uint32_t sourceId);
     void applySnapshot(const protocol::SnapshotMessage& message);
     void update(float dt);
 

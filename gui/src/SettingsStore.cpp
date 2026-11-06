@@ -75,10 +75,12 @@ void SettingsStore::validate(const GuiPreferences& preferences)
     if (!std::isfinite(preferences.visuals.textScale) || preferences.visuals.textScale < 1.0F ||
         preferences.visuals.textScale > 1.5F)
         throw std::invalid_argument("UI text scale must be between 1 and 1.5");
-    if (preferences.visuals.tint < TintMode::Off || preferences.visuals.tint > TintMode::Amber ||
-        !std::isfinite(preferences.visuals.tintOpacity) || preferences.visuals.tintOpacity < 0.0F ||
-        preferences.visuals.tintOpacity > 0.5F)
-        throw std::invalid_argument("Invalid scene tint settings");
+    if (preferences.visuals.colorVision < ColorVisionMode::Off ||
+        preferences.visuals.colorVision > ColorVisionMode::Tritanopia ||
+        !std::isfinite(preferences.visuals.colorVisionStrength) ||
+        preferences.visuals.colorVisionStrength < 0.0F ||
+        preferences.visuals.colorVisionStrength > 1.0F)
+        throw std::invalid_argument("Invalid color vision assistance settings");
     for (const auto key : preferences.keyboard.keys) {
         if (static_cast<std::size_t>(key) >= guiKeyCount)
             throw std::invalid_argument("Invalid keyboard binding");
@@ -133,10 +135,11 @@ bool SettingsStore::load(const std::filesystem::path& path, GuiPreferences& outp
             next.visuals.backgroundMotion = boolean(values.at("motion"));
         if (values.contains("scale"))
             next.visuals.textScale = number<float>(values.at("scale"));
-        if (values.contains("tint"))
-            next.visuals.tint = static_cast<TintMode>(number<int>(values.at("tint")));
-        if (values.contains("tint-opacity"))
-            next.visuals.tintOpacity = number<float>(values.at("tint-opacity"));
+        if (values.contains("color-vision.mode"))
+            next.visuals.colorVision =
+                static_cast<ColorVisionMode>(number<int>(values.at("color-vision.mode")));
+        if (values.contains("color-vision.strength"))
+            next.visuals.colorVisionStrength = number<float>(values.at("color-vision.strength"));
         for (std::size_t index = 0; index < playerActionCount; ++index) {
             const auto key = "key." + std::to_string(index);
             if (values.contains(key))
@@ -186,9 +189,9 @@ bool SettingsStore::save(const std::filesystem::path& path, const GuiPreferences
              << "\nmuted=" << preferences.audio.muted
              << "\nshow-fps=" << preferences.visuals.showFps
              << "\nmotion=" << preferences.visuals.backgroundMotion
-             << "\ntint=" << static_cast<int>(preferences.visuals.tint)
              << "\nscale=" << preferences.visuals.textScale
-             << "\ntint-opacity=" << preferences.visuals.tintOpacity << '\n';
+             << "\ncolor-vision.mode=" << static_cast<int>(preferences.visuals.colorVision)
+             << "\ncolor-vision.strength=" << preferences.visuals.colorVisionStrength << '\n';
         for (std::size_t index = 0; index < playerActionCount; ++index)
             file << "key." << index << '='
                  << static_cast<std::size_t>(preferences.keyboard.keys[index]) << '\n';

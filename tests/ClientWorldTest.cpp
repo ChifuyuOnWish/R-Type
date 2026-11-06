@@ -4,6 +4,7 @@
 #include "ClientComponents.hpp"
 #include "EntityType.hpp"
 #include "components/Components.hpp"
+#include "systems/RenderSystem.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -128,10 +129,67 @@ int main()
     assert(near(find(motion, 1).y, 200.0F - 60.0F * step));
 
     motion.update(0.5F);
-    assert(near(find(motion, 1).x, 100.0F + 120.0F * 0.01F));
-    assert(near(find(motion, 1).y, 200.0F - 60.0F * 0.01F));
+    assert(near(find(motion, 1).x, 100.0F + 120.0F * 0.05F));
+    assert(near(find(motion, 1).y, 200.0F - 60.0F * 0.05F));
     motion.update(0.5F);
-    assert(near(find(motion, 1).x, 100.0F + 120.0F * 0.01F));
+    assert(near(find(motion, 1).x, 100.0F + 120.0F * 0.05F));
+
+    client::ClientWorld smoothing;
+    const auto player = static_cast<std::uint16_t>(proto::EntityType::Player1);
+    smoothing.spawn(spawn(1, player));
+    const auto draw = [&] {
+        rtype::gui::RenderScene scene;
+        client::addWorldSprites(scene, smoothing.registry(), {{1, "Player one"}});
+        return scene;
+    };
+    const auto initial = draw();
+    smoothing.applySnapshot({1, {position(1, 30.0F, 20.0F)}});
+    const auto corrected = draw();
+    assert(near(initial.sprites.front().destinationRect.pos.x,
+                corrected.sprites.front().destinationRect.pos.x));
+    smoothing.update(0.016F);
+    const auto advanced = draw();
+    const auto& label = advanced.sceneTexts.front();
+    assert(label.text == "Player one");
+    assert(label.color.red == 0 && label.color.green == 0 && label.color.blue == 0);
+    assert(advanced.sprites.front().destinationRect.pos.x >
+           corrected.sprites.front().destinationRect.pos.x);
+    assert(near(advanced.sprites.front().destinationRect.pos.x -
+                    corrected.sprites.front().destinationRect.pos.x,
+                label.position.x - corrected.sceneTexts.front().position.x));
+
+    client::ClientWorld flying;
+    flying.spawn(spawn(8, static_cast<std::uint16_t>(proto::EntityType::EnemyWave)));
+    const auto batFrame = [&](float time) {
+        rtype::gui::RenderScene scene;
+        client::addWorldSprites(scene, flying.registry(), {}, time);
+        return scene.sprites.front();
+    };
+    const auto wingsOut = batFrame(0.0F);
+    const auto wingsDown = batFrame(0.13F);
+    assert(wingsOut.sourceRect.pos.x == 0.F && wingsDown.sourceRect.pos.x == 512.F);
+    assert(wingsOut.sourceRect.pos.y == 0.F && wingsDown.sourceRect.pos.y == 0.F);
+    flying.sync().markShot(999);
+    assert(batFrame(0.13F).sourceRect.pos.y == 0.F);
+    flying.sync().markShot(8);
+    assert(batFrame(0.13F).sourceRect.pos.y == 320.F);
+    flying.update(0.21F);
+    assert(batFrame(0.13F).sourceRect.pos.y == 0.F);
+    assert(wingsDown.destinationRect.pos.x == wingsOut.destinationRect.pos.x &&
+           wingsDown.destinationRect.pos.y == wingsOut.destinationRect.pos.y);
+
+    client::ClientWorld projectiles;
+    projectiles.spawn(spawn(1, Missile));
+    projectiles.spawn(spawn(2, static_cast<std::uint16_t>(proto::EntityType::EnemyMissile)));
+    projectiles.spawn(spawn(3, 20));
+    projectiles.spawn(spawn(4, 21));
+    rtype::gui::RenderScene shots;
+    client::addWorldSprites(shots, projectiles.registry(), {});
+    assert(shots.sprites.size() == 4);
+    for (const auto& shot : shots.sprites) {
+        assert(shot.textureId == "fireball");
+        assert(shot.rotation == (shot.entityId.index % 2 == 0 ? 0.0F : 180.0F));
+    }
 
     client::ClientWorld rollover;
     rollover.spawn(spawn(1, Enemy));

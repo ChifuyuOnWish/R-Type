@@ -59,14 +59,48 @@ void DrawTextEx(Font, const char* value, Vector2, float, float, Color)
 {
     calls.emplace_back(value);
 }
-void DrawRectangleRec(Rectangle bounds, Color color)
+void DrawRectangleRec(Rectangle, Color)
 {
-    if (color.a == 64) {
-        require(bounds.x == 0 && bounds.y == 0 && bounds.width == 640 && bounds.height == 360,
-                "Tint covers the entire window");
-        calls.push_back("tint");
-    } else
-        calls.push_back("ui");
+    calls.push_back("ui");
+}
+Shader LoadShaderFromMemory(const char*, const char*)
+{
+    return {1, nullptr};
+}
+int GetShaderLocation(Shader, const char*)
+{
+    return 0;
+}
+void UnloadShader(Shader) {}
+RenderTexture2D LoadRenderTexture(int width, int height)
+{
+    return {1, {2, width, height, 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}, {}};
+}
+bool IsRenderTextureValid(RenderTexture2D target)
+{
+    return target.id != 0;
+}
+void UnloadRenderTexture(RenderTexture2D) {}
+void BeginTextureMode(RenderTexture2D)
+{
+    calls.push_back("target");
+}
+void EndTextureMode()
+{
+    calls.push_back("target end");
+}
+void BeginShaderMode(Shader)
+{
+    calls.push_back("filter");
+}
+void EndShaderMode()
+{
+    calls.push_back("filter end");
+}
+void SetShaderValue(Shader, int, const void*, int) {}
+void SetShaderValueV(Shader, int, const void*, int uniformType, int count)
+{
+    require(uniformType == SHADER_UNIFORM_VEC3 && count == 3, "Three RGB transform rows");
 }
 void UnloadTexture(Texture2D) {}
 void UnloadFont(Font) {}
@@ -103,17 +137,19 @@ int main()
         overlay.text = "overlay";
         scene.overlayTexts.push_back(overlay);
         scene.rectangles.push_back({{{20, 20}, 40, 40}, {}});
-        scene.sceneTint = {255, 80, 80, 64};
+        scene.colorVision = ColorVisionMode::Protanopia;
+        scene.colorVisionStrength = 1.0F;
         Renderer(resources).render(scene);
-        require(calls == std::vector<std::string>{"begin", "clear", "sprite", "world", "tint", "ui",
-                                                  "overlay", "end"},
-                "Tint covers the scene but not UI overlays");
+        require(calls == std::vector<std::string>{"begin", "target", "clear", "sprite",
+                                                  "target end", "filter", "sprite", "filter end",
+                                                  "world", "ui", "overlay", "end"},
+                "Filter composites the scene before drawing text and UI");
         calls.clear();
-        scene.sceneTint.alpha = 0;
+        scene.colorVisionStrength = 0.0F;
         Renderer(resources).render(scene);
         require(calls == std::vector<std::string>{"begin", "clear", "sprite", "world", "ui",
                                                   "overlay", "end"},
-                "Disabled tint adds no overlay");
+                "Zero strength skips the filter pass");
         return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

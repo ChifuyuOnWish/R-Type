@@ -89,7 +89,7 @@ The world rendering order is:
 1. Clear color and starfield.
 2. Sprites in ascending layer order, preserving submission order within a layer.
 3. Scene text.
-4. Optional full-window scene tint.
+4. Optional color remapping of the rendered game image, before player names and UI.
 5. UI rectangles, then overlay text, including the Settings button.
 
 Settings replaces the current view when open. Connection and lobby state otherwise

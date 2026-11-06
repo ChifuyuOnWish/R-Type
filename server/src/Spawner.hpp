@@ -24,7 +24,7 @@ public:
     engine::Entity spawnPlayerShip(network::PeerId peer, engine::Position position);
     engine::Entity spawnProjectile(engine::Registry& registry, engine::Entity shooter,
                                    engine::Position from, unsigned type);
-    engine::Entity spawnBasicEnemy(engine::Position position, float firstShotDelay);
+    engine::Entity spawnInfiniteEnemy(engine::Position position, bool bat, float firstShotDelay);
     engine::Entity spawnEnemy(const level::EnemyDef& def, engine::Position position, int health,
                               float firstShotDelay);
 

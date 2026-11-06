@@ -28,12 +28,34 @@ void menuTest()
     (void)menu.handle(activate);
     require(menu.draft().audio.muted && !original.audio.muted, "Draft isolation");
     menu.select(4);
-    (void)menu.handle(activate);
-    require(menu.draft().visuals.tint == TintMode::Red, "Tint selection");
-    menu.select(5);
-    for (int index = 0; index < 20; ++index)
+    const auto unfilteredPreview = menu.makeScene({640, 360});
+    for (const auto mode : {ColorVisionMode::Protanopia, ColorVisionMode::Deuteranopia,
+                            ColorVisionMode::Tritanopia, ColorVisionMode::Off}) {
         (void)menu.handle(activate);
-    require(menu.draft().visuals.tintOpacity == 0.5F, "Opacity is bounded");
+        require(menu.draft().visuals.colorVision == mode && menu.category() == 3,
+                "Accessibility cycles all color vision modes");
+        const auto preview = menu.makeScene({640, 360});
+        bool colorsChanged = false;
+        require(preview.rectangles.size() == unfilteredPreview.rectangles.size(),
+                "Preset keeps preview geometry");
+        for (std::size_t index = 0; index < preview.rectangles.size(); ++index) {
+            const auto color = preview.rectangles[index].color;
+            const auto unfiltered = unfilteredPreview.rectangles[index].color;
+            colorsChanged |= color.red != unfiltered.red || color.green != unfiltered.green ||
+                             color.blue != unfiltered.blue;
+        }
+        require(colorsChanged == (mode != ColorVisionMode::Off),
+                "Preview remaps sample colors before Apply");
+    }
+    menu.select(5);
+    MenuInput decrease;
+    decrease.horizontal = -1;
+    for (int index = 0; index < 15; ++index)
+        (void)menu.handle(decrease);
+    require(menu.draft().visuals.colorVisionStrength == 0.0F, "Strength clamps at zero");
+    for (int index = 0; index < 15; ++index)
+        (void)menu.handle(activate);
+    require(menu.draft().visuals.colorVisionStrength == 1.0F, "Strength clamps at one");
     menu.select(6);
     (void)menu.handle(activate);
     require(menu.isCapturing(), "Binding capture");
@@ -75,7 +97,7 @@ void menuTest()
     require(menu.handle(activate) == MenuResult::Apply, "Apply request");
     menu.select(11);
     (void)menu.handle(activate);
-    require(menu.draft().visuals.tint == TintMode::Off && !menu.draft().audio.muted,
+    require(menu.draft().visuals.colorVision == ColorVisionMode::Off && !menu.draft().audio.muted,
             "Defaults restored in draft");
     menu.select(3);
     (void)menu.handle(activate);
@@ -158,20 +180,23 @@ void persistenceTest(const std::filesystem::path& root)
     preferences.visuals.backgroundMotion = false;
     preferences.visuals.showFps = false;
     preferences.visuals.textScale = 1.5F;
-    preferences.visuals.tint = TintMode::Amber;
-    preferences.visuals.tintOpacity = 0.4F;
+    preferences.visuals.colorVision = ColorVisionMode::Tritanopia;
+    preferences.visuals.colorVisionStrength = 0.6F;
     require(SettingsStore::save(path, preferences, error), "Save preferences");
     GuiPreferences loaded;
     require(SettingsStore::load(path, loaded, error) && loaded.keyboard.keys[0] == GuiKey::W &&
                 loaded.audio.muted && !loaded.visuals.backgroundMotion && !loaded.visuals.showFps &&
-                loaded.visuals.textScale == 1.5F && loaded.visuals.tint == TintMode::Amber &&
-                loaded.visuals.tintOpacity == 0.4F && loaded.gamepad.device == 2 &&
+                loaded.visuals.textScale == 1.5F &&
+                loaded.visuals.colorVision == ColorVisionMode::Tritanopia &&
+                loaded.visuals.colorVisionStrength == 0.6F && loaded.gamepad.device == 2 &&
                 loaded.gamepad.deadZone == 0.35F && !loaded.gamepad.leftStick &&
                 loaded.gamepad.buttons[4] == GuiGamepadButton::RightShoulder,
             "Preference round trip");
-    std::ofstream(path) << "version=1\nvolume=0.5\n";
-    require(SettingsStore::load(path, loaded, error) && loaded.visuals.showFps,
-            "Old files retain default FPS preference");
+    std::ofstream(path) << "version=1\nvolume=0.5\ntint=4\ntint-opacity=0.4\n";
+    require(SettingsStore::load(path, loaded, error) && loaded.visuals.showFps &&
+                loaded.visuals.colorVision == ColorVisionMode::Off &&
+                loaded.visuals.colorVisionStrength == 1.0F,
+            "Old files use defaults for optional preferences");
     preferences.audio.volume = 0.2F;
     require(SettingsStore::save(path, preferences, error), "Replace existing file");
     require(SettingsStore::load(path, loaded, error) && loaded.audio.volume == 0.2F,
@@ -183,7 +208,11 @@ void persistenceTest(const std::filesystem::path& root)
           std::string("version=1\ngamepad.dead-zone=1\n"),
           std::string("version=1\ngamepad.button.4=999\n"), std::string("version=9\n"),
           std::string("version=1\nvolume=nan\n"), std::string("version=1\nkey.0=999\n"),
-          std::string("version=1\ntint=9\n"), std::string("version=1\ntint-opacity=0.6\n"),
+          std::string("version=1\ncolor-vision.mode=4\n"),
+          std::string("version=1\ncolor-vision.mode=-1\n"),
+          std::string("version=1\ncolor-vision.strength=nan\n"),
+          std::string("version=1\ncolor-vision.strength=-0.1\n"),
+          std::string("version=1\ncolor-vision.strength=1.1\n"),
           std::string("version=1\nscale=9\n"), std::string("version=1\nshow-fps=2\n"),
           std::string("version=1\nmuted=0\nmuted=1\n"), std::string(17000, 'x')}) {
         std::ofstream(path) << invalid;

@@ -67,20 +67,25 @@ Entity Spawner::spawnProjectile(Registry& registry, Entity shooter, Position fro
     return missile;
 }
 
-Entity Spawner::spawnBasicEnemy(Position position, float firstShotDelay)
+Entity Spawner::spawnInfiniteEnemy(Position position, bool bat, float firstShotDelay)
 {
     ComponentParams p;
     p.position = position;
-    p.velocity = Velocity{-EnemySpeed, 0.F};
-    p.health = Health{1, 1};
+    const float speed = bat ? 180.0F : EnemySpeed;
+    const int health = bat ? 2 : 1;
+    p.velocity = Velocity{-speed, 0.F};
+    p.health = Health{health, health};
     p.damage = Damage{1};
-    p.hitbox = Hitbox{64.F, 64.F};
-    p.behavior = EnemyBehavior{EnemyPattern::Straight, EnemySpeed, 0.F, 0.F};
-    p.weapon = Weapon{EnemyFireCooldown, firstShotDelay,
-                      static_cast<unsigned>(EntityType::EnemyMissile), 1.F, true};
+    p.hitbox = Hitbox{64.F, bat ? 48.0F : 64.0F};
+    p.behavior = EnemyBehavior{bat ? EnemyPattern::Sine : EnemyPattern::Straight, speed,
+                               bat ? 120.0F : 0.0F, bat ? 0.8F : 0.0F};
+    if (bat)
+        p.weapon = Weapon{EnemyFireCooldown, firstShotDelay,
+                          static_cast<unsigned>(EntityType::EnemyMissile), 1.F, true};
     p.team = EnemyTeam;
     const Entity enemy = _factory.create("enemy_basic", p);
-    _registry.addComponent(enemy, NetType{static_cast<std::uint16_t>(EntityType::EnemyBasic)});
+    _registry.addComponent(enemy, NetType{static_cast<std::uint16_t>(
+                                      bat ? EntityType::EnemyWave : EntityType::EnemyBasic)});
     return enemy;
 }
 

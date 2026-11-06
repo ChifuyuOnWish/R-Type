@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 
+#include "ColorVision.hpp"
 #include "detail/ResourceManagerData.hpp"
 
 #include <algorithm>
@@ -9,6 +10,77 @@
 
 namespace rtype::gui {
 namespace {
+
+constexpr const char* colorFragment = R"glsl(#version 330
+in vec2 fragTexCoord;
+uniform sampler2D texture0;
+uniform vec3 colorRows[3];
+out vec4 finalColor;
+
+vec3 linearize(vec3 v)
+{
+    return mix(pow((v + 0.055) / 1.055, vec3(2.4)), v / 12.92,
+               lessThanEqual(v, vec3(0.04045)));
+}
+
+vec3 encode(vec3 v)
+{
+    v = clamp(v, 0.0, 1.0);
+    return mix(1.055 * pow(v, vec3(1.0 / 2.4)) - 0.055, v * 12.92,
+               lessThanEqual(v, vec3(0.0031308)));
+}
+
+void main()
+{
+    vec4 sampleColor = texture(texture0, fragTexCoord);
+    vec3 rgb = linearize(sampleColor.rgb);
+    vec3 adjusted = vec3(dot(colorRows[0], rgb), dot(colorRows[1], rgb), dot(colorRows[2], rgb));
+    finalColor = vec4(encode(adjusted), sampleColor.a);
+}
+)glsl";
+
+// Render the original pencil artwork without its paper, or reinforce graphite lines.
+constexpr const char* inkFragment = R"glsl(#version 330
+in vec2 fragTexCoord;
+in vec4 fragColor;
+uniform sampler2D texture0;
+uniform vec4 colDiffuse;
+uniform int inkMode;
+out vec4 finalColor;
+
+void main()
+{
+    vec4 sampleColor = texture(texture0, fragTexCoord);
+    if (inkMode == 1) {
+        vec3 rgb = sampleColor.rgb;
+        float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
+        sampleColor.a *= smoothstep(0.105, 0.205, chroma);
+    } else {
+        vec2 stepSize = 2.0 / vec2(textureSize(texture0, 0));
+        float a = sampleColor.a;
+        a = max(a, texture(texture0, fragTexCoord + vec2(stepSize.x, 0.0)).a);
+        a = max(a, texture(texture0, fragTexCoord - vec2(stepSize.x, 0.0)).a);
+        a = max(a, texture(texture0, fragTexCoord + vec2(0.0, stepSize.y)).a);
+        a = max(a, texture(texture0, fragTexCoord - vec2(0.0, stepSize.y)).a);
+        sampleColor = vec4(vec3(0.07), mix(sampleColor.a, a, 0.72));
+    }
+    finalColor = sampleColor * colDiffuse * fragColor;
+}
+)glsl";
+
+bool prepareColorPass(detail::ColorPass& pass, int width, int height)
+{
+    if (pass.rows < 0 || width <= 0 || height <= 0)
+        return false;
+    if (pass.target.id != 0 &&
+        (pass.target.texture.width != width || pass.target.texture.height != height)) {
+        UnloadRenderTexture(pass.target);
+        pass.target = {};
+    }
+    if (pass.target.id == 0)
+        pass.target = LoadRenderTexture(width, height);
+    return IsRenderTextureValid(pass.target);
+}
 
 bool finite(std::initializer_list<float> values)
 {
@@ -120,23 +192,77 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
             bounds.width < 0 || bounds.height < 0)
             throw std::invalid_argument("Invalid UI rectangle");
     }
+    const int width = GetScreenWidth();
+    const int height = GetScreenHeight();
+    detail::ColorPass* pass = nullptr;
+    if (scene.colorVision != ColorVisionMode::Off && scene.colorVisionStrength > 0.0F) {
+        auto& cache = _resources._impl->colorPass;
+        if (!cache) {
+            cache = std::make_unique<detail::ColorPass>();
+            cache->shader = LoadShaderFromMemory(nullptr, colorFragment);
+            cache->rows = GetShaderLocation(cache->shader, "colorRows[0]");
+        }
+        if (prepareColorPass(*cache, width, height))
+            pass = cache.get();
+    }
+
+    const detail::InkPass* ink = nullptr;
+    if (std::any_of(sprites.begin(), sprites.end(),
+                    [](const auto& sprite) { return sprite.draw->ink != SpriteInk::Original; })) {
+        auto& cache = _resources._impl->inkPass;
+        if (!cache) {
+            cache = std::make_unique<detail::InkPass>();
+            cache->shader = LoadShaderFromMemory(nullptr, inkFragment);
+            cache->modeLocation = GetShaderLocation(cache->shader, "inkMode");
+        }
+        if (cache->modeLocation >= 0)
+            ink = cache.get();
+    }
+
     BeginDrawing();
+    if (pass != nullptr)
+        BeginTextureMode(pass->target);
     ClearBackground(color(scene.clearColor));
     if (scene.background.enabled) {
         for (const auto& star : backgroundStars)
             DrawRectangleRec({star.x, star.y, 2.0F, 2.0F}, color(scene.background.starColor));
     }
-    for (const auto& sprite : sprites) {
+    const auto drawSprite = [ink](const PreparedSprite& sprite) {
         const auto& value = *sprite.draw;
+        const bool inkOnly = value.ink != SpriteInk::Original && ink != nullptr;
+        if (inkOnly) {
+            const int mode = static_cast<int>(value.ink);
+            BeginShaderMode(ink->shader);
+            SetShaderValue(ink->shader, ink->modeLocation, &mode, SHADER_UNIFORM_INT);
+        }
         DrawTexturePro(sprite.texture, rectangle(value.sourceRect),
                        rectangle(value.destinationRect), {value.origin.x, value.origin.y},
                        value.rotation, color(value.tint));
+        if (inkOnly)
+            EndShaderMode();
+    };
+    for (const auto& sprite : sprites) {
+        if (sprite.draw->layer < 10000)
+            drawSprite(sprite);
+    }
+    if (pass != nullptr) {
+        EndTextureMode();
+        const auto matrix = detail::assistanceMatrix(scene.colorVision, scene.colorVisionStrength);
+        const std::array coefficients{matrix[0][0], matrix[0][1], matrix[0][2],
+                                      matrix[1][0], matrix[1][1], matrix[1][2],
+                                      matrix[2][0], matrix[2][1], matrix[2][2]};
+        const auto w = static_cast<float>(width);
+        const auto h = static_cast<float>(height);
+        BeginShaderMode(pass->shader);
+        SetShaderValueV(pass->shader, pass->rows, coefficients.data(), SHADER_UNIFORM_VEC3, 3);
+        DrawTexturePro(pass->target.texture, {0, 0, w, -h}, {0, 0, w, h}, {0, 0}, 0, WHITE);
+        EndShaderMode();
+    }
+    for (const auto& sprite : sprites) {
+        if (sprite.draw->layer >= 10000)
+            drawSprite(sprite);
     }
     drawTexts(sceneTexts);
-    if (scene.sceneTint.alpha > 0)
-        DrawRectangleRec(
-            {0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())},
-            color(scene.sceneTint));
     for (const auto& draw : scene.rectangles)
         DrawRectangleRec(rectangle(draw.bounds), color(draw.color));
     drawTexts(overlays);

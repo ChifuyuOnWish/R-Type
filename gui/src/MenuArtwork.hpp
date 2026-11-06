@@ -9,6 +9,20 @@
 
 namespace rtype::gui::detail {
 
+inline GuiRectangle settingsButtonBounds(GuiVector2 viewport)
+{
+    const float scale = std::min(viewport.x / 1280.0F, viewport.y / 720.0F);
+    const float side = std::max(36.0F, 64.0F * scale);
+    return {{std::max(12.0F, viewport.x - side - 16.0F), 12.0F}, side, side};
+}
+
+inline GuiColor warmPaper(GuiColor tint)
+{
+    tint.green = static_cast<std::uint8_t>(static_cast<unsigned>(tint.green) * 247U / 255U);
+    tint.blue = static_cast<std::uint8_t>(static_cast<unsigned>(tint.blue) * 232U / 255U);
+    return tint;
+}
+
 inline bool menuArtwork(RenderScene& scene, const std::map<std::string, GuiVector2>& artwork,
                         const std::string& id, GuiRectangle bounds, GuiColor tint = {})
 {
