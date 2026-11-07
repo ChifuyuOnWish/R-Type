@@ -235,9 +235,12 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
             BeginShaderMode(ink->shader);
             SetShaderValue(ink->shader, ink->modeLocation, &mode, SHADER_UNIFORM_INT);
         }
-        DrawTexturePro(sprite.texture, rectangle(value.sourceRect),
-                       rectangle(value.destinationRect), {value.origin.x, value.origin.y},
-                       value.rotation, color(value.tint));
+        // raylib draws the source upside down when its height is negative.
+        Rectangle source = rectangle(value.sourceRect);
+        if (value.flipY)
+            source.height = -source.height;
+        DrawTexturePro(sprite.texture, source, rectangle(value.destinationRect),
+                       {value.origin.x, value.origin.y}, value.rotation, color(value.tint));
         if (inkOnly)
             EndShaderMode();
     };

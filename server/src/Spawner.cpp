@@ -2,6 +2,9 @@
 
 #include "EntityType.hpp"
 #include "ServerComponents.hpp"
+#include "World.hpp"
+#include "monsters/Monster.hpp"
+#include "monsters/Targeting.hpp"
 
 namespace rtype::server {
 
@@ -12,6 +15,7 @@ namespace {
 constexpr float PlayerMissileSpeed = 900.F;
 constexpr float EnemyMissileSpeed = 400.F;
 constexpr float MissileLifetime = 3.F;
+constexpr float MuzzleOffset = 40.F;
 constexpr float EnemySpeed = 150.F;
 constexpr float EnemyFireCooldown = 2.5F;
 
@@ -23,8 +27,42 @@ engine::EnemyPattern pattern(level::Movement movement)
     case level::Movement::Follow:
         return engine::EnemyPattern::Chase;
     default:
+        // Flight and Crawl have no engine pattern: MonsterSystem moves every enemy now, and
+        // EnemyBehavior stays only as the "this is an enemy" tag.
         return engine::EnemyPattern::Straight;
     }
+}
+
+// The brain for one enemies.json entry. `position` is where it spawns.
+Monster brain(const level::EnemyDef& def, Position position)
+{
+    Monster m = Monster::advance(def.speed);
+    m.aimAtPlayer = def.weapon && def.weapon->aim == level::Aim::NearestPlayer;
+    switch (def.movement) {
+    case level::Movement::Sine: // a flight that doesn't home: the plain sine wave
+    case level::Movement::Flight:
+        m.kind = MonsterKind::Flight;
+        m.amplitude = def.amplitude;
+        m.frequency = def.frequency;
+        m.homing = def.homing;
+        m.centerY = position.y;
+        break;
+    case level::Movement::Follow: // no flap, follows the ship up and down at its own speed
+        m.kind = MonsterKind::Flight;
+        m.homing = def.speed;
+        m.centerY = position.y;
+        break;
+    case level::Movement::Crawl:
+        m.kind = MonsterKind::Crawl;
+        m.surface = def.onCeiling ? Surface::Ceiling : Surface::Floor;
+        m.stopMinX = def.stopMinX;
+        m.stopMaxX = def.stopMaxX;
+        m.hold = def.hold;
+        break;
+    default: // Straight, and Dive / Stationary until they get their own kind
+        break;
+    }
+    return m;
 }
 
 } // namespace
@@ -52,9 +90,20 @@ Entity Spawner::spawnPlayerShip(network::PeerId peer, Position position)
 Entity Spawner::spawnProjectile(Registry& registry, Entity shooter, Position from, unsigned type)
 {
     const bool fromPlayer = type == static_cast<unsigned>(EntityType::PlayerMissile);
+    const float speed = fromPlayer ? PlayerMissileSpeed : EnemyMissileSpeed;
+    Velocity velocity{fromPlayer ? speed : -speed, 0.F};
+    // Read before anything is created: a new entity can move the Monster we look at.
+    const bool aimed = !fromPlayer && registry.hasComponent<Monster>(shooter) &&
+                       registry.getComponent<Monster>(shooter).aimAtPlayer;
+    if (aimed) {
+        if (const auto target = nearestShip(registry, from))
+            velocity = towards(from, *target, speed);
+    }
     ComponentParams p;
-    p.position = Position{from.x + (fromPlayer ? 40.F : -40.F), from.y};
-    p.velocity = Velocity{fromPlayer ? PlayerMissileSpeed : -EnemyMissileSpeed, 0.F};
+    // The muzzle is MuzzleOffset from the centre, along the direction of the shot.
+    p.position = Position{from.x + velocity.dx / speed * MuzzleOffset,
+                          from.y + velocity.dy / speed * MuzzleOffset};
+    p.velocity = velocity;
     p.hitbox = Hitbox{16.F, 8.F};
     p.damage = Damage{1};
     p.lifetime = Lifetime{MissileLifetime};
@@ -85,13 +134,29 @@ Entity Spawner::spawnInfiniteEnemy(Position position, bool bat, float firstShotD
     p.team = EnemyTeam;
     const Entity enemy = _factory.create("enemy_basic", p);
     _registry.addComponent(enemy, NetType{static_cast<std::uint16_t>(
-                                      bat ? EntityType::EnemyWave : EntityType::EnemyBasic)});
+                                      bat ? EntityType::EnemyBat : EntityType::EnemyBasic)});
+    Monster mind = Monster::advance(speed);
+    if (bat) {
+        mind.kind = MonsterKind::Flight;
+        mind.amplitude = 120.F;
+        mind.frequency = 0.8F;
+        mind.homing = 60.F;
+        mind.centerY = position.y;
+        mind.aimAtPlayer = true;
+    }
+    _registry.addComponent(enemy, mind);
     return enemy;
 }
 
 Entity Spawner::spawnEnemy(const level::EnemyDef& def, Position position, int health,
                            float firstShotDelay)
 {
+    const bool crawler = def.movement == level::Movement::Crawl;
+    if (crawler) {
+        const float half = def.hitbox.y / 2.F;
+        position.y = def.onCeiling ? half : WorldHeight - half;
+    }
+
     ComponentParams p;
     p.position = position;
     p.velocity = Velocity{-def.speed, 0.F};
@@ -99,12 +164,14 @@ Entity Spawner::spawnEnemy(const level::EnemyDef& def, Position position, int he
     p.damage = Damage{def.contactDamage};
     p.hitbox = Hitbox{def.hitbox.x, def.hitbox.y};
     p.behavior = EnemyBehavior{pattern(def.movement), def.speed, def.amplitude, def.frequency};
+    // A crawler starts with its gun off: MonsterSystem turns it on once it has stopped.
     if (def.weapon)
-        p.weapon =
-            Weapon{def.weapon->cooldown, firstShotDelay, def.weapon->projectileNetType, 1.F, true};
+        p.weapon = Weapon{def.weapon->cooldown, firstShotDelay, def.weapon->projectileNetType, 1.F,
+                          !crawler};
     p.team = EnemyTeam;
     const Entity enemy = _factory.create("enemy_basic", p);
     _registry.addComponent(enemy, NetType{def.netType});
+    _registry.addComponent(enemy, brain(def, position));
     return enemy;
 }
 

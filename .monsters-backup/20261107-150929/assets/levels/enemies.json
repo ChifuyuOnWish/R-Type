@@ -1,0 +1,47 @@
+{
+  "$schema": "schema/enemies.schema.json",
+  "enemies": {
+    "enemy_basic": {
+      "type": "enemy_basic",
+      "health": 1,
+      "contactDamage": 1,
+      "hitbox": [64, 64],
+      "speed": 150,
+      "movement": { "type": "straight" },
+      "weapon": null,
+      "score": 100
+    },
+    "enemy_bat": {
+      "type": "enemy_bat",
+      "health": 2,
+      "contactDamage": 1,
+      "hitbox": [64, 48],
+      "speed": 180,
+      "movement": { "type": "sine", "amplitude": 120, "frequency": 0.8 },
+      "weapon": { "projectile": "enemy_missile", "cooldown": 2.5, "damage": 1 },
+      "score": 150
+    },
+    "enemy_tank": {
+      "type": "enemy_tank",
+      "health": 6,
+      "contactDamage": 2,
+      "hitbox": [96, 96],
+      "speed": 80,
+      "movement": { "type": "straight" },
+      "weapon": null,
+      "score": 400,
+      "drops": { "force_pod": 0.15, "speed_up": 0.1 }
+    }
+  },
+  "bosses": {
+    "dobkeratops": {
+      "type": "boss_dobkeratops",
+      "health": 300,
+      "contactDamage": 3,
+      "hitbox": [400, 600],
+      "entry": { "from": "right", "stopAtX": 1450, "duration": 3.0 },
+      "weakPoint": { "offset": [-120, 40], "hitbox": [60, 60], "damageMultiplier": 3 },
+      "score": 10000
+    }
+  }
+}

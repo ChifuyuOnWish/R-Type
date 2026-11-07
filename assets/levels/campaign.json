@@ -2,7 +2,8 @@
   "$schema": "schema/campaign.schema.json",
   "levels": [
     "levels/level_01.json",
-    "levels/level_02.json"
+    "levels/level_02.json",
+    "levels/level_03.json"
   ],
   "lives": 3,
   "scaling": {

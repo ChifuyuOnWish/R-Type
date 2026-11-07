@@ -24,6 +24,7 @@ private:
         float height = 0.F;
         int layer = 0;
         SpriteMotion motion = SpriteMotion::None;
+        bool flipY = false;
     };
 
     std::unordered_map<std::uint16_t, Def> _defs;

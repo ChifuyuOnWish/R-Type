@@ -18,6 +18,7 @@ enum class SpriteMotion
     None,
     Plane,
     Bat,
+    Slug,
     Hover,
     AlliedFire,
     EnemyFire
@@ -32,6 +33,7 @@ struct Sprite
     int layer = 0;
     SpriteMotion motion = SpriteMotion::None;
     float shotPoseRemaining = 0.0F;
+    bool flipY = false; // drawn upside down, e.g. a slug walking on the ceiling
 };
 
 struct NetworkId

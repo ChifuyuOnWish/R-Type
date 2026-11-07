@@ -13,6 +13,11 @@ constexpr std::uint16_t raw(Type type)
     return static_cast<std::uint16_t>(type);
 }
 
+// Ids from assets/entity_types.json (enemy_slug, enemy_slug_ceiling): 14 and 15 are taken by
+// the missiles, so they aren't in protocol::EntityType's 10-12 block.
+constexpr std::uint16_t SlugFloor = 13;
+constexpr std::uint16_t SlugCeiling = 16;
+
 constexpr bool isPlayer(std::uint16_t type)
 {
     return type >= raw(Type::Player1) && type <= raw(Type::Player4);
@@ -30,8 +35,13 @@ ClientEntityFactory::ClientEntityFactory()
 
     _defs[raw(Type::EnemyBasic)] = {"enemy_basic",      {0.F, 0.F, 384.F, 384.F}, 122.F, 122.F, 10,
                                     SpriteMotion::Hover};
-    _defs[raw(Type::EnemyWave)] = {"enemy_wave", {0.F, 0.F, 512.F, 320.F}, 144.F, 90.F,
-                                   10,           SpriteMotion::Bat};
+    _defs[raw(Type::EnemyBat)] = {"enemy_bat", {0.F, 0.F, 512.F, 320.F}, 144.F, 90.F,
+                                  10,          SpriteMotion::Bat};
+    // enemy_slug.png: one 434x443 frame per row, row 0 idle, row 1 mouth open (firing).
+    _defs[SlugFloor] = {"enemy_slug", {0.F, 0.F, 434.F, 443.F}, 118.F, 120.F,
+                        10,           SpriteMotion::Slug};
+    _defs[SlugCeiling] = _defs.at(SlugFloor);
+    _defs[SlugCeiling].flipY = true;
     _defs[raw(Type::EnemyTank)] = {"enemy_tank", {0.F, 0.F, 384.F, 384.F}, 188.F, 188.F, 10};
     _defs[raw(Type::PlayerMissile)] = {"fireball", {0.F, 0.F, 384.F, 256.F}, 72.F, 48.F,
                                        20,         SpriteMotion::AlliedFire};
@@ -50,8 +60,8 @@ bool ClientEntityFactory::populate(engine::Registry& registry, engine::Entity en
         return false;
     }
     const Def& def = it->second;
-    registry.addComponent(
-        entity, Sprite{def.texture, def.source, def.width, def.height, def.layer, def.motion});
+    registry.addComponent(entity, Sprite{def.texture, def.source, def.width, def.height, def.layer,
+                                         def.motion, 0.F, def.flipY});
     if (isPlayer(type)) {
         registry.addComponent(entity,
                               PlayerSlot{static_cast<std::uint8_t>(type - raw(Type::Player1))});

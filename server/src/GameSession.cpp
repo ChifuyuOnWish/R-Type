@@ -4,11 +4,11 @@
 #include "ServerComponents.hpp"
 #include "World.hpp"
 #include "components/Components.hpp"
+#include "monsters/MonsterSystem.hpp"
 #include "systems/BoundsSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/DamageSystem.hpp"
 #include "systems/DeathSystem.hpp"
-#include "systems/EnemyBehaviorSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/LifetimeSystem.hpp"
 #include "systems/MotionSystem.hpp"
@@ -38,7 +38,9 @@ GameSession::GameSession(network::NetworkServer& net, const level::GameData& dat
 
     _loop.addSystem(std::make_unique<InputSystem>(PlayerSpeed));
     _loop.addSystem(std::make_unique<ModeUpdateSystem>(_modePtr, _ctx));
-    _loop.addSystem(std::make_unique<EnemyBehaviorSystem>());
+    // Moves every enemy and switches its gun on and off; replaces the engine's
+    // EnemyBehaviorSystem, which only knew Straight. Keep it before WeaponSystem.
+    _loop.addSystem(std::make_unique<MonsterSystem>(_rng));
     _loop.addSystem(std::make_unique<WeaponSystem>(
         [this](Registry& r, Entity shooter, Position from, unsigned type) {
             _spawner.spawnProjectile(r, shooter, from, type);

@@ -32,6 +32,7 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
             draw.origin = {sprite.width / 2.0F, sprite.height / 2.0F};
             draw.destinationRect = {center, sprite.width, sprite.height};
             draw.layer = sprite.layer;
+            draw.flipY = sprite.flipY;
             const auto phase = animationSeconds + static_cast<float>(net.id % 8) * 0.03F;
             const auto wave = std::sin(phase * 2.0F * std::numbers::pi_v<float>);
             switch (sprite.motion) {
@@ -48,6 +49,11 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
                     draw.sourceRect.pos.y += sprite.source.h;
                 break;
             }
+            case SpriteMotion::Slug:
+                draw.ink = gui::SpriteInk::BoldGraphite;
+                if (sprite.shotPoseRemaining > 0.0F)
+                    draw.sourceRect.pos.y += sprite.source.h; // row 1: mouth open
+                break;
             case SpriteMotion::Hover:
                 draw.rotation = 3.0F * wave;
                 break;

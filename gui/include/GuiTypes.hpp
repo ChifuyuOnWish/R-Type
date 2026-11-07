@@ -70,6 +70,7 @@ struct SpriteDraw
     GuiColor tint;
     int layer = 0;
     SpriteInk ink = SpriteInk::Original;
+    bool flipY = false; // mirror the source image top to bottom
 };
 
 struct TextDraw

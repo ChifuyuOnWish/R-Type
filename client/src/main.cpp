@@ -103,10 +103,11 @@ int main(int argc, char** argv)
         {
             try {
                 auto& resources = gui.resources();
-                resources.loadTexture("players", "player/player_plane.png");
+                resources.loadTexture("players", "gameplay/plane.png");
                 resources.loadTexture("enemy_basic", "gameplay/basic.png");
-                resources.loadTexture("enemy_wave", "gameplay/bat-flight.png");
+                resources.loadTexture("enemy_bat", "gameplay/bat.png");
                 resources.loadTexture("enemy_tank", "gameplay/tank.png");
+                resources.loadTexture("enemy_slug", "gameplay/enemy_slug.png");
                 resources.loadTexture("fireball", "gameplay/fireball.png");
             } catch (const std::exception& error) {
                 throw std::runtime_error("Could not load visual resources: " +

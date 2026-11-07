@@ -135,8 +135,8 @@ int main()
         const auto coord = proto::Fixed::fromFloat(200.0F);
         constexpr std::uint32_t bat = 50;
         send(server, peer,
-             proto::EntitySpawnMessage{
-                 bat, static_cast<std::uint16_t>(proto::EntityType::EnemyWave), coord, coord});
+             proto::EntitySpawnMessage{bat, static_cast<std::uint16_t>(proto::EntityType::EnemyBat),
+                                       coord, coord});
         send(server, peer,
              proto::EntitySpawnMessage{
                  51, static_cast<std::uint16_t>(proto::EntityType::PlayerMissile), coord, coord});

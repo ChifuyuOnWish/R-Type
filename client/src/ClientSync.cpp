@@ -54,6 +54,8 @@ void ClientSync::markShot(std::uint32_t sourceId)
     auto& sprite = _registry.getComponent<Sprite>(it->second);
     if (sprite.motion == SpriteMotion::Bat)
         sprite.shotPoseRemaining = 0.20F;
+    else if (sprite.motion == SpriteMotion::Slug)
+        sprite.shotPoseRemaining = 0.35F; // long enough to see the jaw open
 }
 
 void ClientSync::applySnapshot(const protocol::SnapshotMessage& message)
