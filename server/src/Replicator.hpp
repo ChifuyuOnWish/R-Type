@@ -52,6 +52,7 @@ public:
     void sendWorldTo(network::PeerId peer);
     void forget(engine::Entity entity);
     std::uint32_t wireId(engine::Entity entity) const;
+    void sendScores(const protocol::ScoreUpdateMessage& scores);
 
 private:
     struct Synced
@@ -69,6 +70,7 @@ private:
     std::map<std::uint32_t, Synced> _synced;
     std::uint32_t _nextNetId = 1;
     unsigned _stepsSinceSnapshot = 0;
+    protocol::ScoreUpdateMessage _lastScores;
 };
 
 } // namespace rtype::server

@@ -102,4 +102,29 @@ void Players::setShip(network::PeerId id, std::optional<engine::Entity> ship)
         it->second.ship = ship;
 }
 
+bool Players::addScore(engine::Entity ship, std::uint32_t points)
+{
+    for (auto& [_, player] : _players) {
+        if (player.ship && *player.ship == ship) {
+            player.score += points;
+            return true;
+        }
+    }
+    return false;
+}
+
+std::uint32_t Players::teamScore() const
+{
+    std::uint32_t total = 0;
+    for (const auto& [_, player] : _players)
+        total += player.score;
+    return total;
+}
+
+void Players::resetScores()
+{
+    for (auto& [_, player] : _players)
+        player.score = 0;
+}
+
 } // namespace rtype::server

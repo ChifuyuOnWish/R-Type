@@ -193,4 +193,43 @@ std::optional<GameEventMessage> GameEventMessage::deserialize(ByteReader& r)
     return GameEventMessage{static_cast<GameEventType>(*event), *source, *target};
 }
 
+bool ScoreUpdateMessage::serialize(ByteWriter& w) const
+{
+    if (players.size() > MaxScoreEntries)
+        return false;
+    w.writeU32(teamScore);
+    w.writeU8(combo);
+    w.writeU8(static_cast<std::uint8_t>(players.size()));
+    for (const auto& p : players) {
+        w.writeU8(p.clientId);
+        w.writeU32(p.score);
+        w.writeU8(p.health);
+        w.writeU8(p.maxHealth);
+    }
+    return true;
+}
+
+std::optional<ScoreUpdateMessage> ScoreUpdateMessage::deserialize(ByteReader& r)
+{
+    const auto team = r.readU32();
+    const auto combo = r.readU8();
+    const auto count = r.readU8();
+    if (!team || !combo || !count || *count > MaxScoreEntries ||
+        r.remaining() != static_cast<std::size_t>(*count) * ScoreEntrySize)
+        return std::nullopt;
+    ScoreUpdateMessage m;
+    m.teamScore = *team;
+    m.combo = *combo;
+    for (std::uint8_t i = 0; i < *count; ++i) {
+        const auto id = r.readU8();
+        const auto score = r.readU32();
+        const auto hp = r.readU8();
+        const auto maxHp = r.readU8();
+        if (!id || !score || !hp || !maxHp)
+            return std::nullopt;
+        m.players.push_back({*id, *score, *hp, *maxHp});
+    }
+    return m;
+}
+
 } // namespace rtype::protocol

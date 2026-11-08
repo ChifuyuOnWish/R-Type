@@ -121,4 +121,12 @@ void Replicator::sendSnapshot(std::uint32_t serverTick)
         broadcast(snap, false);
 }
 
+void Replicator::sendScores(const ScoreUpdateMessage& scores)
+{
+    if (scores == _lastScores)
+        return;
+    _lastScores = scores;
+    broadcast(scores, true);
+}
+
 } // namespace rtype::server

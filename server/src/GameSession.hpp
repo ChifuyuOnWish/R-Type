@@ -44,6 +44,7 @@ private:
     void clearWorld();
     protocol::LobbyStateMessage lobbyState() const;
     void sendLobbyState();
+    protocol::ScoreUpdateMessage scoreState() const;
 
     network::NetworkServer& _net;
     engine::Registry _registry;
@@ -61,6 +62,8 @@ private:
     IGameMode* _modePtr = nullptr;
     std::optional<protocol::LobbyStateMessage> _lastLobbyState;
     std::uint32_t _serverTick = 0;
+    std::uint8_t _combo = 1;
+    float _comboTimer = 0.F;
 };
 
 } // namespace rtype::server

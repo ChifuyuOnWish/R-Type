@@ -16,6 +16,7 @@ enum class MessageType : std::uint8_t
     LobbyState = 0x17,
     LobbySelect = 0x18,
     LobbyStart = 0x19,
+    ScoreUpdate = 0x1A,
 };
 
 } // namespace rtype::protocol

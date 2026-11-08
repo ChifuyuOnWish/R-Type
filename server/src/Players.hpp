@@ -19,6 +19,7 @@ struct Player
     std::uint32_t lastInputTick = 0;
     bool hasInput = false;
     std::uint64_t joinOrder = 0;
+    std::uint32_t score = 0;
 };
 
 class Players
@@ -35,6 +36,10 @@ public:
 
     std::optional<network::PeerId> leader() const;
     void setShip(network::PeerId id, std::optional<engine::Entity> ship);
+
+    bool addScore(engine::Entity ship, std::uint32_t points);
+    std::uint32_t teamScore() const;
+    void resetScores();
 
 private:
     std::map<network::PeerId, Player> _players;
