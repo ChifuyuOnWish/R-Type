@@ -143,6 +143,7 @@ int main()
         return scene;
     };
     const auto initial = draw();
+    assert(initial.sprites.front().layer > 30);
     smoothing.applySnapshot({1, {position(1, 30.0F, 20.0F)}});
     const auto corrected = draw();
     assert(near(initial.sprites.front().destinationRect.pos.x,
@@ -190,6 +191,29 @@ int main()
         assert(shot.textureId == "fireball");
         assert(shot.rotation == (shot.entityId.index % 2 == 0 ? 0.0F : 180.0F));
     }
+
+    client::ClientWorld audio;
+    for (std::uint16_t slot = 1; slot <= 4; ++slot) {
+        audio.spawn(spawn(slot, slot));
+        assert(audio.sync().shotSoundId(slot) == "player_shot");
+    }
+    audio.spawn(spawn(10, Enemy));
+    audio.spawn(spawn(11, static_cast<std::uint16_t>(proto::EntityType::EnemyBat)));
+    audio.spawn(spawn(12, static_cast<std::uint16_t>(proto::EntityType::EnemyTank)));
+    audio.spawn(spawn(13, 13));
+    audio.spawn(spawn(16, 16));
+    audio.spawn(spawn(40, 40));
+    audio.spawn(spawn(50, Missile));
+    assert(audio.sync().shotSoundId(10).empty());
+    assert(audio.sync().shotSoundId(11) == "bat_shot");
+    assert(audio.sync().shotSoundId(12).empty());
+    assert(audio.sync().shotSoundId(13) == "wall_enemy_shot");
+    assert(audio.sync().shotSoundId(16) == "wall_enemy_shot");
+    assert(audio.sync().shotSoundId(40) == "bat_shot");
+    assert(audio.sync().shotSoundId(50).empty());
+    assert(audio.sync().shotSoundId(999).empty());
+    audio.destroy({11, proto::DestroyCause::Other});
+    assert(audio.sync().shotSoundId(11).empty());
 
     client::ClientWorld rollover;
     rollover.spawn(spawn(1, Enemy));

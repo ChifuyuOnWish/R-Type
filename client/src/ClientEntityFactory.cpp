@@ -21,8 +21,7 @@ constexpr std::uint16_t TileSpikes = 32;
 constexpr float TileSize = 60.F;
 constexpr float TileCell = 128.F;
 constexpr int TerrainLayer = 5;
-// boss_tank in entity_types.json: the tank drawn about 2.7 times bigger, behind the other
-// enemies so the minions it rolls out are visible on top of it. Hitbox 380x340 on the server.
+constexpr int PlayerLayer = 40;
 constexpr std::uint16_t BossTank = 40;
 constexpr float BossTankSize = 520.F;
 constexpr int BossLayer = 8;
@@ -38,7 +37,7 @@ ClientEntityFactory::ClientEntityFactory()
 {
     for (std::uint16_t i = 0; i < 4; i++) {
         _defs[static_cast<std::uint16_t>(raw(Type::Player1) + i)] = {
-            "players", {0.F, 0.F, 512.F, 256.F}, 160.F, 80.F, 10, SpriteMotion::Plane};
+            "players", {0.F, 0.F, 512.F, 256.F}, 160.F, 80.F, PlayerLayer, SpriteMotion::Plane};
     }
 
     _defs[raw(Type::EnemyBasic)] = {"enemy_basic",      {0.F, 0.F, 384.F, 384.F}, 122.F, 122.F, 10,

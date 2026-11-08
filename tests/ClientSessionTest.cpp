@@ -141,8 +141,6 @@ int main()
              proto::EntitySpawnMessage{
                  51, static_cast<std::uint16_t>(proto::EntityType::PlayerMissile), coord, coord});
         send(server, peer, proto::EntitySpawnMessage{52, 21, coord, coord});
-        // The gameplay scene also holds the ground and ceiling bands (addGroundBands), so count
-        // only the sprites of the three entities spawned above.
         const auto spawnedSprites = [&] {
             std::size_t count = 0;
             for (const auto& sprite : session.makeScene().sprites)
@@ -154,12 +152,43 @@ int main()
               "Both projectile types reach the rendered scene, including legacy campaign data");
         send(server, peer, proto::GameEventMessage{proto::GameEventType::Shoot, bat, 0});
         check(wait([&] {
+                  bool heard = false;
+                  for (const auto& sound : session.sounds())
+                      heard = heard || sound.soundId == "bat_shot";
                   for (const auto& sprite : session.makeScene().sprites)
                       if (sprite.entityId.index == bat && sprite.sourceRect.pos.y == 320.0F)
-                          return true;
+                          return heard;
                   return false;
               }),
               "A network shot event opens the shooting bat's mouth");
+
+        send(server, peer, proto::EntitySpawnMessage{60, 40, coord, coord});
+        check(wait([&] {
+                  for (const auto& sprite : session.makeScene().sprites)
+                      if (sprite.entityId.index == 60)
+                          return true;
+                  return false;
+              }),
+              "Boss reaches the client world");
+        send(server, peer, proto::GameEventMessage{proto::GameEventType::Shoot, 60, 0});
+        check(wait([&] {
+                  for (const auto& sound : session.sounds())
+                      if (sound.soundId == "bat_shot")
+                          return true;
+                  return false;
+              }),
+              "Boss fireballs use the bat shooting sound");
+
+        for (const auto type : {proto::GameEventType::Kill, proto::GameEventType::PlayerDeath}) {
+            send(server, peer, proto::GameEventMessage{type, 0, bat});
+            check(wait([&] {
+                      for (const auto& sound : session.sounds())
+                          if (sound.soundId == "death")
+                              return true;
+                      return false;
+                  }),
+                  "Server-confirmed deaths play the death recording");
+        }
 
         state.phase = proto::LobbyPhase::GameOver;
         state.leaderId = static_cast<std::uint8_t>(peer + 1);

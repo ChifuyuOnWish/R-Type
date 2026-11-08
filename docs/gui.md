@@ -109,9 +109,10 @@ return false with `getLastError()`. Report the error before continuing.
 Do not close the graphics context while resources using it remain alive. A
 standalone resource manager must be cleared or destroyed first.
 
-The client currently maps server Shoot events to `shot` and Hit, Kill and
-PlayerDeath to `hit`. It uses the two generated placeholder WAV files already
-in `assets/audio/`. No action text is displayed. See [audio](audio.md) for mute,
+The client selects a recorded shooting effect from the server event's source:
+player, bat, boss or wall enemy. Kill and PlayerDeath play the death recording;
+Hit has no effect assigned. WAV files are loaded from `assets/audio/`.
+No action text is displayed. See [audio](audio.md) for mute,
 voice limits and behavior while Settings is open, and
 [add a GUI resource](how-to/add-gui-resource.md) for registration examples.
 
@@ -157,3 +158,9 @@ The categorized Settings menu includes Gamepad controls alongside keyboard and
 visual settings. LB/RB changes categories. Native controller mapping, neutral
 input gates, disconnection handling and saved pad preferences remain active.
 The Gamepad category scrolls its options while retaining the fixed action bar.
+
+Player planes use layer 40, ahead of enemies, projectiles and ground bands.
+
+Standard enemy projectiles expire after six seconds; player projectiles retain
+their three-second lifetime. Boss projectiles retain their eight-second lifetime.
+Collisions and world bounds can remove a projectile sooner.

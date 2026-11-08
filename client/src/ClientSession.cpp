@@ -174,9 +174,15 @@ void ClientSession::installHandlers()
             const auto event = proto::GameEventMessage::deserialize(reader);
             if (!event)
                 return;
-            if (event->event == proto::GameEventType::Shoot)
+            if (event->event == proto::GameEventType::Shoot) {
                 _world->sync().markShot(event->sourceId);
-            _sounds.push_back({event->event == proto::GameEventType::Shoot ? "shot" : "hit"});
+                const auto soundId = _world->sync().shotSoundId(event->sourceId);
+                if (!soundId.empty())
+                    _sounds.push_back({std::string(soundId)});
+            } else if (event->event == proto::GameEventType::Kill ||
+                       event->event == proto::GameEventType::PlayerDeath) {
+                _sounds.push_back({"death"});
+            }
         });
     _network->registerHandler(
         proto::MessageType::ScoreUpdate, [this](std::span<const std::uint8_t> payload) {
