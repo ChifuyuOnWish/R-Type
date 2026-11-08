@@ -76,15 +76,13 @@ struct BossEntry
 
 struct WeakPoint
 {
-    std::string type; // optional: what clients draw there; empty = hitbox only
+    std::string type;
     std::uint16_t netType = 0;
-    Vec2 offset; // from the body's centre
+    Vec2 offset;
     Vec2 hitbox;
     float damageMultiplier = 1.F;
 };
 
-// A named extra piece a boss class asks for (a boss with drones would ask for "drone"). The
-// class decides how many there are and how they move; the data gives the numbers.
 struct BossPartDef
 {
     std::string type;
@@ -97,7 +95,7 @@ struct BossPartDef
 struct BossDef
 {
     std::string id;
-    std::string name; // shown above the health bar; the id when empty
+    std::string name;
     std::string type;
     std::uint16_t netType = 0;
     int health = 1;
@@ -105,14 +103,13 @@ struct BossDef
     Vec2 hitbox;
     BossEntry entry;
     std::optional<WeakPoint> weakPoint;
-    float bodyDamageMultiplier = 0.F; // hits on the body itself: 0 = armour
-    // Health fractions where the next phase starts, highest first: [0.65, 0.3] = 3 phases.
+    float bodyDamageMultiplier = 0.F;
     std::vector<float> phases;
-    std::string projectile; // entity type of its shots
+    std::string projectile;
     std::uint16_t projectileNetType = 0;
     std::map<std::string, BossPartDef> parts;
-    std::map<std::string, const EnemyDef*> minions; // points into GameData::enemies
-    std::map<std::string, float> tuning;            // checked against the class by BossRegistry
+    std::map<std::string, const EnemyDef*> minions;
+    std::map<std::string, float> tuning;
     int score = 0;
 };
 

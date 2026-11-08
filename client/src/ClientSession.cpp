@@ -179,6 +179,8 @@ void ClientSession::installHandlers()
                 const auto soundId = _world->sync().shotSoundId(event->sourceId);
                 if (!soundId.empty())
                     _sounds.push_back({std::string(soundId)});
+            } else if (event->event == proto::GameEventType::Hit) {
+                _world->sync().markHit(event->targetId);
             } else if (event->event == proto::GameEventType::Kill ||
                        event->event == proto::GameEventType::PlayerDeath) {
                 _sounds.push_back({"death"});

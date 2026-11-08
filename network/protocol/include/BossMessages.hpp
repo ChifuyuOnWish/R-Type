@@ -14,32 +14,26 @@ namespace rtype::protocol {
 inline constexpr std::size_t MaxBossNameLength = 32;
 inline constexpr std::size_t MaxBossPhases = 8;
 
-// Message id of BOSS_STATE. Defined here instead of in the MessageType enum so this header is
-// self-contained; 0x30 leaves room after the lobby (0x17-0x19) and score messages. If you move
-// it into the enum, keep the same value on client and server.
 inline constexpr MessageType BossStateType = static_cast<MessageType>(0x30);
 
-// BOSS_STATE (0x30, server -> client, reliable): the boss health bar. Sent when
-// a boss appears, when its phase or flags change at once, and at most every 100
-// ms for health alone. entityId 0 means "no boss any more": hide the bar.
 struct BossStateMessage
 {
     static constexpr MessageType Type = BossStateType;
 
     enum Flag : std::uint8_t
     {
-        Exposed = 1 << 0, // its weak point takes damage now
-        Enraged = 1 << 1, // last phase
+        Exposed = 1 << 0,
+        Enraged = 1 << 1,
         Dying = 1 << 2,
     };
 
     std::uint32_t entityId = 0;
-    std::uint8_t phase = 0; // 0 while it flies in, then 1 .. phaseCount
+    std::uint8_t phase = 0;
     std::uint8_t phaseCount = 1;
     std::uint16_t health = 0;
     std::uint16_t maxHealth = 1;
     std::uint8_t flags = 0;
-    std::vector<std::uint8_t> marks; // health percent where each phase after the first starts
+    std::vector<std::uint8_t> marks;
     std::string name;
 
     bool operator==(const BossStateMessage&) const = default;
@@ -49,7 +43,6 @@ struct BossStateMessage
     static std::optional<BossStateMessage> deserialize(ByteReader& r);
 };
 
-// Header-only, so no CMake change is needed.
 inline bool BossStateMessage::serialize(ByteWriter& w) const
 {
     if (maxHealth == 0 || health > maxHealth || marks.size() > MaxBossPhases)

@@ -45,31 +45,52 @@ in vec4 fragColor;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 uniform int inkMode;
+uniform float flash;
+uniform float dissolve;
+uniform vec4 dissolveRect; // source rect in texture coordinates (u, v, w, h)
 out vec4 finalColor;
 
 void main()
 {
     vec4 sampleColor = texture(texture0, fragTexCoord);
-    if (inkMode == 3) {
+    vec4 result;
+    if (inkMode == 0) {
+        result = sampleColor * colDiffuse * fragColor;
+    } else if (inkMode == 3) {
         float light = dot(sampleColor.rgb, vec3(0.299, 0.587, 0.114));
         vec3 rgb = mix(vec3(0.07), fragColor.rgb, smoothstep(0.15, 0.85, light));
-        finalColor = vec4(rgb, sampleColor.a * fragColor.a * colDiffuse.a);
-        return;
-    }
-    if (inkMode == 1) {
-        vec3 rgb = sampleColor.rgb;
-        float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
-        sampleColor.a *= smoothstep(0.105, 0.205, chroma);
+        result = vec4(rgb, sampleColor.a * fragColor.a * colDiffuse.a);
     } else {
-        vec2 stepSize = 2.0 / vec2(textureSize(texture0, 0));
-        float a = sampleColor.a;
-        a = max(a, texture(texture0, fragTexCoord + vec2(stepSize.x, 0.0)).a);
-        a = max(a, texture(texture0, fragTexCoord - vec2(stepSize.x, 0.0)).a);
-        a = max(a, texture(texture0, fragTexCoord + vec2(0.0, stepSize.y)).a);
-        a = max(a, texture(texture0, fragTexCoord - vec2(0.0, stepSize.y)).a);
-        sampleColor = vec4(vec3(0.07), mix(sampleColor.a, a, 0.72));
+        if (inkMode == 1) {
+            vec3 rgb = sampleColor.rgb;
+            float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
+            sampleColor.a *= smoothstep(0.105, 0.205, chroma);
+        } else {
+            vec2 stepSize = 2.0 / vec2(textureSize(texture0, 0));
+            float a = sampleColor.a;
+            a = max(a, texture(texture0, fragTexCoord + vec2(stepSize.x, 0.0)).a);
+            a = max(a, texture(texture0, fragTexCoord - vec2(stepSize.x, 0.0)).a);
+            a = max(a, texture(texture0, fragTexCoord + vec2(0.0, stepSize.y)).a);
+            a = max(a, texture(texture0, fragTexCoord - vec2(0.0, stepSize.y)).a);
+            sampleColor = vec4(vec3(0.07), mix(sampleColor.a, a, 0.72));
+        }
+        result = sampleColor * colDiffuse * fragColor;
     }
-    finalColor = sampleColor * colDiffuse * fragColor;
+    if (dissolve > 0.0) {
+        vec2 local = (fragTexCoord - dissolveRect.xy) / dissolveRect.zw;
+        vec2 cell = floor(fragTexCoord * vec2(textureSize(texture0, 0)) / 5.0);
+        float noise = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+        // The disintegration sweeps from left to right, roughened by noise.
+        float front = 0.7 * clamp(local.x, 0.0, 1.0) + 0.3 * noise;
+        float progress = dissolve * 1.1;
+        if (front < progress)
+            discard;
+        // Thin burnt rim right ahead of the front.
+        result.rgb = mix(result.rgb, vec3(0.07), 1.0 - smoothstep(0.0, 0.05, front - progress));
+    }
+    // Red pencil: stays visible on the cream paper, unlike white.
+    result.rgb = mix(result.rgb, vec3(0.89, 0.27, 0.22), flash);
+    finalColor = result;
 }
 )glsl";
 
@@ -199,6 +220,10 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
                 throw std::invalid_argument("Invalid UI rectangle");
         }
     }
+    for (const auto& particle : scene.particles)
+        if (!finite({particle.position.x, particle.position.y, particle.size}) ||
+            particle.size < 0.0F)
+            throw std::invalid_argument("Invalid particle");
     const int width = GetScreenWidth();
     const int height = GetScreenHeight();
     detail::ColorPass* pass = nullptr;
@@ -214,8 +239,10 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
     }
 
     const detail::InkPass* ink = nullptr;
-    if (std::any_of(sprites.begin(), sprites.end(),
-                    [](const auto& sprite) { return sprite.draw->ink != SpriteInk::Original; })) {
+    if (std::any_of(sprites.begin(), sprites.end(), [](const auto& sprite) {
+            return sprite.draw->ink != SpriteInk::Original || sprite.draw->flash > 0.0F ||
+                   sprite.draw->dissolve > 0.0F;
+        })) {
         auto& cache = _resources._impl->inkPass;
         if (!cache) {
             cache = std::make_unique<detail::InkPass>();
@@ -234,13 +261,33 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
         for (const auto& star : backgroundStars)
             DrawRectangleRec({star.x, star.y, 2.0F, 2.0F}, color(scene.background.starColor));
     }
-    const auto drawSprite = [ink](const PreparedSprite& sprite) {
+    const int flashLocation = ink != nullptr ? GetShaderLocation(ink->shader, "flash") : -1;
+    const int dissolveLocation = ink != nullptr ? GetShaderLocation(ink->shader, "dissolve") : -1;
+    const int dissolveRectLocation =
+        ink != nullptr ? GetShaderLocation(ink->shader, "dissolveRect") : -1;
+    const auto drawSprite = [ink, flashLocation, dissolveLocation,
+                             dissolveRectLocation](const PreparedSprite& sprite) {
         const auto& value = *sprite.draw;
-        const bool inkOnly = value.ink != SpriteInk::Original && ink != nullptr;
+        const bool inkOnly = ink != nullptr && (value.ink != SpriteInk::Original ||
+                                                value.flash > 0.0F || value.dissolve > 0.0F);
         if (inkOnly) {
             const int mode = static_cast<int>(value.ink);
+            const float flash = std::clamp(value.flash, 0.0F, 1.0F);
             BeginShaderMode(ink->shader);
             SetShaderValue(ink->shader, ink->modeLocation, &mode, SHADER_UNIFORM_INT);
+            if (flashLocation >= 0)
+                SetShaderValue(ink->shader, flashLocation, &flash, SHADER_UNIFORM_FLOAT);
+            const float dissolve = std::clamp(value.dissolve, 0.0F, 1.0F);
+            if (dissolveLocation >= 0)
+                SetShaderValue(ink->shader, dissolveLocation, &dissolve, SHADER_UNIFORM_FLOAT);
+            if (dissolveRectLocation >= 0) {
+                const auto textureWidth = static_cast<float>(sprite.texture.width);
+                const auto textureHeight = static_cast<float>(sprite.texture.height);
+                const float rect[4] = {
+                    value.sourceRect.pos.x / textureWidth, value.sourceRect.pos.y / textureHeight,
+                    value.sourceRect.width / textureWidth, value.sourceRect.height / textureHeight};
+                SetShaderValue(ink->shader, dissolveRectLocation, rect, SHADER_UNIFORM_VEC4);
+            }
         }
 
         Rectangle source = rectangle(value.sourceRect);
@@ -254,6 +301,12 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
     for (const auto& sprite : sprites) {
         if (sprite.draw->layer < 10000)
             drawSprite(sprite);
+    }
+    for (const auto& particle : scene.particles) {
+        const float half = particle.size / 2.0F;
+        DrawRectangleRec(
+            {particle.position.x - half, particle.position.y - half, particle.size, particle.size},
+            color(particle.color));
     }
     if (pass != nullptr) {
         EndTextureMode();
