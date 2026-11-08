@@ -1,5 +1,6 @@
 #include "Gui.hpp"
 
+#include "Hud.hpp"
 #include "MenuArtwork.hpp"
 #include "Renderer.hpp"
 #include "SettingsStore.hpp"
@@ -118,40 +119,44 @@ void Gui::open(const GuiConfig& config)
     _frontend.setTextMeasure([this](const std::string& value, float size) {
         return _resources.measureText(_uiFont, value, size).x;
     });
-    for (const char* name : {"paper-button",
-                             "paper-action",
-                             "paper-category",
-                             "paper-small",
-                             "paper-mode",
-                             "paper-square",
-                             "title",
-                             "settings",
-                             "input",
-                             "button",
-                             "campaign",
-                             "infinite",
-                             "name-field",
-                             "ip-field",
-                             "port-field",
-                             "connect",
-                             "retry",
-                             "cancel",
-                             "back",
-                             "start",
-                             "previous",
-                             "next",
-                             "disconnect",
-                             "quit",
-                             "background",
-                             "game-background",
-                             "settings-background",
-                             "reset",
-                             "save",
-                             "settings-display",
-                             "settings-audio",
-                             "settings-controls",
-                             "settings-accessibility",
-                             "settings-gamepad"}) {
+    for (const char* name : {
+             "paper-button",
+             "paper-action",
+             "paper-category",
+             "paper-small",
+             "paper-mode",
+             "paper-square",
+             "title",
+             "settings",
+             "input",
+             "button",
+             "campaign",
+             "infinite",
+             "name-field",
+             "ip-field",
+             "port-field",
+             "connect",
+             "retry",
+             "cancel",
+             "back",
+             "start",
+             "previous",
+             "next",
+             "disconnect",
+             "quit",
+             "background",
+             "game-background",
+             "settings-background",
+             "reset",
+             "save",
+             "settings-display",
+             "settings-audio",
+             "settings-controls",
+             "settings-accessibility",
+             "settings-gamepad",
+             "heart-full",
+             "heart-empty",
+         }) {
         auto path = std::filesystem::path("ui") / (std::string(name) + ".png");
         if (std::filesystem::is_regular_file(root / path)) {
             const auto id = "ui-" + std::string(name);
@@ -405,6 +410,22 @@ void Gui::render(const RenderScene& scene)
     }
     presented =
         withSettingsButton(std::move(presented), _window.getSize(), visual.textScale, _resources);
+    HudPresenter::append(presented, detail::settingsButtonBounds(_window.getSize()),
+                         visual.textScale, [this](const std::string& text, float size) {
+                             return _resources.measureText(_uiFont, text, size).x;
+                         });
+    const GuiPosition cardsOrigin{visual.showFps ? _window.getSize().x * 0.09F : 12.0F, 4.0F};
+    HudPresenter::appendPlayers(
+        presented, _window.getSize(), visual.textScale,
+        [this](const std::string& text, float size) {
+            return _resources.measureText(_uiFont, text, size).x;
+        },
+        [this](const std::string& id) -> std::optional<GuiVector2> {
+            if (!_resources.hasTexture(id))
+                return std::nullopt;
+            return _resources.getTextureSize(id);
+        },
+        cardsOrigin);
     presented = withUiFont(std::move(presented), _uiFont);
     presented.colorVision = visual.colorVision;
     presented.colorVisionStrength = visual.colorVisionStrength;

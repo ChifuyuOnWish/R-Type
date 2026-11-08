@@ -35,6 +35,7 @@ private:
     float _animationSeconds = 0.0F;
     std::chrono::steady_clock::time_point _waitingSince;
     gui::FrontendAction _pending;
+    protocol::ScoreUpdateMessage _scores;
 };
 
 } // namespace rtype::client

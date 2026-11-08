@@ -81,6 +81,7 @@ void ClientSession::resetWorld()
     _frontend.leader = false;
     _frontend.levels.clear();
     _frontend.unlocked = 0;
+    _scores = {};
 }
 void ClientSession::connect(const ui::ConnectionDetails& connection)
 {
@@ -162,6 +163,12 @@ void ClientSession::installHandlers()
             if (event->event == proto::GameEventType::Shoot)
                 _world->sync().markShot(event->sourceId);
             _sounds.push_back({event->event == proto::GameEventType::Shoot ? "shot" : "hit"});
+        });
+    _network->registerHandler(
+        proto::MessageType::ScoreUpdate, [this](std::span<const std::uint8_t> payload) {
+            proto::ByteReader reader(payload.data(), payload.size());
+            if (const auto message = proto::ScoreUpdateMessage::deserialize(reader))
+                _scores = *message;
         });
 }
 void ClientSession::lobby(const proto::LobbyStateMessage& state)
@@ -282,6 +289,16 @@ ui::RenderScene ClientSession::makeScene()
         scene.background.enabled = true;
         scene.background.scrollSpeed = 100;
         addWorldSprites(scene, _world->registry(), _names, _animationSeconds);
+
+        scene.hud.visible = true;
+        scene.hud.teamScore = _scores.teamScore;
+        scene.hud.combo = _scores.combo;
+        for (const auto& p : _scores.players) {
+            const auto name = _names.find(p.clientId);
+            scene.hud.players.push_back({name != _names.end() ? name->second : "Player", p.score,
+                                         p.health, p.maxHealth,
+                                         _network && p.clientId == _network->clientId()});
+        }
     }
     return scene;
 }
