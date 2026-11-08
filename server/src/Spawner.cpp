@@ -19,7 +19,7 @@ constexpr float MissileLifetime = 3.F;
 constexpr float MuzzleOffset = 40.F;
 constexpr float EnemySpeed = 150.F;
 constexpr float EnemyFireCooldown = 2.5F;
-constexpr float BossShotLifetime = 8.F; // slow shots need longer than 3 s to cross the screen
+constexpr float BossShotLifetime = 8.F;
 constexpr float BossShotSize = 24.F;
 
 engine::EnemyPattern pattern(level::Movement movement)

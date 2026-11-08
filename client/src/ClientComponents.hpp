@@ -22,7 +22,7 @@ enum class SpriteMotion
     Hover,
     AlliedFire,
     EnemyFire,
-    Boss // tinted from BOSS_STATE: redder in its last phase, flickering while it dies
+    Boss
 };
 
 inline constexpr float HitFlashDuration = 0.30F;

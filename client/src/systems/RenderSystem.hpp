@@ -10,8 +10,8 @@
 #include <cmath>
 #include <cstdint>
 #include <numbers>
-#include <random>
 #include <optional>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -161,8 +161,6 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
         });
 }
 
-// The boss health bar, under the ceiling, in world units. A thin mark shows where each later
-// phase starts. While the boss flies in (phase 0) the bar fills up and a warning blinks.
 inline void addBossBar(gui::RenderScene& scene, const protocol::BossStateMessage& boss,
                        float animationSeconds)
 {
@@ -175,7 +173,6 @@ inline void addBossBar(gui::RenderScene& scene, const protocol::BossStateMessage
     const bool enraged = boss.has(protocol::BossStateMessage::Enraged);
 
     const float fraction = static_cast<float>(boss.health) / static_cast<float>(boss.maxHealth);
-    // Dark frame, then the empty bar, then the fill: high-contrast in every colour-vision mode.
     scene.sceneRectangles.push_back(
         {{{Left - Border, Top - Border}, Width + 2.F * Border, Height + 2.F * Border},
          {15, 15, 20, 230}});
