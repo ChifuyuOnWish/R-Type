@@ -20,6 +20,8 @@ struct Player
     bool hasInput = false;
     std::uint64_t joinOrder = 0;
     std::uint32_t score = 0;
+    std::uint16_t kills = 0;
+    bool dead = false;
 };
 
 class Players
@@ -36,6 +38,9 @@ public:
 
     std::optional<network::PeerId> leader() const;
     void setShip(network::PeerId id, std::optional<engine::Entity> ship);
+
+    bool refreshDeaths(engine::Registry& registry);
+    bool allDead() const;
 
     bool addScore(engine::Entity ship, std::uint32_t points);
     std::uint32_t teamScore() const;

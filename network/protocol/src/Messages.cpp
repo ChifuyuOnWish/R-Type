@@ -205,6 +205,7 @@ bool ScoreUpdateMessage::serialize(ByteWriter& w) const
         w.writeU32(p.score);
         w.writeU8(p.health);
         w.writeU8(p.maxHealth);
+        w.writeU16(p.kills);
     }
     return true;
 }
@@ -225,9 +226,10 @@ std::optional<ScoreUpdateMessage> ScoreUpdateMessage::deserialize(ByteReader& r)
         const auto score = r.readU32();
         const auto hp = r.readU8();
         const auto maxHp = r.readU8();
-        if (!id || !score || !hp || !maxHp)
+        const auto kills = r.readU16();
+        if (!id || !score || !hp || !maxHp || !kills)
             return std::nullopt;
-        m.players.push_back({*id, *score, *hp, *maxHp});
+        m.players.push_back({*id, *score, *hp, *maxHp, *kills});
     }
     return m;
 }

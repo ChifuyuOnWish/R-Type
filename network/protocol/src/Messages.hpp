@@ -18,7 +18,7 @@ inline constexpr std::size_t MinPlayerNameLength = 1;
 inline constexpr std::size_t MaxPlayerNameLength = 32;
 
 inline constexpr std::size_t MaxScoreEntries = 4;
-inline constexpr std::size_t ScoreEntrySize = 7;
+inline constexpr std::size_t ScoreEntrySize = 9;
 
 inline constexpr std::uint8_t ButtonUp = 1U << 0;
 inline constexpr std::uint8_t ButtonDown = 1U << 1;
@@ -160,6 +160,7 @@ struct PlayerScoreEntry
     std::uint32_t score = 0;
     std::uint8_t health = 0;
     std::uint8_t maxHealth = 3;
+    std::uint16_t kills = 0;
 
     bool operator==(const PlayerScoreEntry&) const = default;
 };

@@ -37,9 +37,9 @@ void LevelMode::update(GameContext& ctx, float dt)
     }
 }
 
-void LevelMode::resolve(GameContext& ctx, float /*dt*/)
+void LevelMode::resolve(GameContext& /*ctx*/, float /*dt*/)
 {
-    respawnDeadShips(ctx.registry);
+    // No respawn
 }
 
 std::optional<engine::Entity> LevelMode::spawnShip(GameContext& ctx, network::PeerId peer)
@@ -54,11 +54,11 @@ ModeState LevelMode::state() const
 
 std::unique_ptr<IGameMode> LevelMode::next(ModeFactory& modes)
 {
-    if (_state == ModeState::Lost) // once lives exist: retry is one click
+    if (_state == ModeState::Lost)
         return modes.lobby(protocol::LobbyPhase::GameOver, selection());
 
     const std::size_t nextLevel = _index + 1;
-    modes.unlock(nextLevel + 1); // count, not index: levels 0 .. nextLevel are open
+    modes.unlock(nextLevel + 1);
     if (nextLevel < _data.levels.size())
         return modes.lobby(protocol::LobbyPhase::LevelCleared,
                            Selection{protocol::GameKind::Level, nextLevel});

@@ -38,9 +38,9 @@ void InfiniteMode::update(GameContext& ctx, float dt)
                                    firstShot(ctx.rng));
 }
 
-void InfiniteMode::resolve(GameContext& ctx, float)
+void InfiniteMode::resolve(GameContext&, float)
 {
-    respawnDeadShips(ctx.registry);
+    // No respawn
 }
 
 std::optional<Entity> InfiniteMode::spawnShip(GameContext& ctx, network::PeerId peer)

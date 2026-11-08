@@ -80,6 +80,7 @@ void GameSession::step()
         return;
     _serverTick += steps;
     _dispatcher.flush();
+    _players.refreshDeaths(_registry);
     if (_comboTimer > 0.F) {
         _comboTimer -= static_cast<float>(steps) * static_cast<float>(Update::Step);
         if (_comboTimer <= 0.F)
@@ -93,6 +94,9 @@ void GameSession::step()
         switchMode(_mode->next(_modes));
     } else if (_players.all().empty() && !_mode->lobbyPhase()) {
         switchMode(_modes.lobby(LobbyPhase::Selecting, _mode->selection()));
+    } else if (!_mode->lobbyPhase() && _players.allDead()) {
+        std::cout << "all players are dead: game over\n";
+        switchMode(_modes.lobby(LobbyPhase::GameOver, _mode->selection()));
     }
     _replicator.sendScores(scoreState());
     sendLobbyState();
@@ -105,9 +109,10 @@ void GameSession::switchMode(std::unique_ptr<IGameMode> mode)
     _modePtr = _mode.get();
     _mode->start(_ctx);
     if (_mode->lobbyPhase()) {
-        _players.resetScores();
         _combo = 1;
         _comboTimer = 0.F;
+    } else {
+        _players.resetScores();
     }
     for (const auto& [peer, player] : _players.all())
         _players.setShip(peer, _mode->spawnShip(_ctx, peer));
@@ -205,7 +210,7 @@ void GameSession::onDisconnected(const network::Disconnected& ev)
         return;
     std::cout << "player " << ev.peerId << " left (reason " << static_cast<int>(ev.reason) << ")\n";
     _mode->onPlayerLeft(_ctx, ev.peerId);
-    if (player->ship) {
+    if (player->ship && _registry.isAlive(*player->ship)) {
         _replicator.forget(*player->ship);
         _registry.destroyEntity(*player->ship);
     }
@@ -260,13 +265,13 @@ ScoreUpdateMessage GameSession::scoreState() const
         if (state.players.size() == MaxScoreEntries)
             break;
         std::uint8_t hp = 0;
-        if (player.ship && _registry.isAlive(*player.ship) &&
+        if (!player.dead && player.ship && _registry.isAlive(*player.ship) &&
             _registry.hasComponent<Health>(*player.ship))
             hp = static_cast<std::uint8_t>(
                 std::clamp(_registry.getComponent<Health>(*player.ship).current, 0,
                            static_cast<int>(PlayerMaxHealth)));
         state.players.push_back(
-            {static_cast<std::uint8_t>(peer), player.score, hp, PlayerMaxHealth});
+            {static_cast<std::uint8_t>(peer), player.score, hp, PlayerMaxHealth, player.kills});
     }
     return state;
 }
