@@ -20,7 +20,9 @@ enum class Movement
     Sine,
     Dive,
     Follow,
-    Stationary
+    Stationary,
+    Flight,
+    Crawl
 };
 enum class Aim
 {
@@ -53,8 +55,13 @@ struct EnemyDef
     Vec2 hitbox;
     float speed = 0.F;
     Movement movement = Movement::Straight;
-    float amplitude = 0.F; // sine only
-    float frequency = 0.F; // sine only
+    float amplitude = 0.F;
+    float frequency = 0.F;
+    float homing = 0.F;
+    bool onCeiling = false;
+    float stopMinX = 0.F;
+    float stopMaxX = 0.F;
+    float hold = -1.F;
     std::optional<WeaponDef> weapon;
     int score = 0;
     std::vector<Drop> drops;
@@ -109,7 +116,7 @@ struct YAnchor
         Random
     };
     Kind kind = Kind::Random;
-    float value = 0.F; // Kind::Value only
+    float value = 0.F;
 };
 
 struct Wave

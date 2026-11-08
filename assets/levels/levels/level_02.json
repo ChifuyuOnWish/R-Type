@@ -6,9 +6,9 @@
   "seed": 2,
   "waves": [
     { "formation": "column", "roster": { "enemy_basic": 1.0 }, "y": "center", "delay": 2.0 },
-    { "formation": "snake", "roster": { "enemy_wave": 1.0 }, "y": "random", "delay": 5.0, "repeat": 2, "repeatDelay": 3.0 },
+    { "formation": "snake", "roster": { "enemy_bat": 1.0 }, "y": "random", "delay": 5.0, "repeat": 2, "repeatDelay": 3.0 },
     { "formation": "pincer", "roster": { "enemy_basic": 0.6, "enemy_tank": 0.4 }, "y": "center", "delay": 4.0, "waitForClear": true },
-    { "formation": "pyramid", "roster": { "enemy_basic": 0.4, "enemy_wave": 0.4, "enemy_tank": 0.2 }, "y": "random", "delay": 3.0, "waitForClear": true }
+    { "formation": "pyramid", "roster": { "enemy_basic": 0.4, "enemy_bat": 0.4, "enemy_tank": 0.2 }, "y": "random", "delay": 3.0, "waitForClear": true }
   ],
   "terrain": {
     "startAt": 4.0,

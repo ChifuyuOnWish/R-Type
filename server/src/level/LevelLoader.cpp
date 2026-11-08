@@ -170,6 +170,10 @@ Movement movement(const json& v, const Where& at)
         return Movement::Follow;
     if (type == "stationary")
         return Movement::Stationary;
+    if (type == "flight")
+        return Movement::Flight;
+    if (type == "crawl")
+        return Movement::Crawl;
     (at / "type").fail("unknown movement '" + type + "'");
 }
 
@@ -189,6 +193,28 @@ EnemyDef enemy(const std::string& id, const json& v, const EntityTypes& types, c
     e.movement = movement(move, at / "movement");
     e.amplitude = numberOr(move, "amplitude", 0.F, at / "movement");
     e.frequency = numberOr(move, "frequency", 0.F, at / "movement");
+    if (e.movement == Movement::Flight)
+        e.homing = atLeast(numberOr(move, "homing", 0.F, at / "movement"), 0.F,
+                           at / "movement" / "homing");
+    if (e.movement == Movement::Crawl) {
+        const Where mat = at / "movement";
+        const std::string surface = text(member(move, "surface", mat), mat / "surface");
+        if (surface != "floor" && surface != "ceiling")
+            (mat / "surface").fail("must be floor or ceiling");
+        e.onCeiling = surface == "ceiling";
+
+        const json& stop = member(move, "stopAtX", mat);
+        if (stop.is_array()) {
+            const Vec2 range = vec2(stop, mat / "stopAtX");
+            if (range.x > range.y)
+                (mat / "stopAtX").fail("expected [min, max] with min <= max");
+            e.stopMinX = range.x;
+            e.stopMaxX = range.y;
+        } else {
+            e.stopMinX = e.stopMaxX = number(stop, mat / "stopAtX");
+        }
+        e.hold = numberOr(move, "hold", -1.F, mat);
+    }
     if (has(v, "weapon")) {
         const json& w = v["weapon"];
         const Where wat = at / "weapon";

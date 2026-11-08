@@ -282,6 +282,7 @@ ui::RenderScene ClientSession::makeScene()
         scene.background.enabled = true;
         scene.background.scrollSpeed = 100;
         addWorldSprites(scene, _world->registry(), _names, _animationSeconds);
+        addGroundBands(scene, _animationSeconds);
     }
     return scene;
 }

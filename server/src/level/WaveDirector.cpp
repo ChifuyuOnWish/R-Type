@@ -11,7 +11,7 @@ namespace rtype::server::level {
 
 namespace {
 constexpr float SpawnX = WorldWidth + 40.F;
-constexpr float SpawnMargin = 80.F;
+constexpr float SpawnMargin = 60.F;
 constexpr float MinFirstShot = 0.5F;
 constexpr float MaxFirstShot = 2.5F;
 } // namespace
@@ -66,8 +66,8 @@ void WaveDirector::startWave(const Wave& wave, float at, std::size_t players)
         top = std::min(top, slot.y);
         bottom = std::max(bottom, slot.y);
     }
-    const float minAnchor = SpawnMargin - top;
-    const float maxAnchor = std::max(minAnchor, WorldHeight - SpawnMargin - bottom);
+    const float minAnchor = PlayTop + SpawnMargin - top;
+    const float maxAnchor = std::max(minAnchor, PlayBottom - SpawnMargin - bottom);
     std::uniform_real_distribution<float> randomY(minAnchor, maxAnchor);
 
     const std::size_t before = _pending.size();

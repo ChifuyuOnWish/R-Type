@@ -39,7 +39,6 @@ void main()
 }
 )glsl";
 
-// Render the original pencil artwork without its paper, or reinforce graphite lines.
 constexpr const char* inkFragment = R"glsl(#version 330
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -51,6 +50,12 @@ out vec4 finalColor;
 void main()
 {
     vec4 sampleColor = texture(texture0, fragTexCoord);
+    if (inkMode == 3) {
+        float light = dot(sampleColor.rgb, vec3(0.299, 0.587, 0.114));
+        vec3 rgb = mix(vec3(0.07), fragColor.rgb, smoothstep(0.15, 0.85, light));
+        finalColor = vec4(rgb, sampleColor.a * fragColor.a * colDiffuse.a);
+        return;
+    }
     if (inkMode == 1) {
         vec3 rgb = sampleColor.rgb;
         float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
@@ -235,9 +240,12 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
             BeginShaderMode(ink->shader);
             SetShaderValue(ink->shader, ink->modeLocation, &mode, SHADER_UNIFORM_INT);
         }
-        DrawTexturePro(sprite.texture, rectangle(value.sourceRect),
-                       rectangle(value.destinationRect), {value.origin.x, value.origin.y},
-                       value.rotation, color(value.tint));
+
+        Rectangle source = rectangle(value.sourceRect);
+        if (value.flipY)
+            source.height = -source.height;
+        DrawTexturePro(sprite.texture, source, rectangle(value.destinationRect),
+                       {value.origin.x, value.origin.y}, value.rotation, color(value.tint));
         if (inkOnly)
             EndShaderMode();
     };

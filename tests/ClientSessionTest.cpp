@@ -135,13 +135,22 @@ int main()
         const auto coord = proto::Fixed::fromFloat(200.0F);
         constexpr std::uint32_t bat = 50;
         send(server, peer,
-             proto::EntitySpawnMessage{
-                 bat, static_cast<std::uint16_t>(proto::EntityType::EnemyWave), coord, coord});
+             proto::EntitySpawnMessage{bat, static_cast<std::uint16_t>(proto::EntityType::EnemyBat),
+                                       coord, coord});
         send(server, peer,
              proto::EntitySpawnMessage{
                  51, static_cast<std::uint16_t>(proto::EntityType::PlayerMissile), coord, coord});
         send(server, peer, proto::EntitySpawnMessage{52, 21, coord, coord});
-        check(wait([&] { return session.makeScene().sprites.size() == 3; }),
+        // The gameplay scene also holds the ground and ceiling bands (addGroundBands), so count
+        // only the sprites of the three entities spawned above.
+        const auto spawnedSprites = [&] {
+            std::size_t count = 0;
+            for (const auto& sprite : session.makeScene().sprites)
+                if (sprite.entityId.index >= bat && sprite.entityId.index <= bat + 2)
+                    ++count;
+            return count;
+        };
+        check(wait([&] { return spawnedSprites() == 3; }),
               "Both projectile types reach the rendered scene, including legacy campaign data");
         send(server, peer, proto::GameEventMessage{proto::GameEventType::Shoot, bat, 0});
         check(wait([&] {
@@ -186,7 +195,7 @@ int main()
         std::cout << "Client session integration passed\n";
         return 0;
     } catch (const std::exception& error) {
-        std::cerr << error.what() << '\n';
+        std::cerr << "FAILED: " << error.what() << '\n';
         return 1;
     }
 }

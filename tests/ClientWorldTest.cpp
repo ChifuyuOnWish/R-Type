@@ -159,7 +159,7 @@ int main()
                 label.position.x - corrected.sceneTexts.front().position.x));
 
     client::ClientWorld flying;
-    flying.spawn(spawn(8, static_cast<std::uint16_t>(proto::EntityType::EnemyWave)));
+    flying.spawn(spawn(8, static_cast<std::uint16_t>(proto::EntityType::EnemyBat)));
     const auto batFrame = [&](float time) {
         rtype::gui::RenderScene scene;
         client::addWorldSprites(scene, flying.registry(), {}, time);

@@ -1,7 +1,5 @@
 #include "ModeFactory.hpp"
 
-// The modes are included here, not in the header: LobbyMode.hpp and ModeFactory.hpp would
-// otherwise include each other.
 #include "InfiniteMode.hpp"
 #include "LevelMode.hpp"
 #include "LobbyMode.hpp"

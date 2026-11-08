@@ -11,7 +11,7 @@ enum class EntityType : std::uint16_t
     Player3 = 3,
     Player4 = 4,
     EnemyBasic = 10,
-    EnemyWave = 11,
+    EnemyBat = 11,
     EnemyTank = 12,
     Boss = 13,
     PlayerMissile = 14,
