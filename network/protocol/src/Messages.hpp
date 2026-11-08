@@ -17,6 +17,9 @@ namespace rtype::protocol {
 inline constexpr std::size_t MinPlayerNameLength = 1;
 inline constexpr std::size_t MaxPlayerNameLength = 32;
 
+inline constexpr std::size_t MaxScoreEntries = 4;
+inline constexpr std::size_t ScoreEntrySize = 9;
+
 inline constexpr std::uint8_t ButtonUp = 1U << 0;
 inline constexpr std::uint8_t ButtonDown = 1U << 1;
 inline constexpr std::uint8_t ButtonLeft = 1U << 2;
@@ -149,6 +152,30 @@ struct GameEventMessage
     bool serialize(ByteWriter& w) const;
     static std::optional<GameEventMessage> deserialize(ByteReader& r);
     bool operator==(const GameEventMessage&) const = default;
+};
+
+struct PlayerScoreEntry
+{
+    std::uint8_t clientId = 0;
+    std::uint32_t score = 0;
+    std::uint8_t health = 0;
+    std::uint8_t maxHealth = 3;
+    std::uint16_t kills = 0;
+
+    bool operator==(const PlayerScoreEntry&) const = default;
+};
+
+struct ScoreUpdateMessage
+{
+    static constexpr MessageType Type = MessageType::ScoreUpdate;
+
+    std::uint32_t teamScore = 0;
+    std::uint8_t combo = 1;
+    std::vector<PlayerScoreEntry> players;
+
+    bool serialize(ByteWriter& w) const;
+    static std::optional<ScoreUpdateMessage> deserialize(ByteReader& r);
+    bool operator==(const ScoreUpdateMessage&) const = default;
 };
 
 } // namespace rtype::protocol

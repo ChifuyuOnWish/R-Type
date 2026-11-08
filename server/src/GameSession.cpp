@@ -15,6 +15,7 @@
 #include "systems/WeaponSystem.hpp"
 #include "terrain/TerrainSystem.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <exception>
 #include <iostream>
@@ -29,6 +30,10 @@ using namespace protocol;
 namespace {
 constexpr float PlayerSpeed = 400.F;
 constexpr float BoundsMargin = 100.F;
+constexpr std::uint32_t KillPoints = 100;
+constexpr float ComboWindow = 3.F;
+constexpr std::uint8_t MaxCombo = 8;
+constexpr std::uint8_t PlayerMaxHealth = 3;
 } // namespace
 
 GameSession::GameSession(network::NetworkServer& net, const level::GameData& data)
@@ -80,6 +85,12 @@ void GameSession::step()
         return;
     _serverTick += steps;
     _dispatcher.flush();
+    _players.refreshDeaths(_registry);
+    if (_comboTimer > 0.F) {
+        _comboTimer -= static_cast<float>(steps) * static_cast<float>(Update::Step);
+        if (_comboTimer <= 0.F)
+            _combo = 1;
+    }
     _replicator.sync();
     _replicator.sendEvents(_gameEvents);
     _replicator.afterSteps(steps, _serverTick);
@@ -88,7 +99,11 @@ void GameSession::step()
         switchMode(_mode->next(_modes));
     } else if (_players.all().empty() && !_mode->lobbyPhase()) {
         switchMode(_modes.lobby(LobbyPhase::Selecting, _mode->selection()));
+    } else if (!_mode->lobbyPhase() && _players.allDead()) {
+        std::cout << "all players are dead: game over\n";
+        switchMode(_modes.lobby(LobbyPhase::GameOver, _mode->selection()));
     }
+    _replicator.sendScores(scoreState());
     sendLobbyState();
 }
 
@@ -98,6 +113,12 @@ void GameSession::switchMode(std::unique_ptr<IGameMode> mode)
     _mode = std::move(mode);
     _modePtr = _mode.get();
     _mode->start(_ctx);
+    if (_mode->lobbyPhase()) {
+        _combo = 1;
+        _comboTimer = 0.F;
+    } else {
+        _players.resetScores();
+    }
     for (const auto& [peer, player] : _players.all())
         _players.setShip(peer, _mode->spawnShip(_ctx, peer));
 }
@@ -159,6 +180,7 @@ void GameSession::onConnected(const network::Connected& ev)
     _replicator.sendWorldTo(ev.peerId);
     _players.add(ev.peerId, ev.name, _mode->spawnShip(_ctx, ev.peerId));
     _replicator.sendTo(ev.peerId, lobbyState(), true);
+    _replicator.sendTo(ev.peerId, scoreState(), true);
 }
 
 void GameSession::onMessage(const network::MessageReceived& ev)
@@ -193,7 +215,7 @@ void GameSession::onDisconnected(const network::Disconnected& ev)
         return;
     std::cout << "player " << ev.peerId << " left (reason " << static_cast<int>(ev.reason) << ")\n";
     _mode->onPlayerLeft(_ctx, ev.peerId);
-    if (player->ship) {
+    if (player->ship && _registry.isAlive(*player->ship)) {
         _replicator.forget(*player->ship);
         _registry.destroyEntity(*player->ship);
     }
@@ -210,6 +232,8 @@ void GameSession::onDamage(const DamageEvent& ev)
 {
     if (!_players.isShip(ev.victim) || !_registry.isAlive(ev.victim))
         return;
+    _combo = 1;
+    _comboTimer = 0.F;
     if (const std::uint32_t target = _replicator.wireId(ev.victim))
         _gameEvents.push_back(
             GameEventMessage{GameEventType::Hit, _replicator.wireId(ev.source), target});
@@ -217,11 +241,44 @@ void GameSession::onDamage(const DamageEvent& ev)
 
 void GameSession::onDied(const EntityDiedEvent& ev)
 {
+    const bool ship = _players.isShip(ev.entity);
+    if (!ship) {
+        Entity shooter = ev.killer;
+        if (_registry.isAlive(shooter) && _registry.hasComponent<Projectile>(shooter))
+            shooter = _registry.getComponent<Projectile>(shooter).owner;
+        if (_players.addScore(shooter, KillPoints * _combo)) {
+            if (_combo < MaxCombo)
+                ++_combo;
+            _comboTimer = ComboWindow;
+        }
+    } else {
+        _combo = 1;
+    }
     const std::uint32_t target = _replicator.wireId(ev.entity);
     if (target == 0)
         return;
-    const auto type = _players.isShip(ev.entity) ? GameEventType::PlayerDeath : GameEventType::Kill;
+    const auto type = ship ? GameEventType::PlayerDeath : GameEventType::Kill;
     _gameEvents.push_back(GameEventMessage{type, _replicator.wireId(ev.killer), target});
+}
+
+ScoreUpdateMessage GameSession::scoreState() const
+{
+    ScoreUpdateMessage state;
+    state.teamScore = _players.teamScore();
+    state.combo = _combo;
+    for (const auto& [peer, player] : _players.all()) {
+        if (state.players.size() == MaxScoreEntries)
+            break;
+        std::uint8_t hp = 0;
+        if (!player.dead && player.ship && _registry.isAlive(*player.ship) &&
+            _registry.hasComponent<Health>(*player.ship))
+            hp = static_cast<std::uint8_t>(
+                std::clamp(_registry.getComponent<Health>(*player.ship).current, 0,
+                           static_cast<int>(PlayerMaxHealth)));
+        state.players.push_back(
+            {static_cast<std::uint8_t>(peer), player.score, hp, PlayerMaxHealth, player.kills});
+    }
+    return state;
 }
 
 } // namespace rtype::server

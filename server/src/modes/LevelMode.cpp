@@ -43,9 +43,9 @@ void LevelMode::update(GameContext& ctx, float dt)
     }
 }
 
-void LevelMode::resolve(GameContext& ctx, float /*dt*/)
+void LevelMode::resolve(GameContext& /*ctx*/, float /*dt*/)
 {
-    respawnDeadShips(ctx.registry);
+    // No respawn
 }
 
 std::optional<engine::Entity> LevelMode::spawnShip(GameContext& ctx, network::PeerId peer)

@@ -120,6 +120,8 @@ add_executable(rtype_gui_settings_integration_test
     ../gui/src/SettingsStore.cpp
     ../gui/src/StatusPresenter.cpp
     ../gui/src/ScrollingBackground.cpp
+    ../gui/src/StatusPresenter.cpp
+    ../gui/src/Hud.cpp
 )
 target_include_directories(rtype_gui_settings_integration_test PRIVATE ../gui/include ../gui/src)
 target_include_directories(rtype_gui_settings_integration_test SYSTEM PRIVATE

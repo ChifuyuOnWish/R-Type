@@ -252,6 +252,43 @@ struct StatusFeedback
     std::string message;
 };
 
+struct HudPlayer
+{
+    std::string name;
+    std::uint32_t score = 0;
+    std::uint8_t health = 0;
+    std::uint8_t maxHealth = 3;
+    bool isYou = false;
+};
+
+struct HudState
+{
+    bool visible = false;
+    std::uint32_t teamScore = 0;
+    std::uint8_t combo = 1;
+    std::vector<HudPlayer> players;
+    bool gameOver = false;
+};
+
+struct ResultRow
+{
+    std::string name;
+    std::uint16_t kills = 0;
+    std::uint32_t score = 0;
+    bool mvp = false;
+    bool you = false;
+};
+
+struct ResultsScreen
+{
+    bool visible = false;
+    std::string subtitle;
+    std::string title;
+    std::vector<ResultRow> rows;
+    std::uint32_t total = 0;
+    bool nextStage = false;
+};
+
 struct RenderScene
 {
     GuiColor clearColor{0, 0, 0, 255};
@@ -265,6 +302,8 @@ struct RenderScene
     std::vector<RectangleDraw> rectangles;
     GuiVector2 worldSize;
     FrontendState frontend;
+    HudState hud;
+    ResultsScreen results;
 };
 
 } // namespace rtype::gui

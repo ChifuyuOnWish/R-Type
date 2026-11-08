@@ -42,6 +42,19 @@ FrontendAction command(FrontendCommand value)
     result.command = value;
     return result;
 }
+std::string spaced(std::uint32_t value)
+{
+    const std::string digits = std::to_string(value);
+    std::string out;
+    for (std::size_t i = 0; i < digits.size(); ++i) {
+        if (i > 0 && (digits.size() - i) % 3 == 0)
+            out += ' ';
+        out += digits[i];
+    }
+    return out;
+}
+constexpr int BackToMenuId = 20;
+constexpr int NextStageId = 21;
 } // namespace
 
 void FrontendMenu::reset()
@@ -62,6 +75,39 @@ void FrontendMenu::setState(const FrontendState& state)
         _notice.clear();
     }
     _state = state;
+}
+void FrontendMenu::setResults(const ResultsScreen& results)
+{
+    if (!results.visible)
+        _resultsDismissed = false;
+    else if (!_results.visible) {
+        _resultsDismissed = false;
+        _selected = results.nextStage ? NextStageId : BackToMenuId;
+    }
+    _results = results;
+}
+FrontendMenu::ResultsLayout FrontendMenu::resultsLayout(GuiVector2 viewport) const
+{
+    const float s = layoutScale(viewport);
+    const float rows = static_cast<float>(std::max<std::size_t>(1, _results.rows.size()));
+    const float height = (352.0F + 46.0F * rows) * s;
+    const float width = std::min(viewport.x - 32.0F, std::max(640.0F * s, height * 1.39F));
+    ResultsLayout layout;
+    layout.panel = {
+        {(viewport.x - width) / 2.0F, std::max(8.0F, (viewport.y - height) / 2.0F)}, width, height};
+    const float buttonY = layout.panel.pos.y + (252.0F + 46.0F * rows) * s;
+    const float buttonHeight = 60.0F * s;
+    if (_results.nextStage) {
+        const float nextWidth = 250.0F * s;
+        const float backWidth = 230.0F * s;
+        const float gap = 20.0F * s;
+        const float start = viewport.x / 2.0F - (nextWidth + gap + backWidth) / 2.0F;
+        layout.next = {{start, buttonY}, nextWidth, buttonHeight};
+        layout.button = {{start + nextWidth + gap, buttonY}, backWidth, buttonHeight};
+    } else {
+        layout.button = {{viewport.x / 2.0F - 140.0F * s, buttonY}, 280.0F * s, buttonHeight};
+    }
+    return layout;
 }
 void FrontendMenu::setTextMeasure(TextMeasure measure)
 {
@@ -95,6 +141,14 @@ std::vector<FrontendControl> FrontendMenu::controls(GuiVector2 viewport, float) 
     std::vector<FrontendControl> result{
         {0, detail::settingsButtonBounds(viewport), "Settings", "settings"},
         {9, {{16.0F, viewport.y - 44.0F * s - 12.0F}, 100.0F * s, 44.0F * s}, "Quit", "quit"}};
+    if (resultsActive()) {
+        const auto layout = resultsLayout(viewport);
+        if (_results.nextStage)
+            result.push_back({NextStageId, layout.next, "Next stage", "button",
+                              _state.leader && !_state.selectionPending});
+        result.push_back({BackToMenuId, layout.button, "Back to menu", "button"});
+        return result;
+    }
     const auto row = [&](int id, int index, std::string label, std::string art,
                          bool enabled = true) {
         result.push_back({id,
@@ -168,6 +222,18 @@ FrontendAction FrontendMenu::activate(int id)
     }
     if (id == 9)
         return command(FrontendCommand::Quit);
+    if (id == BackToMenuId) {
+        _resultsDismissed = true;
+        _selected = 10;
+        return {};
+    }
+    if (id == NextStageId) {
+        _resultsDismissed = true;
+        auto action = command(FrontendCommand::Start);
+        action.mode = _state.mode;
+        action.level = _state.level;
+        return action;
+    }
     if (id == 4) {
         unsigned port = 0;
         const auto parsed = std::from_chars(_port.data(), _port.data() + _port.size(), port);
@@ -297,6 +363,86 @@ void FrontendMenu::text(RenderScene& scene, const std::string& value, GuiRectang
     scene.overlayTexts.push_back(std::move(draw));
 }
 
+void FrontendMenu::drawResults(RenderScene& scene, GuiVector2 viewport) const
+{
+    constexpr GuiColor ink{30, 30, 35, 255};
+    constexpr GuiColor muted{115, 108, 95, 255};
+    constexpr GuiColor gold{205, 130, 15, 255};
+    const float s = layoutScale(viewport);
+    const auto& panel = resultsLayout(viewport).panel;
+    const float pad = 60.0F * s;
+    const float left = panel.pos.x + pad;
+    const float right = panel.pos.x + panel.width - pad;
+    const float killsRight = right - 190.0F * s;
+    const float centerX = panel.pos.x + panel.width / 2.0F;
+    const float top = panel.pos.y;
+
+    const auto measure = [this](const std::string& v, float size) {
+        return _measure ? _measure(v, size) : static_cast<float>(v.size()) * size * 0.6F;
+    };
+    const auto put = [&](const std::string& v, float x, float y, float size, GuiColor c,
+                         float align = 0.0F) {
+        TextDraw d;
+        d.fontId = _font;
+        d.text = v;
+        d.position = {x - measure(v, size) * align, y + size * 0.2F};
+        d.fontSize = size;
+        d.color = c;
+        scene.overlayTexts.push_back(std::move(d));
+    };
+
+    if (const auto sheet = _artwork.find("paper-score"); sheet != _artwork.end()) {
+        const float w = panel.width / 0.839F;
+        const float h = panel.height / 0.809F;
+        SpriteDraw paper;
+        paper.textureId = "ui-paper-score";
+        paper.sourceRect = {{0.0F, 0.0F}, sheet->second.x, sheet->second.y};
+        paper.destinationRect = {{panel.pos.x - 0.086F * w, top - 0.099F * h}, w, h};
+        scene.sprites.push_back(std::move(paper));
+    } else {
+        scene.rectangles.push_back({panel, {255, 252, 245, 255}});
+    }
+
+    put(_results.subtitle, centerX, top + 40.0F * s, std::max(12.0F, 16.0F * s), muted, 0.5F);
+    float titleSize = std::max(16.0F, 54.0F * s);
+    while (titleSize > 16.0F && measure(_results.title, titleSize) > panel.width - 2.0F * pad)
+        titleSize -= 1.0F;
+    put(_results.title, centerX, top + 66.0F * s, titleSize, ink, 0.5F);
+
+    const float head = std::max(11.0F, 13.0F * s);
+    put("PLAYER", left, top + 152.0F * s, head, muted);
+    put("KILLS", killsRight, top + 152.0F * s, head, muted, 1.0F);
+    put("SCORE", right, top + 152.0F * s, head, muted, 1.0F);
+
+    const float rowHeight = 46.0F * s;
+    const float size = std::max(14.0F, 24.0F * s);
+    const float tagSize = std::max(11.0F, 14.0F * s);
+    float y = top + 178.0F * s;
+    for (const auto& row : _results.rows) {
+        const float textY = y + (rowHeight - size) / 2.0F;
+        const float tagY = textY + (size - tagSize) / 2.0F;
+        float tagX = left + measure(row.name, size) + 10.0F * s;
+        put(row.name, left, textY, size, ink);
+        if (row.mvp) {
+            put("MVP", tagX, tagY, tagSize, gold);
+            tagX += measure("MVP", tagSize) + 10.0F * s;
+        }
+        if (row.you)
+            put("YOU", tagX, tagY, tagSize, muted);
+        put(std::to_string(row.kills), killsRight, textY, size, ink, 1.0F);
+        put(spaced(row.score), right, textY, size, ink, 1.0F);
+        y += rowHeight;
+    }
+
+    const float totalSize = std::max(20.0F, 40.0F * s);
+    const float labelSize = std::max(12.0F, 15.0F * s);
+    const float totalY = y + 14.0F * s;
+    const std::string total = spaced(_results.total);
+    put(total, right, totalY, totalSize, ink, 1.0F);
+    put("TOTAL", right - measure(total, totalSize) - 16.0F * s,
+        totalY + (totalSize - labelSize) / 2.0F + 2.0F * s, labelSize, muted, 1.0F);
+}
+
 RenderScene FrontendMenu::makeScene(GuiVector2 viewport, float scale) const
 {
     RenderScene scene;
@@ -312,6 +458,8 @@ RenderScene FrontendMenu::makeScene(GuiVector2 viewport, float scale) const
     if (!artwork("title", title, {})) {
         text(scene, "R-Type", title, size * 1.4F, {20, 20, 20, 255});
     }
+    if (resultsActive())
+        drawResults(scene, viewport);
     for (const auto& row : controls(viewport, scale)) {
         const GuiColor tint = !row.enabled          ? GuiColor{190, 190, 190, 255}
                               : row.id == _selected ? GuiColor{245, 226, 190, 255}
@@ -341,7 +489,7 @@ RenderScene FrontendMenu::makeScene(GuiVector2 viewport, float scale) const
             text(scene, row.id == 0 ? "*" : row.label, label, size, ink);
         }
     }
-    if (_state.page == FrontendPage::Lobby) {
+    if (_state.page == FrontendPage::Lobby && !resultsActive()) {
         const float top = viewport.y * 0.30F;
         const std::string selected = _state.mode == FrontendMode::Campaign   ? "Campaign selected"
                                      : _state.mode == FrontendMode::Infinite ? "Infinite selected"

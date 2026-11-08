@@ -2,6 +2,8 @@
 
 #include "components/Components.hpp"
 
+#include <cstdint>
+
 namespace rtype::server {
 
 Player& Players::add(network::PeerId id, const std::string& name,
@@ -98,8 +100,67 @@ std::optional<network::PeerId> Players::leader() const
 
 void Players::setShip(network::PeerId id, std::optional<engine::Entity> ship)
 {
-    if (auto it = _players.find(id); it != _players.end())
+    if (auto it = _players.find(id); it != _players.end()) {
         it->second.ship = ship;
+        it->second.dead = false;
+    }
+}
+
+bool Players::refreshDeaths(engine::Registry& registry)
+{
+    bool changed = false;
+    for (auto& [_, player] : _players) {
+        if (player.dead || !player.ship)
+            continue;
+        const engine::Entity ship = *player.ship;
+        const bool gone = !registry.isAlive(ship);
+        const bool depleted = !gone && registry.hasComponent<engine::Health>(ship) &&
+                              registry.getComponent<engine::Health>(ship).current <= 0;
+        if (gone || depleted) {
+            player.dead = true;
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+bool Players::allDead() const
+{
+    if (_players.empty())
+        return false;
+    for (const auto& [_, player] : _players)
+        if (!player.dead)
+            return false;
+    return true;
+}
+
+bool Players::addScore(engine::Entity ship, std::uint32_t points)
+{
+    for (auto& [_, player] : _players) {
+        if (player.ship && *player.ship == ship) {
+            player.score += points;
+            if (player.kills < UINT16_MAX)
+                ++player.kills;
+            return true;
+        }
+    }
+    return false;
+}
+
+std::uint32_t Players::teamScore() const
+{
+    std::uint32_t total = 0;
+    for (const auto& [_, player] : _players)
+        total += player.score;
+    return total;
+}
+
+void Players::resetScores()
+{
+    for (auto& [_, player] : _players) {
+        player.score = 0;
+        player.kills = 0;
+    }
 }
 
 } // namespace rtype::server

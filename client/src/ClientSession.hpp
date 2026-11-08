@@ -26,6 +26,7 @@ private:
     void resetWorld();
     void lobby(const protocol::LobbyStateMessage& state);
     void select(const gui::FrontendAction& action);
+    void makeResults(gui::ResultsScreen& results) const;
     std::unique_ptr<ClientNetwork> _network;
     std::unique_ptr<ClientWorld> _world;
     gui::FrontendState _frontend;
@@ -35,6 +36,8 @@ private:
     float _animationSeconds = 0.0F;
     std::chrono::steady_clock::time_point _waitingSince;
     gui::FrontendAction _pending;
+    protocol::ScoreUpdateMessage _scores;
+    protocol::LobbyPhase _phase = protocol::LobbyPhase::Selecting;
 };
 
 } // namespace rtype::client
