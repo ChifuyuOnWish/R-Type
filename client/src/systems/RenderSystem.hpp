@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BossMessages.hpp"
 #include "ClientComponents.hpp"
 #include "GuiTypes.hpp"
 #include "components/Components.hpp"
@@ -10,6 +11,7 @@
 #include <cstdint>
 #include <numbers>
 #include <random>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -17,6 +19,7 @@
 namespace rtype::client {
 
 using PlayerNames = std::unordered_map<std::uint32_t, std::string>;
+using BossState = std::optional<protocol::BossStateMessage>;
 
 inline constexpr gui::GuiColor PlayerTints[] = {
     {255, 255, 255, 255}, // player 1: unused, original colours
@@ -49,7 +52,8 @@ inline void addDeathParticles(gui::RenderScene& scene, gui::GuiPosition center, 
 }
 
 inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
-                            const PlayerNames& names, float animationSeconds = 0.0F)
+                            const PlayerNames& names, float animationSeconds = 0.0F,
+                            const BossState& boss = std::nullopt)
 {
     registry.each<Sprite, engine::Position, NetworkId, Extrapolation, engine::Velocity>(
         [&](engine::Entity entity, Sprite& sprite, engine::Position& position, NetworkId& net,
@@ -99,6 +103,20 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
                 draw.rotation = 180.0F;
                 draw.tint = {155, 215, 255, 255};
                 break;
+            case SpriteMotion::Boss: {
+                draw.ink = gui::SpriteInk::BoldGraphite;
+                draw.rotation = 1.5F * wave; // heavy, slower rock than the small tank's hover
+                const bool known = boss && boss->entityId == net.id;
+                if (known && boss->has(protocol::BossStateMessage::Dying)) {
+                    const bool flash = static_cast<int>(animationSeconds * 12.0F) % 2 == 0;
+                    draw.tint = flash ? gui::GuiColor{255, 120, 60, 255}
+                                      : gui::GuiColor{255, 255, 255, 255};
+                    draw.rotation = 6.0F * wave;
+                } else if (known && boss->has(protocol::BossStateMessage::Enraged)) {
+                    draw.tint = {255, 150, 130, 255};
+                }
+                break;
+            }
             case SpriteMotion::EnemyFire:
             case SpriteMotion::None:
                 break;
@@ -141,6 +159,61 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
                              position.y + motion.offsetY - sprite.height / 2.F - 24.F};
             scene.sceneTexts.push_back(std::move(text));
         });
+}
+
+// The boss health bar, under the ceiling, in world units. A thin mark shows where each later
+// phase starts. While the boss flies in (phase 0) the bar fills up and a warning blinks.
+inline void addBossBar(gui::RenderScene& scene, const protocol::BossStateMessage& boss,
+                       float animationSeconds)
+{
+    constexpr float Width = 900.F;
+    constexpr float Height = 18.F;
+    constexpr float Left = (1920.F - Width) / 2.F;
+    constexpr float Top = 104.F;
+    constexpr float Border = 3.F;
+    const bool entering = boss.phase == 0;
+    const bool enraged = boss.has(protocol::BossStateMessage::Enraged);
+
+    const float fraction = static_cast<float>(boss.health) / static_cast<float>(boss.maxHealth);
+    // Dark frame, then the empty bar, then the fill: high-contrast in every colour-vision mode.
+    scene.sceneRectangles.push_back(
+        {{{Left - Border, Top - Border}, Width + 2.F * Border, Height + 2.F * Border},
+         {15, 15, 20, 230}});
+    scene.sceneRectangles.push_back({{{Left, Top}, Width, Height}, {70, 60, 60, 255}});
+    const float fill = entering ? Width * std::min(1.F, std::fmod(animationSeconds, 3.F) / 2.5F)
+                                : Width * std::clamp(fraction, 0.F, 1.F);
+    const gui::GuiColor color =
+        enraged ? gui::GuiColor{235, 60, 45, 255} : gui::GuiColor{245, 175, 40, 255};
+    scene.sceneRectangles.push_back({{{Left, Top}, fill, Height}, color});
+    for (const std::uint8_t mark : boss.marks) {
+        const float x = Left + Width * static_cast<float>(mark) / 100.F;
+        scene.sceneRectangles.push_back(
+            {{{x - 1.5F, Top - 6.F}, 3.F, Height + 12.F}, {240, 240, 240, 255}});
+    }
+
+    gui::TextDraw name;
+    name.text = boss.name;
+    name.fontSize = 26.F;
+    name.color = {240, 240, 240, 255};
+    name.position = {Left, Top - 34.F};
+    scene.sceneTexts.push_back(std::move(name));
+    if (!entering && boss.phaseCount > 1) {
+        gui::TextDraw phase;
+        phase.text = "Phase " + std::to_string(boss.phase) + "/" + std::to_string(boss.phaseCount);
+        phase.fontSize = 22.F;
+        phase.color = {200, 200, 200, 255};
+        phase.position = {Left + Width - 110.F, Top - 30.F};
+        scene.sceneTexts.push_back(std::move(phase));
+    }
+    if (entering && static_cast<int>(animationSeconds * 3.F) % 2 == 0) {
+        gui::TextDraw warning;
+        warning.text = "WARNING";
+        warning.fontSize = 72.F;
+        warning.spacing = 6.F;
+        warning.color = {235, 60, 45, 255};
+        warning.position = {1920.F / 2.F - 170.F, 1080.F / 2.F - 60.F};
+        scene.sceneTexts.push_back(std::move(warning));
+    }
 }
 
 inline void addGroundBands(gui::RenderScene& scene, float animationSeconds)

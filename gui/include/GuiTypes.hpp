@@ -315,6 +315,9 @@ struct RenderScene
     FrontendState frontend;
     HudState hud;
     ResultsScreen results;
+    // In world coordinates like sprites (scaled by fitWorld), drawn over the sprites and under
+    // the scene texts: health bars and other in-game HUD.
+    std::vector<RectangleDraw> sceneRectangles;
 };
 
 } // namespace rtype::gui

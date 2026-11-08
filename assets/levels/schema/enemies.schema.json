@@ -259,7 +259,7 @@
         },
         "weakPoint": {
           "type": "object",
-          "description": "Only this area takes full damage, the classic R-Type boss rule.",
+          "description": "Optional area that takes damageMultiplier times the damage.",
           "additionalProperties": false,
           "properties": {
             "offset": {
@@ -271,8 +271,16 @@
             "damageMultiplier": {
               "type": "number",
               "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "description": "A name from entity_types.json, drawn at the weak point. Without it the weak point is an invisible hitbox."
             }
-          }
+          },
+          "required": [
+            "offset",
+            "hitbox"
+          ]
         },
         "score": {
           "type": "integer",
@@ -282,9 +290,79 @@
         "type": {
           "type": "string",
           "description": "A name from entity_types.json: what clients draw for this entity."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Shown above the health bar. Defaults to the id."
+        },
+        "bodyDamageMultiplier": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "Damage taken by hits on the body itself. 0 = armour, only the weak point can be hurt."
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "maxItems": 7,
+          "description": "Health fractions where the next phase starts, highest first: [0.65, 0.3] gives 3 phases. The boss class says how many it has."
+        },
+        "projectile": {
+          "type": "string",
+          "default": "enemy_missile",
+          "description": "Entity type of its shots."
+        },
+        "parts": {
+          "type": "object",
+          "description": "Named extra pieces the boss class asks for (none for the Giant Tank).",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "type",
+              "health",
+              "hitbox"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "health": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "contactDamage": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 1
+              },
+              "hitbox": {
+                "$ref": "#/$defs/size"
+              }
+            }
+          }
+        },
+        "minions": {
+          "type": "object",
+          "description": "Role -> enemy id from \"enemies\", for the enemies the boss summons (the Giant Tank needs \"minion\").",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tuning": {
+          "type": "object",
+          "description": "Numbers read by the boss class, overriding its defaults. The server refuses a key the class doesn't know.",
+          "additionalProperties": {
+            "type": "number"
+          }
         }
       },
-      "description": "Tunable numbers only. Attack patterns and phases live in the boss's own class, registered under the same id in BossRegistry."
+      "description": "Tunable numbers only. Attack patterns live in the boss's own class, registered under the same id in server/src/boss/BossRegistry.cpp."
     }
   }
 }

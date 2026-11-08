@@ -240,10 +240,12 @@ EnemyDef enemy(const std::string& id, const json& v, const EntityTypes& types, c
     return e;
 }
 
-BossDef boss(const std::string& id, const json& v, const EntityTypes& types, const Where& at)
+BossDef boss(const std::string& id, const json& v, const EntityTypes& types,
+             const std::map<std::string, EnemyDef>& enemies, const Where& at)
 {
     BossDef b;
     b.id = id;
+    b.name = textOr(v, "name", id, at);
     b.type = text(member(v, "type", at), at / "type");
     b.netType = netType(b.type, types, at / "type");
     b.health = integer(member(v, "health", at), at / "health");
@@ -258,14 +260,74 @@ BossDef boss(const std::string& id, const json& v, const EntityTypes& types, con
         if (b.entry.from != "right" && b.entry.from != "top" && b.entry.from != "bottom")
             (eat / "from").fail("must be right, top or bottom");
         b.entry.stopAtX = numberOr(e, "stopAtX", b.entry.stopAtX, eat);
-        b.entry.duration = numberOr(e, "duration", b.entry.duration, eat);
+        b.entry.duration =
+            atLeast(numberOr(e, "duration", b.entry.duration, eat), 0.F, eat / "duration");
     }
     if (has(v, "weakPoint")) {
         const json& w = v["weakPoint"];
         const Where wat = at / "weakPoint";
-        b.weakPoint = WeakPoint{vec2(member(w, "offset", wat), wat / "offset"),
-                                vec2(member(w, "hitbox", wat), wat / "hitbox"),
-                                numberOr(w, "damageMultiplier", 1.F, wat)};
+        WeakPoint weak;
+        weak.type = textOr(w, "type", "", wat);
+        if (!weak.type.empty())
+            weak.netType = netType(weak.type, types, wat / "type");
+        weak.offset = vec2(member(w, "offset", wat), wat / "offset");
+        weak.hitbox = vec2(member(w, "hitbox", wat), wat / "hitbox");
+        weak.damageMultiplier =
+            atLeast(numberOr(w, "damageMultiplier", 1.F, wat), 0.F, wat / "damageMultiplier");
+        b.weakPoint = weak;
+    }
+    b.bodyDamageMultiplier =
+        atLeast(numberOr(v, "bodyDamageMultiplier", 0.F, at), 0.F, at / "bodyDamageMultiplier");
+    if (has(v, "phases")) {
+        const json& phases = v["phases"];
+        if (!phases.is_array())
+            (at / "phases").fail("expected a list of health fractions, highest first");
+        float previous = 1.F;
+        for (std::size_t i = 0; i < phases.size(); ++i) {
+            const float f = number(phases[i], at / "phases" / i);
+            if (f <= 0.F || f >= previous)
+                (at / "phases" / i).fail("must be between 0 and 1, and lower than the one before");
+            b.phases.push_back(f);
+            previous = f;
+        }
+    }
+    b.projectile = textOr(v, "projectile", "enemy_missile", at);
+    b.projectileNetType = netType(b.projectile, types, at / "projectile");
+    if (has(v, "parts")) {
+        const json& parts = v["parts"];
+        if (!parts.is_object())
+            (at / "parts").fail("expected an object of named parts");
+        for (const auto& [name, def] : parts.items()) {
+            const Where pat = at / "parts" / name;
+            BossPartDef part;
+            part.type = text(member(def, "type", pat), pat / "type");
+            part.netType = netType(part.type, types, pat / "type");
+            part.health = integer(member(def, "health", pat), pat / "health");
+            if (part.health < 1)
+                (pat / "health").fail("must be at least 1");
+            part.contactDamage = integerOr(def, "contactDamage", 1, pat);
+            part.hitbox = vec2(member(def, "hitbox", pat), pat / "hitbox");
+            b.parts.emplace(name, part);
+        }
+    }
+    if (has(v, "minions")) {
+        const json& minions = v["minions"];
+        if (!minions.is_object())
+            (at / "minions").fail("expected an object: role -> enemy id");
+        for (const auto& [role, enemyId] : minions.items()) {
+            const std::string name = text(enemyId, at / "minions" / role);
+            const auto found = enemies.find(name);
+            if (found == enemies.end())
+                (at / "minions" / role).fail("unknown enemy '" + name + "'");
+            b.minions.emplace(role, &found->second);
+        }
+    }
+    if (has(v, "tuning")) {
+        const json& tuning = v["tuning"];
+        if (!tuning.is_object())
+            (at / "tuning").fail("expected an object of numbers");
+        for (const auto& [key, value] : tuning.items())
+            b.tuning.emplace(key, number(value, at / "tuning" / key));
     }
     b.score = integerOr(v, "score", 0, at);
     return b;
@@ -429,7 +491,8 @@ GameData LevelLoader::load(const std::filesystem::path& dir,
         data.enemies.emplace(id, enemy(id, def, data.entityTypes, eat / "enemies" / id));
     if (has(enemies, "bosses"))
         for (const auto& [id, def] : enemies["bosses"].items())
-            data.bosses.emplace(id, boss(id, def, data.entityTypes, eat / "bosses" / id));
+            data.bosses.emplace(id,
+                                boss(id, def, data.entityTypes, data.enemies, eat / "bosses" / id));
 
     const json formations = readFile(dir, "formations.json");
     const Where fat{"formations.json", ""};

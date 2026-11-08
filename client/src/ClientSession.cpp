@@ -84,6 +84,7 @@ void ClientSession::resetWorld()
     _frontend.unlocked = 0;
     _scores = {};
     _phase = proto::LobbyPhase::Selecting;
+    _boss.reset();
 }
 void ClientSession::connect(const ui::ConnectionDetails& connection)
 {
@@ -124,6 +125,17 @@ void ClientSession::installHandlers()
             if (const auto state = proto::LobbyStateMessage::deserialize(reader))
                 lobby(*state);
         });
+    _network->registerHandler(proto::BossStateMessage::Type,
+                              [this](std::span<const std::uint8_t> payload) {
+                                  proto::ByteReader reader(payload.data(), payload.size());
+                                  const auto state = proto::BossStateMessage::deserialize(reader);
+                                  if (!state)
+                                      return;
+                                  if (state->entityId == 0)
+                                      _boss.reset();
+                                  else
+                                      _boss = *state;
+                              });
     _network->registerHandler(
         proto::MessageType::PlayerJoined, [this](std::span<const std::uint8_t> payload) {
             proto::ByteReader reader(payload.data(), payload.size());
@@ -179,8 +191,10 @@ void ClientSession::lobby(const proto::LobbyStateMessage& state)
 {
     const bool playing = state.phase == proto::LobbyPhase::Playing;
     _phase = state.phase;
-    if (!playing && _frontend.page == ui::FrontendPage::Gameplay)
+    if (!playing && _frontend.page == ui::FrontendPage::Gameplay) {
         _world = std::make_unique<ClientWorld>();
+        _boss.reset();
+    }
     _animationSeconds = 0.0F;
     _frontend.page = playing ? ui::FrontendPage::Gameplay : ui::FrontendPage::Lobby;
     _frontend.leader = state.leaderId == _network->clientId();
@@ -334,8 +348,10 @@ ui::RenderScene ClientSession::makeScene()
         scene.worldSize = {1920, 1080};
         scene.background.enabled = true;
         scene.background.scrollSpeed = 100;
-        addWorldSprites(scene, _world->registry(), _names, _animationSeconds);
+        addWorldSprites(scene, _world->registry(), _names, _animationSeconds, _boss);
         addGroundBands(scene, _animationSeconds);
+        if (_boss)
+            addBossBar(scene, *_boss, _animationSeconds);
         scene.hud.visible = true;
         scene.hud.teamScore = _scores.teamScore;
         scene.hud.combo = _scores.combo;

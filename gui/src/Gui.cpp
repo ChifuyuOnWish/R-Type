@@ -78,6 +78,12 @@ void fitWorld(RenderScene& scene, GuiVector2 viewport)
                              offset.y + particle.position.y * scale};
         particle.size *= scale;
     }
+    for (auto& rect : scene.sceneRectangles) {
+        rect.bounds.pos = {offset.x + rect.bounds.pos.x * scale,
+                           offset.y + rect.bounds.pos.y * scale};
+        rect.bounds.width *= scale;
+        rect.bounds.height *= scale;
+    }
     for (auto& text : scene.sceneTexts) {
         text.position = {offset.x + text.position.x * scale, offset.y + text.position.y * scale};
         text.fontSize *= scale;

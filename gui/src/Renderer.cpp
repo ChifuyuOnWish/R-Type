@@ -212,11 +212,13 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
     const auto sceneTexts = prepareTexts(scene.sceneTexts);
     const auto overlays = prepareTexts(scene.overlayTexts);
 
-    for (const auto& draw : scene.rectangles) {
-        const auto& bounds = draw.bounds;
-        if (!finite({bounds.pos.x, bounds.pos.y, bounds.width, bounds.height}) ||
-            bounds.width < 0 || bounds.height < 0)
-            throw std::invalid_argument("Invalid UI rectangle");
+    for (const auto* list : {&scene.rectangles, &scene.sceneRectangles}) {
+        for (const auto& draw : *list) {
+            const auto& bounds = draw.bounds;
+            if (!finite({bounds.pos.x, bounds.pos.y, bounds.width, bounds.height}) ||
+                bounds.width < 0 || bounds.height < 0)
+                throw std::invalid_argument("Invalid UI rectangle");
+        }
     }
     for (const auto& particle : scene.particles)
         if (!finite({particle.position.x, particle.position.y, particle.size}) ||
@@ -323,6 +325,8 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
         if (sprite.draw->layer >= 10000)
             drawSprite(sprite);
     }
+    for (const auto& draw : scene.sceneRectangles)
+        DrawRectangleRec(rectangle(draw.bounds), color(draw.color));
     drawTexts(sceneTexts);
     for (const auto& draw : scene.rectangles)
         DrawRectangleRec(rectangle(draw.bounds), color(draw.color));

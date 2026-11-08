@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <exception>
 #include <iostream>
 #include <thread>
@@ -34,6 +35,7 @@ constexpr std::uint32_t KillPoints = 100;
 constexpr float ComboWindow = 3.F;
 constexpr std::uint8_t MaxCombo = 8;
 constexpr std::uint8_t PlayerMaxHealth = 3;
+constexpr std::uint32_t BossHealthEvery = 6;
 } // namespace
 
 GameSession::GameSession(network::NetworkServer& net, const level::GameData& data)
@@ -85,6 +87,7 @@ void GameSession::step()
         return;
     _serverTick += steps;
     _dispatcher.flush();
+    scoreBoss();
     _players.refreshDeaths(_registry);
     if (_comboTimer > 0.F) {
         _comboTimer -= static_cast<float>(steps) * static_cast<float>(Update::Step);
@@ -105,6 +108,7 @@ void GameSession::step()
     }
     _replicator.sendScores(scoreState());
     sendLobbyState();
+    sendBossState();
 }
 
 void GameSession::switchMode(std::unique_ptr<IGameMode> mode)
@@ -157,6 +161,69 @@ void GameSession::sendLobbyState()
     _lastLobbyState = std::move(state);
 }
 
+BossStateMessage GameSession::bossState() const
+{
+    BossStateMessage msg;
+    const auto boss = _mode->bossStatus();
+    if (!boss)
+        return msg;
+    msg.entityId = _replicator.wireId(boss->body);
+    if (msg.entityId == 0)
+        return msg;
+    msg.phase = boss->phase;
+    msg.phaseCount = boss->phaseCount;
+    msg.maxHealth = static_cast<std::uint16_t>(std::clamp(boss->maxHealth, 1, 65535));
+    msg.health = static_cast<std::uint16_t>(std::clamp(boss->health, 0, int{msg.maxHealth}));
+    msg.flags = static_cast<std::uint8_t>((boss->exposed ? BossStateMessage::Exposed : 0) |
+                                          (boss->enraged ? BossStateMessage::Enraged : 0) |
+                                          (boss->dying ? BossStateMessage::Dying : 0));
+    for (const float mark : boss->marks)
+        if (msg.marks.size() < MaxBossPhases)
+            msg.marks.push_back(static_cast<std::uint8_t>(std::lround(mark * 100.F)));
+    msg.name = boss->name;
+    return msg;
+}
+
+void GameSession::sendBossState()
+{
+    BossStateMessage state = bossState();
+    if (!_lastBossState && state.entityId == 0)
+        return;
+    if (_lastBossState && *_lastBossState == state)
+        return;
+    BossStateMessage healthOnly = state;
+    if (_lastBossState) {
+        healthOnly.health = _lastBossState->health;
+        if (healthOnly == *_lastBossState && _serverTick - _bossSentAt < BossHealthEvery)
+            return;
+    }
+    _replicator.broadcast(state, true);
+    _bossSentAt = _serverTick;
+    if (state.entityId == 0)
+        _lastBossState.reset();
+    else
+        _lastBossState = std::move(state);
+}
+
+void GameSession::scoreBoss()
+{
+    const auto boss = _mode->bossStatus();
+    if (!boss) {
+        _bossScored = false;
+        _bossHitter = Entity{};
+        return;
+    }
+    if (!boss->dying || _bossScored)
+        return;
+    _bossScored = true;
+    const auto points = static_cast<std::uint32_t>(std::max(boss->score, 0));
+    if (_players.addScore(_bossHitter, points * _combo)) {
+        if (_combo < MaxCombo)
+            ++_combo;
+        _comboTimer = ComboWindow;
+    }
+}
+
 void GameSession::handleNetworkEvents()
 {
     for (auto& ev : _net.poll()) {
@@ -181,6 +248,8 @@ void GameSession::onConnected(const network::Connected& ev)
     _players.add(ev.peerId, ev.name, _mode->spawnShip(_ctx, ev.peerId));
     _replicator.sendTo(ev.peerId, lobbyState(), true);
     _replicator.sendTo(ev.peerId, scoreState(), true);
+    if (_lastBossState) // joined mid-fight
+        _replicator.sendTo(ev.peerId, *_lastBossState, true);
 }
 
 void GameSession::onMessage(const network::MessageReceived& ev)
@@ -230,6 +299,8 @@ void GameSession::onDisconnected(const network::Disconnected& ev)
 
 void GameSession::onDamage(const DamageEvent& ev)
 {
+    if (const auto boss = _mode->bossStatus(); boss && ev.victim == boss->body)
+        _bossHitter = ev.source;
     if (!_registry.isAlive(ev.victim))
         return;
     if (_players.isShip(ev.victim)) {

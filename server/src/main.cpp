@@ -1,5 +1,6 @@
 #include "GameSession.hpp"
 #include "NetworkServer.hpp"
+#include "boss/BossRegistry.hpp"
 #include "level/LevelLoader.hpp"
 
 #include <atomic>
@@ -43,6 +44,7 @@ int checkLevels(std::filesystem::path dir, std::filesystem::path types)
         types = dir.parent_path() / "entity_types.json";
     try {
         const auto data = rtype::server::level::LevelLoader::load(dir, types);
+        rtype::server::bosses().check(data); // every boss has a class that accepts its data
         std::size_t waves = 0;
         for (const auto& level : data.levels)
             waves += level.waves.size();
@@ -74,6 +76,7 @@ int main(int argc, char** argv)
     rtype::server::level::GameData data;
     try {
         data = rtype::server::level::LevelLoader::load(LevelsDir, EntityTypesFile);
+        rtype::server::bosses().check(data);
     } catch (const rtype::server::level::LevelError& e) {
         std::cerr << "r-type_server: " << e.what() << '\n';
         return 84;
