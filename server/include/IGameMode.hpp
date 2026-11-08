@@ -3,6 +3,7 @@
 #include "GameContext.hpp"
 #include "LobbyMessages.hpp"
 #include "NetworkEvent.hpp"
+#include "boss/BossStatus.hpp"
 #include "ecs/Entity.hpp"
 
 #include <cstddef>
@@ -44,6 +45,9 @@ public:
     virtual Selection selection() const { return {}; }
     virtual void onLobbySelect(const protocol::LobbySelectMessage& /*msg*/) {}
     virtual void onLobbyStart() {}
+
+    // The boss on screen, if any: GameSession sends it to clients for the health bar.
+    virtual std::optional<BossStatus> bossStatus() const { return std::nullopt; }
 };
 
 } // namespace rtype::server

@@ -2,7 +2,9 @@
 
 #include "ModeFactory.hpp"
 #include "ShipRules.hpp"
+#include "boss/BossRegistry.hpp"
 
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -23,24 +25,48 @@ void LevelMode::start(GameContext& ctx)
     _terrain.reset();
     if (lvl.terrain)
         _terrain.emplace(*lvl.terrain);
+    _boss.reset();
+    _bossWait = 0.F;
     _state = ModeState::Running;
     std::cout << "level " << _index + 1 << ": " << lvl.name << '\n';
-    if (lvl.boss)
-        std::cout << "level " << _index + 1 << ": boss not played yet\n";
 }
 
 void LevelMode::update(GameContext& ctx, float dt)
 {
     if (_state != ModeState::Running || !_director)
         return;
+    if (_boss) {
+        _boss->update(ctx, dt);
+        if (_boss->defeated()) {
+            _state = ModeState::Won;
+            std::cout << "level " << _index + 1 << " cleared: boss defeated\n";
+        }
+        return;
+    }
     _director->update(ctx, dt);
     if (_terrain)
         _terrain->update(ctx, dt);
-
-    if (_director->finished() && (!_terrain || _terrain->finished())) {
+    // Waves done when the last wave is gone and the terrain has scrolled past.
+    if (!_director->finished() || (_terrain && !_terrain->finished()))
+        return;
+    const level::Level& lvl = _data.levels[_index];
+    if (!lvl.boss) {
         _state = ModeState::Won;
         std::cout << "level " << _index + 1 << " cleared\n";
+        return;
     }
+    _bossWait += dt;
+    if (_bossWait < lvl.boss->delay)
+        return;
+    // Same scaling as the waves: each extra player adds bossHealth (0.5 = +50%).
+    const level::BossDef& def = *lvl.boss->boss;
+    const std::size_t players = ctx.players.all().size();
+    const float extra = static_cast<float>(players > 1 ? players - 1 : 0);
+    const int health = static_cast<int>(
+        std::ceil(static_cast<float>(def.health) * (1.F + _data.scaling.bossHealth * extra)));
+    _boss = bosses().create(def.id);
+    _boss->spawn(ctx, def, health);
+    std::cout << "level " << _index + 1 << ": boss " << def.name << " (" << health << " HP)\n";
 }
 
 void LevelMode::resolve(GameContext& /*ctx*/, float /*dt*/)
@@ -74,6 +100,13 @@ std::unique_ptr<IGameMode> LevelMode::next(ModeFactory& modes)
 Selection LevelMode::selection() const
 {
     return Selection{protocol::GameKind::Level, _index};
+}
+
+std::optional<BossStatus> LevelMode::bossStatus() const
+{
+    if (!_boss || _state != ModeState::Running)
+        return std::nullopt;
+    return _boss->status();
 }
 
 std::size_t LevelMode::index() const

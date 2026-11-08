@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BossMessages.hpp"
 #include "Events.hpp"
 #include "GameContext.hpp"
 #include "IGameMode.hpp"
@@ -45,6 +46,9 @@ private:
     protocol::LobbyStateMessage lobbyState() const;
     void sendLobbyState();
     protocol::ScoreUpdateMessage scoreState() const;
+    protocol::BossStateMessage bossState() const;
+    void sendBossState();
+    void scoreBoss();
 
     network::NetworkServer& _net;
     engine::Registry _registry;
@@ -61,6 +65,10 @@ private:
     std::unique_ptr<IGameMode> _mode;
     IGameMode* _modePtr = nullptr;
     std::optional<protocol::LobbyStateMessage> _lastLobbyState;
+    std::optional<protocol::BossStateMessage> _lastBossState;
+    std::uint32_t _bossSentAt = 0;
+    engine::Entity _bossHitter; // the last ship that damaged the boss
+    bool _bossScored = false;
     std::uint32_t _serverTick = 0;
     std::uint8_t _combo = 1;
     float _comboTimer = 0.F;

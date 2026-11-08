@@ -76,14 +76,28 @@ struct BossEntry
 
 struct WeakPoint
 {
-    Vec2 offset;
+    std::string type; // optional: what clients draw there; empty = hitbox only
+    std::uint16_t netType = 0;
+    Vec2 offset; // from the body's centre
     Vec2 hitbox;
     float damageMultiplier = 1.F;
+};
+
+// A named extra piece a boss class asks for (a boss with drones would ask for "drone"). The
+// class decides how many there are and how they move; the data gives the numbers.
+struct BossPartDef
+{
+    std::string type;
+    std::uint16_t netType = 0;
+    int health = 1;
+    int contactDamage = 1;
+    Vec2 hitbox;
 };
 
 struct BossDef
 {
     std::string id;
+    std::string name; // shown above the health bar; the id when empty
     std::string type;
     std::uint16_t netType = 0;
     int health = 1;
@@ -91,6 +105,14 @@ struct BossDef
     Vec2 hitbox;
     BossEntry entry;
     std::optional<WeakPoint> weakPoint;
+    float bodyDamageMultiplier = 0.F; // hits on the body itself: 0 = armour
+    // Health fractions where the next phase starts, highest first: [0.65, 0.3] = 3 phases.
+    std::vector<float> phases;
+    std::string projectile; // entity type of its shots
+    std::uint16_t projectileNetType = 0;
+    std::map<std::string, BossPartDef> parts;
+    std::map<std::string, const EnemyDef*> minions; // points into GameData::enemies
+    std::map<std::string, float> tuning;            // checked against the class by BossRegistry
     int score = 0;
 };
 

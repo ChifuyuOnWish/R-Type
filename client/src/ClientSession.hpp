@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BossMessages.hpp"
 #include "ClientNetwork.hpp"
 #include "ClientWorld.hpp"
 #include "GuiTypes.hpp"
@@ -7,6 +8,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 namespace rtype::client {
@@ -31,6 +33,7 @@ private:
     std::unique_ptr<ClientWorld> _world;
     gui::FrontendState _frontend;
     std::unordered_map<std::uint32_t, std::string> _names;
+    std::optional<protocol::BossStateMessage> _boss; // the health bar; empty: no boss
     std::vector<gui::SoundEvent> _sounds;
     std::uint32_t _clientTick = 1;
     float _animationSeconds = 0.0F;
