@@ -12,7 +12,7 @@ add_library(rtype_gui STATIC
     src/SettingsMenu.cpp
     src/SettingsStore.cpp
     src/StatusPresenter.cpp
-    src/HudPresenter.cpp
+    src/Hud.cpp
 )
 add_library(rtype::gui ALIAS rtype_gui)
 
