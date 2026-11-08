@@ -19,6 +19,6 @@
     "crate":            { "id": 31, "sprite": "tiles.png", "tile": 1 },
     "spikes":           { "id": 32, "sprite": "tiles.png", "tile": 2 },
 
-    "boss_dobkeratops": { "id": 40, "sprite": "boss_dobkeratops.png", "frames": 4, "fps": 4 }
+    "boss_tank":        { "id": 40, "sprite": "enemy_tank.png", "frames": 4, "fps": 6 }
   }
 }

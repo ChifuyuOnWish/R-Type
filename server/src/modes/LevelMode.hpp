@@ -2,10 +2,12 @@
 
 #include "IGameMode.hpp"
 #include "LevelData.hpp"
+#include "boss/IBoss.hpp"
 #include "level/TerrainDirector.hpp"
 #include "level/WaveDirector.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 
 namespace rtype::server {
@@ -22,6 +24,7 @@ public:
     ModeState state() const override;
     std::unique_ptr<IGameMode> next(ModeFactory& modes) override;
     Selection selection() const override;
+    std::optional<BossStatus> bossStatus() const override;
 
     std::size_t index() const;
 
@@ -30,6 +33,8 @@ private:
     std::size_t _index;
     std::optional<level::WaveDirector> _director;
     std::optional<level::TerrainDirector> _terrain;
+    std::unique_ptr<IBoss> _boss; // empty until the waves are done
+    float _bossWait = 0.F;        // time since the waves and terrain ended
     ModeState _state = ModeState::Running;
 };
 

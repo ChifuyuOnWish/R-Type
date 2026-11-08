@@ -13,5 +13,5 @@
     { "formation": "line", "roster": { "enemy_slug_floor": 0.5, "enemy_slug_ceiling": 0.5 }, "y": "center", "delay": 2.0, "waitForClear": true }
   ],
   "terrain": null,
-  "boss": null
+  "boss": { "id": "giant_tank", "delay": 3.0 }
 }

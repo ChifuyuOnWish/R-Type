@@ -54,13 +54,23 @@
     }
   },
   "bosses": {
-    "dobkeratops": {
-      "type": "boss_dobkeratops",
-      "health": 300,
+    "giant_tank": {
+      "name": "Giant Tank",
+      "type": "boss_tank",
+      "health": 260,
       "contactDamage": 3,
-      "hitbox": [400, 600],
-      "entry": { "from": "right", "stopAtX": 1450, "duration": 3.0 },
-      "weakPoint": { "offset": [-120, 40], "hitbox": [60, 60], "damageMultiplier": 3 },
+      "hitbox": [380, 340],
+      "entry": { "from": "right", "stopAtX": 1480, "duration": 3.0 },
+      "bodyDamageMultiplier": 1,
+      "phases": [0.65, 0.3],
+      "projectile": "enemy_missile",
+      "minions": { "minion": "enemy_basic" },
+      "tuning": {
+        "shotSpeed": 340,
+        "volleyEvery": 1.8,
+        "dashEvery": 7,
+        "summonEvery": 10
+      },
       "score": 10000
     }
   }

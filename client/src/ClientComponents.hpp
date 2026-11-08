@@ -21,7 +21,8 @@ enum class SpriteMotion
     Slug,
     Hover,
     AlliedFire,
-    EnemyFire
+    EnemyFire,
+    Boss // tinted from BOSS_STATE: redder in its last phase, flickering while it dies
 };
 
 struct Sprite

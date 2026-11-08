@@ -19,6 +19,8 @@ constexpr float MissileLifetime = 3.F;
 constexpr float MuzzleOffset = 40.F;
 constexpr float EnemySpeed = 150.F;
 constexpr float EnemyFireCooldown = 2.5F;
+constexpr float BossShotLifetime = 8.F; // slow shots need longer than 3 s to cross the screen
+constexpr float BossShotSize = 24.F;
 
 engine::EnemyPattern pattern(level::Movement movement)
 {
@@ -180,6 +182,36 @@ Entity Spawner::spawnTile(const level::TileDef& def, Position center, float size
         _registry.addComponent(tile, Health{*def.health, *def.health});
     _registry.addComponent(tile, NetType{def.netType});
     return tile;
+}
+
+Entity Spawner::spawnBossPiece(const BossPieceSpec& spec)
+{
+    const Entity piece = _registry.createEntity();
+    _registry.addComponent(piece, spec.position);
+    _registry.addComponent(piece, Velocity{0.F, 0.F});
+    _registry.addComponent(piece, Hitbox{spec.hitbox.x, spec.hitbox.y});
+    _registry.addComponent(piece, Health{spec.health, spec.health});
+    _registry.addComponent(piece, Damage{spec.contactDamage});
+    _registry.addComponent(piece, Team{EnemyTeam});
+    if (spec.netType != 0)
+        _registry.addComponent(piece, NetType{spec.netType});
+    return piece;
+}
+
+Entity Spawner::spawnBossShot(Entity shooter, Position from, Velocity velocity,
+                              std::uint16_t netType)
+{
+    ComponentParams p;
+    p.position = from;
+    p.velocity = velocity;
+    p.hitbox = Hitbox{BossShotSize, BossShotSize};
+    p.damage = Damage{1};
+    p.lifetime = Lifetime{BossShotLifetime};
+    p.owner = shooter;
+    p.team = EnemyTeam;
+    const Entity shot = _factory.create("enemy_missile", p);
+    _registry.addComponent(shot, NetType{netType});
+    return shot;
 }
 
 } // namespace rtype::server
