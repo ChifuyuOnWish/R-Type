@@ -333,7 +333,7 @@ ui::RenderScene ClientSession::makeScene()
         scene.background.enabled = true;
         scene.background.scrollSpeed = 100;
         addWorldSprites(scene, _world->registry(), _names, _animationSeconds);
-
+        addGroundBands(scene, _animationSeconds);
         scene.hud.visible = true;
         scene.hud.teamScore = _scores.teamScore;
         scene.hud.combo = _scores.combo;

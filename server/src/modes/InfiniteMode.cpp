@@ -14,7 +14,7 @@ using namespace engine;
 namespace {
 constexpr float MinSpawnInterval = 1.F;
 constexpr float MaxSpawnInterval = 2.F;
-constexpr float SpawnMargin = 80.F;
+constexpr float SpawnMargin = 60.F;
 constexpr float MinFirstShot = 0.5F;
 constexpr float MaxFirstShot = 2.5F;
 } // namespace
@@ -30,7 +30,7 @@ void InfiniteMode::update(GameContext& ctx, float dt)
     if (_spawnTimer > 0.F)
         return;
     std::uniform_real_distribution<float> next(MinSpawnInterval, MaxSpawnInterval);
-    std::uniform_real_distribution<float> height(SpawnMargin, WorldHeight - SpawnMargin);
+    std::uniform_real_distribution<float> height(PlayTop + SpawnMargin, PlayBottom - SpawnMargin);
     std::uniform_real_distribution<float> firstShot(MinFirstShot, MaxFirstShot);
     _spawnTimer = next(ctx.rng);
     std::bernoulli_distribution bat(0.4);

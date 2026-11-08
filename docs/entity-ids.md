@@ -17,7 +17,7 @@ Rules:
 | 3 | `Player3` | - | Player 3 ship | `players` |
 | 4 | `Player4` | - | Player 4 ship | `players` |
 | 10 | `EnemyBasic` | `enemy_basic` | Small hovering enemy | `enemy_basic` |
-| 11 | `EnemyWave` | `enemy_wave` | Animated bat with a wave movement | `enemy_wave` |
+| 11 | `EnemyBat` | `enemy_bat` | Animated bat with a wave movement | `enemy_bat` |
 | 12 | `EnemyTank` | `enemy_tank` | Heavy enemy (spiked ball) | `enemy_tank` |
 | 13 | `Boss` | `boss` | Reserved (future bosses) | - |
 | 14 | `PlayerMissile` | - | Player fireball, facing right | `fireball` |

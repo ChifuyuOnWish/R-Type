@@ -1,0 +1,17 @@
+{
+  "$schema": "../schema/level.schema.json",
+  "name": "Stage 3 - The Hive",
+  "background": "space_blue",
+  "music": "stage1",
+  "seed": 3,
+  "waves": [
+    { "formation": "line", "roster": { "enemy_basic": 1.0 }, "y": "center", "delay": 2.0 },
+    { "formation": "single", "roster": { "enemy_tank": 1.0 }, "y": "center", "delay": 3.0 },
+    { "formation": "v", "roster": { "enemy_bat": 1.0 }, "y": "random", "delay": 4.0, "waitForClear": true },
+    { "formation": "line", "roster": { "enemy_slug_floor": 0.5, "enemy_slug_ceiling": 0.5 }, "y": "center", "delay": 2.0 },
+    { "formation": "pyramid", "roster": { "enemy_basic": 0.4, "enemy_tank": 0.2, "enemy_bat": 0.4 }, "y": "random", "delay": 4.0, "waitForClear": true },
+    { "formation": "line", "roster": { "enemy_slug_floor": 0.5, "enemy_slug_ceiling": 0.5 }, "y": "center", "delay": 2.0, "waitForClear": true }
+  ],
+  "terrain": null,
+  "boss": null
+}

@@ -7,8 +7,10 @@
     "player_4":         { "id": 4,  "sprite": "player_plane.png", "frames": 5, "row": 3 },
 
     "enemy_basic":      { "id": 10, "sprite": "enemy_screamer.png", "frames": 8, "fps": 10 },
-    "enemy_wave":       { "id": 11, "sprite": "enemy_bat.png",  "frames": 6, "fps": 8 },
+    "enemy_bat":       { "id": 11, "sprite": "enemy_bat.png",  "frames": 6, "fps": 8 },
     "enemy_tank":       { "id": 12, "sprite": "enemy_tank.png",  "frames": 4, "fps": 6 },
+    "enemy_slug":       { "id": 13, "sprite": "enemy_slug.png",  "frames": 4, "fps": 6 },
+    "enemy_slug_ceiling": { "id": 16, "sprite": "enemy_slug.png", "frames": 4, "fps": 6, "flipY": true },
 
     "player_missile":   { "id": 14, "sprite": "player_missile.png" },
     "enemy_missile":    { "id": 15, "sprite": "enemy_missile.png", "frames": 4, "fps": 12 },

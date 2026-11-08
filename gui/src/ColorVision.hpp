@@ -17,7 +17,6 @@ inline ColorMatrix assistanceMatrix(ColorVisionMode mode, float strength)
     if (mode == ColorVisionMode::Off)
         return result;
 
-    // Machado et al. (2009), severity 1, applied to linear RGB.
     constexpr std::array<ColorMatrix, 3> simulation{{
         {{{0.152286F, 1.052583F, -0.204868F},
           {0.114503F, 0.786281F, 0.099216F},
@@ -31,7 +30,7 @@ inline ColorMatrix assistanceMatrix(ColorVisionMode mode, float strength)
     }};
     const auto axis = static_cast<std::size_t>(mode) - 1;
     const auto& model = simulation.at(axis);
-    // Move the simulated error into the other channels; do not display the simulation.
+
     for (std::size_t row = 0; row < result.size(); ++row) {
         if (row == axis)
             continue;

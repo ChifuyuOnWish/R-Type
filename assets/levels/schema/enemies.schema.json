@@ -50,17 +50,78 @@
             "sine",
             "dive",
             "follow",
-            "stationary"
+            "stationary",
+            "flight",
+            "crawl"
           ],
-          "description": "Maps onto EnemyPattern in the engine."
+          "description": "straight: flies left forever. sine: flies left on a sine wave. flight: a sine wave whose centre follows the nearest player (homing). crawl: walks along the floor or ceiling, stops at stopAtX to shoot. dive and stationary are not played yet (they fly straight)."
         },
         "amplitude": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "description": "sine and flight: half the height of the bob."
         },
         "frequency": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "description": "sine and flight: bobs per second."
+        },
+        "homing": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "flight only: how fast the bob's centre follows the nearest player up and down, in units per second. 0 never follows."
+        },
+        "surface": {
+          "enum": [
+            "floor",
+            "ceiling"
+          ],
+          "description": "crawl only: walks along the bottom or, upside down, along the top of the screen. The wave's y is ignored."
+        },
+        "stopAtX": {
+          "description": "crawl only: the x where it stops to shoot. [min, max] picks one per slug, so a group doesn't pile up on one spot.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "hold": {
+          "type": "number",
+          "description": "crawl only: seconds it stays and shoots before walking on off the screen. Leave it out to stay until killed (a waitForClear wave then waits for the players to kill it)."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "crawl"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "surface",
+              "stopAtX"
+            ]
+          }
+        }
+      ]
     },
     "weapon": {
       "type": "object",

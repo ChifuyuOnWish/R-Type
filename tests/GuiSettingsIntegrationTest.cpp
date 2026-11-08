@@ -67,7 +67,7 @@ PlayerActions clickSetting(Gui& gui, std::size_t id)
     if (id <= 10 || id == 15 || (id >= 20 && id <= 28))
         hit(model.category() == 4 ? 29 : 16 + model.category());
     if (id >= 25 && id <= 28) {
-        // The Gamepad category scrolls while its permanent action bar stays visible.
+
         for (std::size_t option = 20; option < id; ++option)
             press(gui, KEY_DOWN);
     }
