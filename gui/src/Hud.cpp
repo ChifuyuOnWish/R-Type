@@ -95,9 +95,9 @@ void HudPresenter::appendPlayers(RenderScene& scene, GuiVector2 viewport, float 
     float x = origin.x;
     for (const auto& p : players) {
         const bool ko = p.health == 0;
-        const auto alpha = static_cast<std::uint8_t>(ko ? 130 : 255);
-        const GuiColor tint{255, 255, 255, alpha};
-        const GuiColor col{30, 30, 35, alpha};
+        // A dead player's card is greyed out: grey paper and grey text.
+        const GuiColor tint = ko ? GuiColor{140, 140, 140, 235} : GuiColor{255, 255, 255, 255};
+        const GuiColor col = ko ? GuiColor{105, 105, 110, 255} : GuiColor{30, 30, 35, 255};
         const float top = origin.y;
 
         if (paper)
@@ -125,5 +125,38 @@ void HudPresenter::appendPlayers(RenderScene& scene, GuiVector2 viewport, float 
 
         x += w + gap;
     }
+}
+
+void HudPresenter::appendGameOver(RenderScene& scene, GuiVector2 viewport, float scale,
+                                  const TextMeasure& m, const TextureSize& texSize)
+{
+    if (!scene.hud.visible || !scene.hud.gameOver)
+        return;
+
+    std::uint32_t score = 0;
+    for (const auto& p : scene.hud.players)
+        if (p.isYou)
+            score = p.score;
+
+    const float w = std::min(560.0F * scale, viewport.x - 32.0F);
+    const float h = 220.0F * scale;
+    if (w < 200.0F)
+        return;
+    const float left = (viewport.x - w) / 2.0F;
+    const float top = (viewport.y - h) / 2.0F;
+
+    if (const auto paper = texSize("ui-paper-button"))
+        sprite(scene, "ui-paper-button", *paper, {{left, top}, w, h}, 10050, {});
+
+    const auto centered = [&](const std::string& t, float size, float y) {
+        text(scene, t, {viewport.x / 2.0F - m(t, size) / 2.0F, y}, size);
+    };
+    const float titleSize = fit(m, "GAME OVER", 64.0F * scale, w - 60.0F);
+    centered("GAME OVER", titleSize, top + 28.0F * scale);
+    centered("Your teammates are still fighting...",
+             fit(m, "Your teammates are still fighting...", 22.0F * scale, w - 60.0F),
+             top + 28.0F * scale + titleSize + 14.0F * scale);
+    const std::string line = "Your score: " + spaced(score);
+    centered(line, fit(m, line, 28.0F * scale, w - 60.0F), top + h - 62.0F * scale);
 }
 } // namespace rtype::gui

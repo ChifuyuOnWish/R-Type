@@ -19,6 +19,8 @@ public:
     static void appendPlayers(RenderScene& scene, GuiVector2 viewport, float textScale,
                               const TextMeasure& measure, const TextureSize& textureSize,
                               GuiPosition origin = {12.0F, 4.0F});
+    static void appendGameOver(RenderScene& scene, GuiVector2 viewport, float textScale,
+                               const TextMeasure& measure, const TextureSize& textureSize);
 };
 
 } // namespace rtype::gui

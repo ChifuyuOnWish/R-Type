@@ -126,6 +126,7 @@ void Gui::open(const GuiConfig& config)
              "paper-small",
              "paper-mode",
              "paper-square",
+             "paper-score",
              "title",
              "settings",
              "input",
@@ -368,6 +369,7 @@ void Gui::render(const RenderScene& scene)
         Renderer(_resources).render(presented, stars);
     };
     _frontend.setState(scene.frontend);
+    _frontend.setResults(scene.results);
     _menu.setInGame(scene.frontend.page == FrontendPage::Gameplay);
     if (_menu.isOpen()) {
         draw(withUiFont(_menu.makeScene(_window.getSize()), _uiFont));
@@ -426,6 +428,16 @@ void Gui::render(const RenderScene& scene)
             return _resources.getTextureSize(id);
         },
         cardsOrigin);
+    HudPresenter::appendGameOver(
+        presented, _window.getSize(), visual.textScale,
+        [this](const std::string& text, float size) {
+            return _resources.measureText(_uiFont, text, size).x;
+        },
+        [this](const std::string& id) -> std::optional<GuiVector2> {
+            if (!_resources.hasTexture(id))
+                return std::nullopt;
+            return _resources.getTextureSize(id);
+        });
     presented = withUiFont(std::move(presented), _uiFont);
     presented.colorVision = visual.colorVision;
     presented.colorVisionStrength = visual.colorVisionStrength;

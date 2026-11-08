@@ -3,6 +3,7 @@
 #include "systems/RenderSystem.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <stdexcept>
 
@@ -82,6 +83,7 @@ void ClientSession::resetWorld()
     _frontend.levels.clear();
     _frontend.unlocked = 0;
     _scores = {};
+    _phase = proto::LobbyPhase::Selecting;
 }
 void ClientSession::connect(const ui::ConnectionDetails& connection)
 {
@@ -174,6 +176,7 @@ void ClientSession::installHandlers()
 void ClientSession::lobby(const proto::LobbyStateMessage& state)
 {
     const bool playing = state.phase == proto::LobbyPhase::Playing;
+    _phase = state.phase;
     if (!playing && _frontend.page == ui::FrontendPage::Gameplay)
         _world = std::make_unique<ClientWorld>();
     _animationSeconds = 0.0F;
@@ -279,6 +282,47 @@ void ClientSession::update(float dt, const ui::PlayerActions& actions)
     _network->sendUnreliable(proto::MessageType::Input,
                              encode(proto::InputMessage{_clientTick++, buttons}));
 }
+void ClientSession::makeResults(ui::ResultsScreen& results) const
+{
+    const bool levelCleared = _phase == proto::LobbyPhase::LevelCleared;
+    results.visible = true;
+    results.nextStage = levelCleared;
+    results.title = levelCleared                                   ? "Level cleared!"
+                    : _phase == proto::LobbyPhase::CampaignCleared ? "Campaign complete!"
+                                                                   : "Game over!";
+    results.subtitle = "INFINITE MODE";
+    if (_frontend.mode == ui::FrontendMode::Campaign) {
+        std::size_t played = _frontend.level;
+        if (levelCleared && played > 0)
+            --played;
+        results.subtitle = "STAGE " + std::to_string(played + 1);
+        if (played < _frontend.levels.size()) {
+            std::string name = _frontend.levels[played];
+            std::transform(name.begin(), name.end(), name.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            if (name.rfind("STAGE", 0) == 0) {
+                results.subtitle = name;
+            } else {
+                results.subtitle += " - " + name;
+            }
+        }
+    }
+    auto players = _scores.players;
+    std::stable_sort(players.begin(), players.end(),
+                     [](const auto& a, const auto& b) { return a.score > b.score; });
+    for (std::size_t i = 0; i < players.size(); ++i) {
+        const auto& p = players[i];
+        const auto name = _names.find(p.clientId);
+        ui::ResultRow row;
+        row.name = name != _names.end() ? name->second : "Player";
+        row.kills = p.kills;
+        row.score = p.score;
+        row.mvp = i == 0 && players.size() > 1 && p.score > 0;
+        row.you = _network && p.clientId == _network->clientId();
+        results.rows.push_back(std::move(row));
+    }
+    results.total = _scores.teamScore;
+}
 ui::RenderScene ClientSession::makeScene()
 {
     ui::RenderScene scene;
@@ -295,10 +339,17 @@ ui::RenderScene ClientSession::makeScene()
         scene.hud.combo = _scores.combo;
         for (const auto& p : _scores.players) {
             const auto name = _names.find(p.clientId);
+            const bool you = _network && p.clientId == _network->clientId();
             scene.hud.players.push_back({name != _names.end() ? name->second : "Player", p.score,
-                                         p.health, p.maxHealth,
-                                         _network && p.clientId == _network->clientId()});
+                                         p.health, p.maxHealth, you});
+            if (you && p.health == 0)
+                scene.hud.gameOver = true;
         }
+    } else if (_frontend.page == ui::FrontendPage::Lobby && !_scores.players.empty() &&
+               (_phase == proto::LobbyPhase::GameOver ||
+                _phase == proto::LobbyPhase::LevelCleared ||
+                _phase == proto::LobbyPhase::CampaignCleared)) {
+        makeResults(scene.results);
     }
     return scene;
 }

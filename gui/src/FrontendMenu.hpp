@@ -26,6 +26,7 @@ public:
     void setTextMeasure(TextMeasure measure);
     void setFont(std::string id);
     void setArtwork(std::string name, GuiVector2 size);
+    void setResults(const ResultsScreen& results);
     [[nodiscard]] bool active() const noexcept;
     [[nodiscard]] std::vector<FrontendControl> controls(GuiVector2 viewport, float textScale) const;
     [[nodiscard]] FrontendAction handle(const InputFrame& frame, GuiVector2 viewport, float scale);
@@ -36,6 +37,20 @@ private:
     [[nodiscard]] FrontendAction activate(int id);
     void text(RenderScene& scene, const std::string& value, GuiRectangle bounds, float size,
               GuiColor color) const;
+    struct ResultsLayout
+    {
+        GuiRectangle panel;
+        GuiRectangle button;
+        GuiRectangle next;
+    };
+    [[nodiscard]] ResultsLayout resultsLayout(GuiVector2 viewport) const;
+    [[nodiscard]] bool resultsActive() const noexcept
+    {
+        return _results.visible && !_resultsDismissed;
+    }
+    void drawResults(RenderScene& scene, GuiVector2 viewport) const;
+    ResultsScreen _results;
+    bool _resultsDismissed = false;
     FrontendState _state;
     ConnectionDetails _entry;
     std::string _port = "4242";
