@@ -17,7 +17,7 @@ Load effects after opening the GUI:
 
 ```cpp
 if (gui.isAudioAvailable() &&
-    !gui.audio().loadSound("shot", "audio/demo-shot.wav")) {
+    !gui.audio().loadSound("player_shot", "audio/player_shot.wav")) {
     std::cerr << gui.audio().getLastError() << '\n';
 }
 ```
@@ -33,7 +33,7 @@ The caller can report the problem and continue without that effect.
 ## Trigger effects
 
 ```cpp
-const std::array<rtype::gui::SoundEvent, 1> events{{{"shot"}}};
+const std::array<rtype::gui::SoundEvent, 1> events{{{"player_shot"}}};
 gui.playAudio(events);
 ```
 
@@ -68,18 +68,23 @@ the saved audio values; use Apply and save to persist session changes.
 
 ## Current client integration
 
-After opening the GUI, the client loads the two existing generated test effects:
-`audio/demo-shot.wav` as `shot` and `audio/demo-hit.wav` as `hit`. These are
-placeholder tones, not a final sound pack. No new audio assets are required.
+After opening the GUI, the client loads three recorded shooting effects and a death effect. Recordings are WAV PCM signed 16-bit, mono,
+48 kHz. Leading and trailing background noise are trimmed. Short 3 ms / 8 ms fades
+avoid hard cut boundaries; volume is not normalized.
 
-The client decodes GameEvent messages from the server and maps them as follows:
+The client resolves each Shoot event's source entity before choosing an effect:
 
-| Server event | Sound ID |
-|--------------|----------|
-| Shoot | shot |
-| Hit | hit |
-| Kill | hit |
-| PlayerDeath | hit |
+| Source / server event | Sound ID | Asset |
+|---|---|---|
+| Player Shoot | player_shot | audio/player_shot.wav |
+| Bat or boss Shoot | bat_shot | audio/bat_shot.wav |
+| Floor or ceiling slug Shoot | wall_enemy_shot | audio/wall_enemy_shot.wav |
+| Kill or PlayerDeath | death | audio/death.wav |
+| Hit or shooters without a matching recording | None | None |
+
+Unknown or already removed shooters are ignored rather than assigned an unrelated
+sound. Projectile spawns do not trigger additional audio. A silent enemy only
+produces a shot sound if the server emits a Shoot event for it.
 
 Sounds are triggered by received server events, including other players and
 enemies, rather than local keyboard presses. The client does not display event
@@ -94,10 +99,28 @@ blocking gameplay or rendering.
 ## Verification
 
 Run a server and a connected client with an audio device available. Hold Fire
-and check that server-confirmed shots produce sound. Change volume, mute and
+and check that server-confirmed shots produce the player recording. Check bats,
+floor and ceiling slugs, and deaths against the table above. Change volume, mute and
 unmute in Settings; apply each change. Check that mute and --no-audio suppress sound without affecting gameplay. Missing assets must not prevent movement or rendering.
 
 The automated audio test replaces native audio calls with a fake backend to
 check initialization failures, loading, overlapping voices, volume, mute and
 cleanup ordering without a physical device. These checks do not confirm the
 new server-event playback on real hardware; that requires a manual check.
+
+Client-world tests cover all four player slots, bats, floor and ceiling slugs,
+basic enemies, tanks and the tank boss, plus unknown, projectile and removed
+source IDs. The client-session loopback test verifies that a received bat Shoot
+event produces both its mouth animation and the `bat_shot` sound event.
+
+## Recording edits
+
+| Supplied recording | Output | Source interval (seconds) |
+|---|---|---|
+| plane_shot.m4a | player_shot.wav | 1.065 to 1.640 |
+| ceuxquisontsurlesmurs.m4a | bat_shot.wav | 0.735 to 1.480 |
+| lesautreslà.m4a | wall_enemy_shot.wav | 0.663 to 1.090 |
+| ceuxquivole.m4a | death.wav | 0.770 to 0.930 |
+
+The old generated tones are removed. Death audio uses Kill and PlayerDeath
+events only, so a preceding Hit or EntityDestroy does not play it twice.

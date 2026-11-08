@@ -73,6 +73,21 @@ void ClientSync::markShot(std::uint32_t sourceId)
         sprite.shotPoseRemaining = 0.35F;
 }
 
+std::string_view ClientSync::shotSoundId(std::uint32_t sourceId) const
+{
+    const auto it = _byNetId.find(sourceId);
+    if (it == _byNetId.end())
+        return {};
+    if (_registry.hasComponent<PlayerSlot>(it->second))
+        return "player_shot";
+    const auto& sprite = _registry.getComponent<Sprite>(it->second);
+    if (sprite.textureId == "enemy_bat" || sprite.motion == SpriteMotion::Boss)
+        return "bat_shot";
+    if (sprite.textureId == "enemy_slug")
+        return "wall_enemy_shot";
+    return {};
+}
+
 void ClientSync::applySnapshot(const protocol::SnapshotMessage& message)
 {
     if (_hasTick && message.serverTick != _lastTick &&

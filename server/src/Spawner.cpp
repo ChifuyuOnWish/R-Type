@@ -15,7 +15,8 @@ using namespace protocol;
 namespace {
 constexpr float PlayerMissileSpeed = 900.F;
 constexpr float EnemyMissileSpeed = 400.F;
-constexpr float MissileLifetime = 3.F;
+constexpr float PlayerMissileLifetime = 3.F;
+constexpr float EnemyMissileLifetime = 6.F;
 constexpr float MuzzleOffset = 40.F;
 constexpr float EnemySpeed = 150.F;
 constexpr float EnemyFireCooldown = 2.5F;
@@ -104,7 +105,7 @@ Entity Spawner::spawnProjectile(Registry& registry, Entity shooter, Position fro
     p.velocity = velocity;
     p.hitbox = Hitbox{16.F, 8.F};
     p.damage = Damage{1};
-    p.lifetime = Lifetime{MissileLifetime};
+    p.lifetime = Lifetime{fromPlayer ? PlayerMissileLifetime : EnemyMissileLifetime};
     p.owner = shooter;
     p.team = fromPlayer ? PlayerTeam : EnemyTeam;
     const Entity missile = _factory.create(fromPlayer ? "player_missile" : "enemy_missile", p);

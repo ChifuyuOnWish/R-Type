@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string_view>
 #include <unordered_map>
 
 namespace rtype::client {
@@ -22,6 +23,7 @@ public:
     void destroy(const protocol::EntityDestroyMessage& message);
     void markShot(std::uint32_t sourceId);
     void markHit(std::uint32_t entityId);
+    [[nodiscard]] std::string_view shotSoundId(std::uint32_t sourceId) const;
     void applySnapshot(const protocol::SnapshotMessage& message);
     void update(float dt);
 

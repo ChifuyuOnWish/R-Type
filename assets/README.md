@@ -10,7 +10,7 @@ Assets are grouped by their main intended use:
 | projectiles/ | Dedicated projectile and beam sheets |
 | effects/ | Dedicated explosion sheets |
 | input/ | Generic controller mapping database and its license |
-| audio/ | Generated placeholder effects used by server gameplay events |
+| audio/ | Recorded shooting and death effects |
 
 Names describe the artwork for this project's asset organization. They are not
 verified original character names or gameplay classifications. Each original
@@ -47,9 +47,12 @@ must be cleared or destroyed before its graphics context closes.
 
 ## Audio effects
 
-`audio/demo-shot.wav` and `audio/demo-hit.wav` are generated sine-wave effects
-used as placeholder gameplay effects. The client plays them from server events;
-they are separate from the supplied sprite collection. See
+`audio/player_shot.wav`, `audio/bat_shot.wav`, `audio/wall_enemy_shot.wav` and
+`audio/death.wav` are trimmed from the four recordings supplied by the team.
+They use mono, 48 kHz, 16-bit PCM WAV with short boundary fades.
+The generated placeholder effects have been removed. Shooting effects are
+selected from the server event's source; Kill and PlayerDeath play the death sound.
+See
 [audio documentation](../docs/audio.md) and the
 [resource how-to](../docs/how-to/add-gui-resource.md).
 

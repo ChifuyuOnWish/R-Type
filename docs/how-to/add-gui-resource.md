@@ -73,7 +73,7 @@ Load the sound when audio is available, and retain whether registration worked:
 ```cpp
 bool shotLoaded = false;
 if (gui.isAudioAvailable()) {
-    shotLoaded = gui.audio().loadSound("shot", "audio/demo-shot.wav");
+    shotLoaded = gui.audio().loadSound("player_shot", "audio/player_shot.wav");
     if (!shotLoaded)
         std::cerr << gui.audio().getLastError() << '\n';
 }
@@ -83,7 +83,7 @@ When a validated gameplay event arrives, queue its sound once:
 
 ```cpp
 if (shotLoaded)
-    soundEvents.push_back({"shot"});
+    soundEvents.push_back({"player_shot"});
 ```
 
 Call `gui.playAudio(soundEvents)` once per client frame, then discard the events
@@ -91,7 +91,7 @@ before collecting the next frame. Do not replay a sound just because its entity
 remains visible. The current client skips new gameplay sounds while Settings or
 a connection status page is shown.
 
-Use the existing `GameEvent` handler in `client/src/main.cpp` when changing sound
+Use the existing `GameEvent` handler in `client/src/ClientSession.cpp` when changing sound
 mapping. For a new effect, add its file, choose an ID, register it, and select
 that ID for the corresponding event. The two current WAV files are generated
 placeholder tones. See [audio](../audio.md) for volume, mute and voice limits.

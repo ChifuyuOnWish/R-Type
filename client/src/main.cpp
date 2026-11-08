@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -90,15 +91,15 @@ int main(int argc, char** argv)
         gui.open(config);
         if (config.audioEnabled && !gui.isAudioAvailable())
             std::cerr << gui.audio().getLastError() << '\n';
-        bool shotLoaded = false;
-        bool hitLoaded = false;
+        std::unordered_set<std::string> loadedSounds;
         if (gui.isAudioAvailable()) {
-            shotLoaded = gui.audio().loadSound("shot", "audio/demo-shot.wav");
-            if (!shotLoaded)
-                std::cerr << gui.audio().getLastError() << '\n';
-            hitLoaded = gui.audio().loadSound("hit", "audio/demo-hit.wav");
-            if (!hitLoaded)
-                std::cerr << gui.audio().getLastError() << '\n';
+            for (const auto* id : {"player_shot", "bat_shot", "wall_enemy_shot", "death"}) {
+                const std::string path = std::string("audio/") + id + ".wav";
+                if (gui.audio().loadSound(id, path))
+                    loadedSounds.emplace(id);
+                else
+                    std::cerr << gui.audio().getLastError() << '\n';
+            }
         }
         {
             try {
@@ -140,8 +141,7 @@ int main(int argc, char** argv)
             if (!gui.isSettingsOpen()) {
                 std::vector<rtype::gui::SoundEvent> sounds;
                 for (const auto& event : session.sounds())
-                    if ((event.soundId == "shot" && shotLoaded) ||
-                        (event.soundId == "hit" && hitLoaded))
+                    if (loadedSounds.contains(event.soundId))
                         sounds.push_back(event);
                 gui.playAudio(sounds);
             }
