@@ -45,31 +45,38 @@ in vec4 fragColor;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 uniform int inkMode;
+uniform float flash;
 out vec4 finalColor;
 
 void main()
 {
     vec4 sampleColor = texture(texture0, fragTexCoord);
-    if (inkMode == 3) {
+    vec4 result;
+    if (inkMode == 0) {
+        result = sampleColor * colDiffuse * fragColor;
+    } else if (inkMode == 3) {
         float light = dot(sampleColor.rgb, vec3(0.299, 0.587, 0.114));
         vec3 rgb = mix(vec3(0.07), fragColor.rgb, smoothstep(0.15, 0.85, light));
-        finalColor = vec4(rgb, sampleColor.a * fragColor.a * colDiffuse.a);
-        return;
-    }
-    if (inkMode == 1) {
-        vec3 rgb = sampleColor.rgb;
-        float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
-        sampleColor.a *= smoothstep(0.105, 0.205, chroma);
+        result = vec4(rgb, sampleColor.a * fragColor.a * colDiffuse.a);
     } else {
-        vec2 stepSize = 2.0 / vec2(textureSize(texture0, 0));
-        float a = sampleColor.a;
-        a = max(a, texture(texture0, fragTexCoord + vec2(stepSize.x, 0.0)).a);
-        a = max(a, texture(texture0, fragTexCoord - vec2(stepSize.x, 0.0)).a);
-        a = max(a, texture(texture0, fragTexCoord + vec2(0.0, stepSize.y)).a);
-        a = max(a, texture(texture0, fragTexCoord - vec2(0.0, stepSize.y)).a);
-        sampleColor = vec4(vec3(0.07), mix(sampleColor.a, a, 0.72));
+        if (inkMode == 1) {
+            vec3 rgb = sampleColor.rgb;
+            float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
+            sampleColor.a *= smoothstep(0.105, 0.205, chroma);
+        } else {
+            vec2 stepSize = 2.0 / vec2(textureSize(texture0, 0));
+            float a = sampleColor.a;
+            a = max(a, texture(texture0, fragTexCoord + vec2(stepSize.x, 0.0)).a);
+            a = max(a, texture(texture0, fragTexCoord - vec2(stepSize.x, 0.0)).a);
+            a = max(a, texture(texture0, fragTexCoord + vec2(0.0, stepSize.y)).a);
+            a = max(a, texture(texture0, fragTexCoord - vec2(0.0, stepSize.y)).a);
+            sampleColor = vec4(vec3(0.07), mix(sampleColor.a, a, 0.72));
+        }
+        result = sampleColor * colDiffuse * fragColor;
     }
-    finalColor = sampleColor * colDiffuse * fragColor;
+    // Red pencil: stays visible on the cream paper, unlike white.
+    result.rgb = mix(result.rgb, vec3(0.89, 0.27, 0.22), flash);
+    finalColor = result;
 }
 )glsl";
 
@@ -212,8 +219,9 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
     }
 
     const detail::InkPass* ink = nullptr;
-    if (std::any_of(sprites.begin(), sprites.end(),
-                    [](const auto& sprite) { return sprite.draw->ink != SpriteInk::Original; })) {
+    if (std::any_of(sprites.begin(), sprites.end(), [](const auto& sprite) {
+            return sprite.draw->ink != SpriteInk::Original || sprite.draw->flash > 0.0F;
+        })) {
         auto& cache = _resources._impl->inkPass;
         if (!cache) {
             cache = std::make_unique<detail::InkPass>();
@@ -232,13 +240,18 @@ void Renderer::render(const RenderScene& scene, std::span<const GuiPosition> bac
         for (const auto& star : backgroundStars)
             DrawRectangleRec({star.x, star.y, 2.0F, 2.0F}, color(scene.background.starColor));
     }
-    const auto drawSprite = [ink](const PreparedSprite& sprite) {
+    const int flashLocation = ink != nullptr ? GetShaderLocation(ink->shader, "flash") : -1;
+    const auto drawSprite = [ink, flashLocation](const PreparedSprite& sprite) {
         const auto& value = *sprite.draw;
-        const bool inkOnly = value.ink != SpriteInk::Original && ink != nullptr;
+        const bool inkOnly =
+            ink != nullptr && (value.ink != SpriteInk::Original || value.flash > 0.0F);
         if (inkOnly) {
             const int mode = static_cast<int>(value.ink);
+            const float flash = std::clamp(value.flash, 0.0F, 1.0F);
             BeginShaderMode(ink->shader);
             SetShaderValue(ink->shader, ink->modeLocation, &mode, SHADER_UNIFORM_INT);
+            if (flashLocation >= 0)
+                SetShaderValue(ink->shader, flashLocation, &flash, SHADER_UNIFORM_FLOAT);
         }
 
         Rectangle source = rectangle(value.sourceRect);

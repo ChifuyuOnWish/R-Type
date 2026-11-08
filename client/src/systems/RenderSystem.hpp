@@ -80,6 +80,19 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
             case SpriteMotion::None:
                 break;
             }
+            if (sprite.hitFlashRemaining > 0.0F) {
+                const float progress =
+                    std::clamp(1.0F - sprite.hitFlashRemaining / HitFlashDuration, 0.0F, 1.0F);
+                const float fade = 1.0F - progress;
+                const float pulse = 0.5F + 0.5F * std::cos(progress * HitFlashBlinks * 2.0F *
+                                                           std::numbers::pi_v<float>);
+                draw.flash = HitFlashStrength * pulse * fade;
+                const float scale = 1.0F + HitPopScale * fade * fade;
+                draw.destinationRect.width = sprite.width * scale;
+                draw.destinationRect.height = sprite.height * scale;
+                draw.origin = {draw.destinationRect.width / 2.0F,
+                               draw.destinationRect.height / 2.0F};
+            }
             scene.sprites.push_back(std::move(draw));
         });
 

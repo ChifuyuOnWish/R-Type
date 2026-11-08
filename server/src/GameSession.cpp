@@ -230,10 +230,15 @@ void GameSession::onDisconnected(const network::Disconnected& ev)
 
 void GameSession::onDamage(const DamageEvent& ev)
 {
-    if (!_players.isShip(ev.victim) || !_registry.isAlive(ev.victim))
+    if (!_registry.isAlive(ev.victim))
         return;
-    _combo = 1;
-    _comboTimer = 0.F;
+    if (_players.isShip(ev.victim)) {
+        _combo = 1;
+        _comboTimer = 0.F;
+    } else if (_registry.hasComponent<Health>(ev.victim) &&
+               _registry.getComponent<Health>(ev.victim).current <= 0) {
+        return;
+    }
     if (const std::uint32_t target = _replicator.wireId(ev.victim))
         _gameEvents.push_back(
             GameEventMessage{GameEventType::Hit, _replicator.wireId(ev.source), target});

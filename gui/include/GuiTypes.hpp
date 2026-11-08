@@ -72,6 +72,7 @@ struct SpriteDraw
     int layer = 0;
     SpriteInk ink = SpriteInk::Original;
     bool flipY = false;
+    float flash = 0.0F;
 };
 
 struct TextDraw

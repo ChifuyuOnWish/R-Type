@@ -164,6 +164,8 @@ void ClientSession::installHandlers()
                 return;
             if (event->event == proto::GameEventType::Shoot)
                 _world->sync().markShot(event->sourceId);
+            else if (event->event == proto::GameEventType::Hit)
+                _world->sync().markHit(event->targetId);
             _sounds.push_back({event->event == proto::GameEventType::Shoot ? "shot" : "hit"});
         });
     _network->registerHandler(

@@ -4,6 +4,7 @@
 #include "components/Components.hpp"
 #include "core/Update.hpp"
 
+#include <algorithm>
 #include <iterator>
 
 namespace rtype::client {
@@ -95,6 +96,17 @@ void ClientSync::update(float dt)
     _time += dt;
     for (auto it = _destroyedAt.begin(); it != _destroyedAt.end();)
         it = (_time - it->second > DestroyedMemory) ? _destroyedAt.erase(it) : std::next(it);
+    _registry.each<Sprite>([dt](engine::Entity, Sprite& sprite) {
+        sprite.hitFlashRemaining = std::max(0.F, sprite.hitFlashRemaining - dt);
+    });
+}
+
+void ClientSync::markHit(std::uint32_t entityId)
+{
+    const auto it = _byNetId.find(entityId);
+    if (it == _byNetId.end() || !_registry.hasComponent<Sprite>(it->second))
+        return;
+    _registry.getComponent<Sprite>(it->second).hitFlashRemaining = HitFlashDuration;
 }
 
 } // namespace rtype::client
