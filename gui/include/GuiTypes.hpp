@@ -56,7 +56,8 @@ enum class SpriteInk
 {
     Original,
     ColoredPencil,
-    BoldGraphite
+    BoldGraphite,
+    TintedPencil // like ColoredPencil, but every stroke recoloured to the sprite's tint
 };
 
 struct SpriteDraw
@@ -70,7 +71,7 @@ struct SpriteDraw
     GuiColor tint;
     int layer = 0;
     SpriteInk ink = SpriteInk::Original;
-    bool flipY = false; // mirror the source image top to bottom
+    bool flipY = false;
 };
 
 struct TextDraw

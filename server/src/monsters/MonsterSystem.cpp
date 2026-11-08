@@ -17,11 +17,9 @@ using namespace engine;
 
 namespace {
 
-constexpr float ScreenMargin = 20.F; // a bat's bob never takes it closer than this to an edge
+constexpr float ScreenMargin = 20.F;
 constexpr float KeepTimer = -1.F;
 
-// Turns a monster's gun on or off. Switching it on sets the time to its first shot, unless
-// firstShotIn is KeepTimer.
 void setWeapon(Registry& registry, Entity e, bool on, float firstShotIn)
 {
     if (!registry.hasComponent<Weapon>(e))
@@ -47,20 +45,18 @@ void flight(Registry& registry, Entity e, const std::vector<Position>& ships, Mo
         const float step = m.homing * dt;
         m.centerY += std::clamp(ship->y - m.centerY, -step, step);
     }
-    // An aiming flyer holds its fire once it has flown past the ships: shooting backwards
-    // at someone it can't see looks like a bug.
+
     if (m.aimAtPlayer)
         setWeapon(registry, e, ship && ship->x < p.x, KeepTimer);
-    // Keep the whole bob on screen, however the centre drifted.
-    const float low = halfH + m.amplitude + ScreenMargin;
-    const float high = WorldHeight - halfH - m.amplitude - ScreenMargin;
+
+    const float low = PlayTop + halfH + m.amplitude + ScreenMargin;
+    const float high = PlayBottom - halfH - m.amplitude - ScreenMargin;
     m.centerY = low < high ? std::clamp(m.centerY, low, high) : WorldHeight / 2.F;
 
     const float target =
         m.centerY + m.amplitude * std::sin(2.F * std::numbers::pi_v<float> * m.frequency * m.clock);
     v.dx = -m.speed;
-    // A velocity, not a teleport: MotionSystem lands it on `target`, and the replicator sends
-    // clients a velocity they can extrapolate with.
+
     v.dy = dt > 0.F ? (target - p.y) / dt : 0.F;
 }
 
@@ -75,7 +71,7 @@ void crawl(Registry& registry, Entity e, Monster& m, Position& p, Velocity& v, f
     v.dy = 0.F;
     switch (m.phase) {
     case CrawlPhase::Approach:
-        // Stop exactly on the mark this step instead of overshooting it.
+
         if (p.x - m.speed * dt <= m.stopAtX) {
             v.dx = dt > 0.F ? (m.stopAtX - p.x) / dt : 0.F;
             m.phase = CrawlPhase::Firing;
@@ -87,7 +83,7 @@ void crawl(Registry& registry, Entity e, Monster& m, Position& p, Velocity& v, f
         }
         break;
     case CrawlPhase::Firing:
-        // Stopped dead on screen: it doesn't drift with the terrain scroll either.
+
         v.dx = 0.F;
         if (m.hold >= 0.F && m.phaseTime >= m.hold) {
             m.phase = CrawlPhase::Leaving;
@@ -108,8 +104,7 @@ MonsterSystem::MonsterSystem(std::mt19937& rng) : _rng(rng) {}
 void MonsterSystem::update(Registry& registry, float dt)
 {
     const std::vector<Position> ships = shipPositions(registry);
-    // Only writes components the entities already have: nothing is added or destroyed while
-    // iterating, so `each` stays valid.
+
     registry.each<Monster, Position, Velocity>([&](Entity e, Monster& m, Position& p, Velocity& v) {
         switch (m.kind) {
         case MonsterKind::Advance:

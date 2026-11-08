@@ -10,7 +10,7 @@ using namespace engine;
 std::vector<Position> shipPositions(Registry& registry)
 {
     std::vector<Position> ships;
-    // Controllable is what marks a player ship (InputSystem and WeaponSystem use it too).
+
     registry.each<Controllable, Position>(
         [&ships](Entity, Controllable&, Position& p) { ships.push_back(p); });
     return ships;

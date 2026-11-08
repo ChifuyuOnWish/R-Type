@@ -13,6 +13,7 @@
 #include "systems/LifetimeSystem.hpp"
 #include "systems/MotionSystem.hpp"
 #include "systems/WeaponSystem.hpp"
+#include "terrain/TerrainSystem.hpp"
 
 #include <chrono>
 #include <exception>
@@ -38,20 +39,22 @@ GameSession::GameSession(network::NetworkServer& net, const level::GameData& dat
 
     _loop.addSystem(std::make_unique<InputSystem>(PlayerSpeed));
     _loop.addSystem(std::make_unique<ModeUpdateSystem>(_modePtr, _ctx));
-    // Moves every enemy and switches its gun on and off; replaces the engine's
-    // EnemyBehaviorSystem, which only knew Straight. Keep it before WeaponSystem.
+
     _loop.addSystem(std::make_unique<MonsterSystem>(_rng));
     _loop.addSystem(std::make_unique<WeaponSystem>(
         [this](Registry& r, Entity shooter, Position from, unsigned type) {
             _spawner.spawnProjectile(r, shooter, from, type);
         }));
     _loop.addSystem(std::make_unique<MotionSystem>());
+
+    _loop.addSystem(std::make_unique<TerrainSystem>());
     _loop.addSystem(std::make_unique<CollisionSystem>());
     _loop.addSystem(std::make_unique<DamageSystem>(&_dispatcher));
     _loop.addSystem(std::make_unique<ModeResolveSystem>(_modePtr, _ctx));
     _loop.addSystem(std::make_unique<DeathSystem>());
     _loop.addSystem(std::make_unique<LifetimeSystem>());
-    _loop.addSystem(std::make_unique<BoundsSystem>(BoundsArea{0.F, 0.F, WorldWidth, WorldHeight},
+
+    _loop.addSystem(std::make_unique<BoundsSystem>(BoundsArea{0.F, PlayTop, WorldWidth, PlayBottom},
                                                    BoundsMargin));
 
     switchMode(_modes.lobby(LobbyPhase::Selecting, Selection{}));

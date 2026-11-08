@@ -55,13 +55,13 @@ struct EnemyDef
     Vec2 hitbox;
     float speed = 0.F;
     Movement movement = Movement::Straight;
-    float amplitude = 0.F;  // sine and flight
-    float frequency = 0.F;  // sine and flight
-    float homing = 0.F;     // flight: how fast it follows the nearest ship up and down, units/s
-    bool onCeiling = false; // crawl: walks upside down along the top instead of the floor
-    float stopMinX = 0.F;   // crawl: stops somewhere in [stopMinX, stopMaxX] to shoot
+    float amplitude = 0.F;
+    float frequency = 0.F;
+    float homing = 0.F;
+    bool onCeiling = false;
+    float stopMinX = 0.F;
     float stopMaxX = 0.F;
-    float hold = -1.F; // crawl: seconds before it walks on; below 0: stays
+    float hold = -1.F;
     std::optional<WeaponDef> weapon;
     int score = 0;
     std::vector<Drop> drops;
@@ -116,7 +116,7 @@ struct YAnchor
         Random
     };
     Kind kind = Kind::Random;
-    float value = 0.F; // Kind::Value only
+    float value = 0.F;
 };
 
 struct Wave

@@ -108,6 +108,8 @@ int main(int argc, char** argv)
                 resources.loadTexture("enemy_bat", "gameplay/bat.png");
                 resources.loadTexture("enemy_tank", "gameplay/tank.png");
                 resources.loadTexture("enemy_slug", "gameplay/enemy_slug.png");
+                resources.loadTexture("tiles", "gameplay/tiles.png");
+                resources.loadTexture("ground", "gameplay/ground.png");
                 resources.loadTexture("fireball", "gameplay/fireball.png");
             } catch (const std::exception& error) {
                 throw std::runtime_error("Could not load visual resources: " +

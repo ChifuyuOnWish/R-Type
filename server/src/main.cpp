@@ -37,7 +37,7 @@ bool parsePort(std::string_view text, std::uint16_t& port)
 int checkLevels(std::filesystem::path dir, std::filesystem::path types)
 {
     dir = std::filesystem::absolute(dir).lexically_normal();
-    if (!dir.has_filename()) // "assets/levels/"
+    if (!dir.has_filename())
         dir = dir.parent_path();
     if (types.empty())
         types = dir.parent_path() / "entity_types.json";

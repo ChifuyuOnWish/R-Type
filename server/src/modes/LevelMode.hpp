@@ -2,6 +2,7 @@
 
 #include "IGameMode.hpp"
 #include "LevelData.hpp"
+#include "level/TerrainDirector.hpp"
 #include "level/WaveDirector.hpp"
 
 #include <cstddef>
@@ -28,6 +29,7 @@ private:
     const level::GameData& _data;
     std::size_t _index;
     std::optional<level::WaveDirector> _director;
+    std::optional<level::TerrainDirector> _terrain;
     ModeState _state = ModeState::Running;
 };
 

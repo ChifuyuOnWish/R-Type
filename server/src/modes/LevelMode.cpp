@@ -20,10 +20,13 @@ void LevelMode::start(GameContext& ctx)
     const level::Level& lvl = _data.levels[_index];
     const std::uint32_t seed = lvl.seed ? *lvl.seed : static_cast<std::uint32_t>(ctx.rng());
     _director.emplace(lvl, _data.scaling, seed);
+    _terrain.reset();
+    if (lvl.terrain)
+        _terrain.emplace(*lvl.terrain);
     _state = ModeState::Running;
     std::cout << "level " << _index + 1 << ": " << lvl.name << '\n';
-    if (lvl.terrain || lvl.boss)
-        std::cout << "level " << _index + 1 << ": terrain and boss not played yet\n";
+    if (lvl.boss)
+        std::cout << "level " << _index + 1 << ": boss not played yet\n";
 }
 
 void LevelMode::update(GameContext& ctx, float dt)
@@ -31,7 +34,10 @@ void LevelMode::update(GameContext& ctx, float dt)
     if (_state != ModeState::Running || !_director)
         return;
     _director->update(ctx, dt);
-    if (_director->finished()) {
+    if (_terrain)
+        _terrain->update(ctx, dt);
+
+    if (_director->finished() && (!_terrain || _terrain->finished())) {
         _state = ModeState::Won;
         std::cout << "level " << _index + 1 << " cleared\n";
     }
@@ -54,11 +60,11 @@ ModeState LevelMode::state() const
 
 std::unique_ptr<IGameMode> LevelMode::next(ModeFactory& modes)
 {
-    if (_state == ModeState::Lost) // once lives exist: retry is one click
+    if (_state == ModeState::Lost)
         return modes.lobby(protocol::LobbyPhase::GameOver, selection());
 
     const std::size_t nextLevel = _index + 1;
-    modes.unlock(nextLevel + 1); // count, not index: levels 0 .. nextLevel are open
+    modes.unlock(nextLevel + 1);
     if (nextLevel < _data.levels.size())
         return modes.lobby(protocol::LobbyPhase::LevelCleared,
                            Selection{protocol::GameKind::Level, nextLevel});

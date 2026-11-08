@@ -5,6 +5,7 @@
 #include "World.hpp"
 #include "monsters/Monster.hpp"
 #include "monsters/Targeting.hpp"
+#include "terrain/Tile.hpp"
 
 namespace rtype::server {
 
@@ -27,19 +28,16 @@ engine::EnemyPattern pattern(level::Movement movement)
     case level::Movement::Follow:
         return engine::EnemyPattern::Chase;
     default:
-        // Flight and Crawl have no engine pattern: MonsterSystem moves every enemy now, and
-        // EnemyBehavior stays only as the "this is an enemy" tag.
         return engine::EnemyPattern::Straight;
     }
 }
 
-// The brain for one enemies.json entry. `position` is where it spawns.
 Monster brain(const level::EnemyDef& def, Position position)
 {
     Monster m = Monster::advance(def.speed);
     m.aimAtPlayer = def.weapon && def.weapon->aim == level::Aim::NearestPlayer;
     switch (def.movement) {
-    case level::Movement::Sine: // a flight that doesn't home: the plain sine wave
+    case level::Movement::Sine:
     case level::Movement::Flight:
         m.kind = MonsterKind::Flight;
         m.amplitude = def.amplitude;
@@ -47,7 +45,7 @@ Monster brain(const level::EnemyDef& def, Position position)
         m.homing = def.homing;
         m.centerY = position.y;
         break;
-    case level::Movement::Follow: // no flap, follows the ship up and down at its own speed
+    case level::Movement::Follow:
         m.kind = MonsterKind::Flight;
         m.homing = def.speed;
         m.centerY = position.y;
@@ -59,7 +57,7 @@ Monster brain(const level::EnemyDef& def, Position position)
         m.stopMaxX = def.stopMaxX;
         m.hold = def.hold;
         break;
-    default: // Straight, and Dive / Stationary until they get their own kind
+    default:
         break;
     }
     return m;
@@ -92,7 +90,6 @@ Entity Spawner::spawnProjectile(Registry& registry, Entity shooter, Position fro
     const bool fromPlayer = type == static_cast<unsigned>(EntityType::PlayerMissile);
     const float speed = fromPlayer ? PlayerMissileSpeed : EnemyMissileSpeed;
     Velocity velocity{fromPlayer ? speed : -speed, 0.F};
-    // Read before anything is created: a new entity can move the Monster we look at.
     const bool aimed = !fromPlayer && registry.hasComponent<Monster>(shooter) &&
                        registry.getComponent<Monster>(shooter).aimAtPlayer;
     if (aimed) {
@@ -100,7 +97,6 @@ Entity Spawner::spawnProjectile(Registry& registry, Entity shooter, Position fro
             velocity = towards(from, *target, speed);
     }
     ComponentParams p;
-    // The muzzle is MuzzleOffset from the centre, along the direction of the shot.
     p.position = Position{from.x + velocity.dx / speed * MuzzleOffset,
                           from.y + velocity.dy / speed * MuzzleOffset};
     p.velocity = velocity;
@@ -154,7 +150,7 @@ Entity Spawner::spawnEnemy(const level::EnemyDef& def, Position position, int he
     const bool crawler = def.movement == level::Movement::Crawl;
     if (crawler) {
         const float half = def.hitbox.y / 2.F;
-        position.y = def.onCeiling ? half : WorldHeight - half;
+        position.y = def.onCeiling ? PlayTop + half : PlayBottom - half;
     }
 
     ComponentParams p;
@@ -164,7 +160,6 @@ Entity Spawner::spawnEnemy(const level::EnemyDef& def, Position position, int he
     p.damage = Damage{def.contactDamage};
     p.hitbox = Hitbox{def.hitbox.x, def.hitbox.y};
     p.behavior = EnemyBehavior{pattern(def.movement), def.speed, def.amplitude, def.frequency};
-    // A crawler starts with its gun off: MonsterSystem turns it on once it has stopped.
     if (def.weapon)
         p.weapon = Weapon{def.weapon->cooldown, firstShotDelay, def.weapon->projectileNetType, 1.F,
                           !crawler};
@@ -173,6 +168,18 @@ Entity Spawner::spawnEnemy(const level::EnemyDef& def, Position position, int he
     _registry.addComponent(enemy, NetType{def.netType});
     _registry.addComponent(enemy, brain(def, position));
     return enemy;
+}
+
+Entity Spawner::spawnTile(const level::TileDef& def, Position center, float size, float scrollSpeed)
+{
+    const Entity tile = _registry.createEntity();
+    _registry.addComponent(tile, center);
+    _registry.addComponent(tile, Velocity{-scrollSpeed, 0.F});
+    _registry.addComponent(tile, Tile{size, def.solid, def.contactDamage});
+    if (def.health)
+        _registry.addComponent(tile, Health{*def.health, *def.health});
+    _registry.addComponent(tile, NetType{def.netType});
+    return tile;
 }
 
 } // namespace rtype::server

@@ -202,7 +202,7 @@ EnemyDef enemy(const std::string& id, const json& v, const EntityTypes& types, c
         if (surface != "floor" && surface != "ceiling")
             (mat / "surface").fail("must be floor or ceiling");
         e.onCeiling = surface == "ceiling";
-        // stopAtX: one x, or [min, max] so a group doesn't stop all on the same spot.
+
         const json& stop = member(move, "stopAtX", mat);
         if (stop.is_array()) {
             const Vec2 range = vec2(stop, mat / "stopAtX");

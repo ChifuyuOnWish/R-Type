@@ -13,6 +13,8 @@ add_executable(r-type_server
     src/modes/LobbyMode.cpp
     src/monsters/MonsterSystem.cpp
     src/monsters/Targeting.cpp
+    src/terrain/TerrainSystem.cpp
+    src/level/TerrainDirector.cpp
 )
 target_include_directories(r-type_server PRIVATE include src src/modes)
 target_link_libraries(r-type_server PRIVATE rtype::protocol rtype::engine rtype::network nlohmann_json::nlohmann_json)
