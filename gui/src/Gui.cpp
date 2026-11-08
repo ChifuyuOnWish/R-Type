@@ -73,6 +73,11 @@ void fitWorld(RenderScene& scene, GuiVector2 viewport)
         sprite.origin.x *= scale;
         sprite.origin.y *= scale;
     }
+    for (auto& particle : scene.particles) {
+        particle.position = {offset.x + particle.position.x * scale,
+                             offset.y + particle.position.y * scale};
+        particle.size *= scale;
+    }
     for (auto& rect : scene.sceneRectangles) {
         rect.bounds.pos = {offset.x + rect.bounds.pos.x * scale,
                            offset.y + rect.bounds.pos.y * scale};

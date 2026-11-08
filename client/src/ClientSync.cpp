@@ -4,13 +4,20 @@
 #include "components/Components.hpp"
 #include "core/Update.hpp"
 
+#include <algorithm>
 #include <iterator>
+#include <vector>
 
 namespace rtype::client {
 
 namespace {
 constexpr float MaxExtrapolation = 0.05F;
+
+bool disintegrates(protocol::DestroyCause cause)
+{
+    return cause == protocol::DestroyCause::Killed;
 }
+} // namespace
 
 ClientSync::ClientSync(engine::Registry& registry) : _registry(registry) {}
 
@@ -37,12 +44,20 @@ void ClientSync::destroy(const protocol::EntityDestroyMessage& message)
     const auto it = _byNetId.find(message.entityId);
     if (it == _byNetId.end())
         return;
-    if (_onDestroyed && _registry.hasComponent<engine::Position>(it->second)) {
-        const auto& position = _registry.getComponent<engine::Position>(it->second);
+    const engine::Entity entity = it->second;
+    _byNetId.erase(it);
+    if (_onDestroyed && _registry.hasComponent<engine::Position>(entity)) {
+        const auto& position = _registry.getComponent<engine::Position>(entity);
         _onDestroyed(position.x, position.y, message.cause);
     }
-    _registry.destroyEntity(it->second);
-    _byNetId.erase(it);
+    if (disintegrates(message.cause) && _registry.hasComponent<Sprite>(entity)) {
+        _registry.addComponent(entity, Dying{});
+        auto& velocity = _registry.getComponent<engine::Velocity>(entity);
+        velocity.dx *= 0.3F;
+        velocity.dy *= 0.3F;
+    } else {
+        _registry.destroyEntity(entity);
+    }
 }
 
 void ClientSync::markShot(std::uint32_t sourceId)
@@ -95,6 +110,25 @@ void ClientSync::update(float dt)
     _time += dt;
     for (auto it = _destroyedAt.begin(); it != _destroyedAt.end();)
         it = (_time - it->second > DestroyedMemory) ? _destroyedAt.erase(it) : std::next(it);
+    _registry.each<Sprite>([dt](engine::Entity, Sprite& sprite) {
+        sprite.hitFlashRemaining = std::max(0.F, sprite.hitFlashRemaining - dt);
+    });
+    std::vector<engine::Entity> expired;
+    _registry.each<Dying>([dt, &expired](engine::Entity entity, Dying& dying) {
+        dying.elapsed += dt;
+        if (dying.elapsed >= DeathDuration)
+            expired.push_back(entity);
+    });
+    for (const engine::Entity entity : expired)
+        _registry.destroyEntity(entity);
+}
+
+void ClientSync::markHit(std::uint32_t entityId)
+{
+    const auto it = _byNetId.find(entityId);
+    if (it == _byNetId.end() || !_registry.hasComponent<Sprite>(it->second))
+        return;
+    _registry.getComponent<Sprite>(it->second).hitFlashRemaining = HitFlashDuration;
 }
 
 } // namespace rtype::client

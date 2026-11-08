@@ -21,7 +21,7 @@ constexpr float WindupTime = 0.8F;
 constexpr float ChargeTime = 0.7F;
 constexpr float HoldTime = 0.5F;
 constexpr float ReturnTime = 1.4F;
-constexpr float RumbleEvery = 0.35F; // an explosion sound while it dies
+constexpr float RumbleEvery = 0.35F;
 
 float smooth(float t)
 {
@@ -34,34 +34,19 @@ float lerp(float a, float b, float t)
     return a + (b - a) * t;
 }
 
-// Reinforcements roll out above, in front of and below the gun.
 constexpr std::array<level::Vec2, 3> MinionSlots{{{40.F, -150.F}, {-40.F, 0.F}, {40.F, 150.F}}};
 } // namespace
 
 std::map<std::string, float> GiantTank::Defaults()
 {
     return {
-        {"shotSpeed", 340.F},      // units/s
-        {"bobAmplitude", 140.F},   // phase 1: up and down around the centre...
-        {"bobPeriod", 6.F},        // ...once every 6 s
-        {"sweepAmplitude", 280.F}, // phases 2: up and down almost the whole screen...
-        {"sweepPeriod", 5.F},
-        {"hoverSpeed", 170.F}, // phase 3: how fast it follows the nearest ship
-        {"volleyEvery", 1.8F}, // seconds between two attacks (phase 1; x0.8 later)
-        {"fanCount", 5.F},
-        {"fanSpread", 50.F}, // degrees
-        {"burstCount", 3.F},
-        {"burstSpread", 16.F},
-        {"hoseTime", 1.6F},    // phase 2: seconds a hose lasts
-        {"hoseRate", 0.1F},    // seconds between two shots of the hose
-        {"hoseTurn", 9.F},     // degrees it turns per shot
-        {"hoseArc", 55.F},     // it sweeps 180 +/- this
-        {"dashEvery", 7.F},    // phase 2; phase 3 uses 60% of it
-        {"dashX", 700.F},      // how far left a dash goes
-        {"ringCount", 12.F},   // shots in the ring at the end of a dash
-        {"summonEvery", 10.F}, // seconds between two trios of minions
-        {"transition", 1.6F},  // seconds of shaking between two phases
-        {"deathTime", 2.5F},
+        {"shotSpeed", 340.F},      {"bobAmplitude", 140.F}, {"bobPeriod", 6.F},
+        {"sweepAmplitude", 280.F}, {"sweepPeriod", 5.F},    {"hoverSpeed", 170.F},
+        {"volleyEvery", 1.8F},     {"fanCount", 5.F},       {"fanSpread", 50.F},
+        {"burstCount", 3.F},       {"burstSpread", 16.F},   {"hoseTime", 1.6F},
+        {"hoseRate", 0.1F},        {"hoseTurn", 9.F},       {"hoseArc", 55.F},
+        {"dashEvery", 7.F},        {"dashX", 700.F},        {"ringCount", 12.F},
+        {"summonEvery", 10.F},     {"transition", 1.6F},    {"deathTime", 2.5F},
     };
 }
 
@@ -78,8 +63,7 @@ void GiantTank::spawn(GameContext& ctx, const level::BossDef& def, int health)
         _start = Position{_homeX, PlayTop - 30.F};
     else if (def.entry.from == "bottom")
         _start = Position{_homeX, PlayBottom + 30.F};
-    else // inside BoundsSystem's 100-unit margin, or it would remove the body at
-         // once
+    else
         _start = Position{WorldWidth + 60.F, CenterY};
     _pos = _start;
 
@@ -118,7 +102,6 @@ BossStatus GiantTank::status() const
     return s;
 }
 
-// The gun: the front (left) edge of the hull, at mid height.
 Position GiantTank::muzzle() const
 {
     return Position{_pos.x - _def->hitbox.x / 2.F, _pos.y};
@@ -183,7 +166,6 @@ void GiantTank::takeDamage(GameContext& ctx)
         _stage = Stage::Dying;
         _stageTime = 0.F;
         _anchorX = _pos.x;
-        // Its shots still flying go out with it: the win shouldn't kill you.
         std::vector<Entity> shots;
         ctx.registry.each<Projectile>([&](Entity shot, Projectile& p) {
             if (p.owner == _body || p.owner == _weak)
@@ -261,7 +243,6 @@ void GiantTank::shoot(GameContext& ctx, float dt)
     const std::uint16_t type = _def->projectileNetType;
 
     if (_hoseLeft > 0.F) {
-        // A stream of shots sweeping up and down in front of it, like a hose.
         _hoseLeft -= dt;
         _hoseTimer -= dt;
         const float arc = _t.get("hoseArc");
@@ -309,7 +290,7 @@ void GiantTank::dash(GameContext& ctx, float dt)
         break;
     case Dash::Charge: {
         const float k = 1.F - std::max(_dashStage, 0.F) / ChargeTime;
-        _pos.x = lerp(_homeX, _t.get("dashX"), k * k); // accelerates
+        _pos.x = lerp(_homeX, _t.get("dashX"), k * k);
         if (_dashStage <= 0.F) {
             _dash = Dash::Hold;
             _dashStage = HoldTime;
@@ -341,7 +322,6 @@ void GiantTank::dash(GameContext& ctx, float dt)
 
 void GiantTank::dying(GameContext& ctx, float dt)
 {
-    // Sinks, shaking, with a rumble of explosions, then goes out.
     _pos.x = _anchorX + 6.F * std::sin(_stageTime * 45.F);
     _pos.y += 35.F * dt;
     _rumbleTimer -= dt;

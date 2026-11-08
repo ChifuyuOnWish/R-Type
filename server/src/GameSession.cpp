@@ -35,8 +35,6 @@ constexpr std::uint32_t KillPoints = 100;
 constexpr float ComboWindow = 3.F;
 constexpr std::uint8_t MaxCombo = 8;
 constexpr std::uint8_t PlayerMaxHealth = 3;
-// Health alone changes with every hit: send it at most every 6 steps (100 ms at 60 Hz).
-// Phase changes go out at once.
 constexpr std::uint32_t BossHealthEvery = 6;
 } // namespace
 
@@ -110,7 +108,7 @@ void GameSession::step()
     }
     _replicator.sendScores(scoreState());
     sendLobbyState();
-    sendBossState(); // after sync(): clients already know the boss entity it points to
+    sendBossState();
 }
 
 void GameSession::switchMode(std::unique_ptr<IGameMode> mode)
@@ -168,7 +166,7 @@ BossStateMessage GameSession::bossState() const
     BossStateMessage msg;
     const auto boss = _mode->bossStatus();
     if (!boss)
-        return msg; // entityId 0: no boss, hide the bar
+        return msg;
     msg.entityId = _replicator.wireId(boss->body);
     if (msg.entityId == 0)
         return msg;
@@ -190,10 +188,9 @@ void GameSession::sendBossState()
 {
     BossStateMessage state = bossState();
     if (!_lastBossState && state.entityId == 0)
-        return; // no boss before, none now
+        return;
     if (_lastBossState && *_lastBossState == state)
         return;
-    // Only the health moved: wait a little so 4 players firing don't flood the reliable channel.
     BossStateMessage healthOnly = state;
     if (_lastBossState) {
         healthOnly.health = _lastBossState->health;
@@ -208,9 +205,6 @@ void GameSession::sendBossState()
         _lastBossState = std::move(state);
 }
 
-// The boss never dies through DamageSystem (its pieces are armoured), so onDied can't score
-// it. The ship that hit it last when its health reaches 0 gets its "score" from enemies.json,
-// times the combo, like any other kill.
 void GameSession::scoreBoss()
 {
     const auto boss = _mode->bossStatus();
@@ -305,13 +299,17 @@ void GameSession::onDisconnected(const network::Disconnected& ev)
 
 void GameSession::onDamage(const DamageEvent& ev)
 {
-    // Boss pieces get hit like anything else: remember who hit it last, for the kill points.
     if (const auto boss = _mode->bossStatus(); boss && ev.victim == boss->body)
         _bossHitter = ev.source;
-    if (!_players.isShip(ev.victim) || !_registry.isAlive(ev.victim))
+    if (!_registry.isAlive(ev.victim))
         return;
-    _combo = 1;
-    _comboTimer = 0.F;
+    if (_players.isShip(ev.victim)) {
+        _combo = 1;
+        _comboTimer = 0.F;
+    } else if (_registry.hasComponent<Health>(ev.victim) &&
+               _registry.getComponent<Health>(ev.victim).current <= 0) {
+        return;
+    }
     if (const std::uint32_t target = _replicator.wireId(ev.victim))
         _gameEvents.push_back(
             GameEventMessage{GameEventType::Hit, _replicator.wireId(ev.source), target});

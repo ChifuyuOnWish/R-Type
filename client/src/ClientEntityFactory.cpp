@@ -21,8 +21,6 @@ constexpr std::uint16_t TileSpikes = 32;
 constexpr float TileSize = 60.F;
 constexpr float TileCell = 128.F;
 constexpr int TerrainLayer = 5;
-// boss_tank in entity_types.json: the tank drawn about 2.7 times bigger, behind the other
-// enemies so the minions it rolls out are visible on top of it. Hitbox 380x340 on the server.
 constexpr std::uint16_t BossTank = 40;
 constexpr float BossTankSize = 520.F;
 constexpr int BossLayer = 8;

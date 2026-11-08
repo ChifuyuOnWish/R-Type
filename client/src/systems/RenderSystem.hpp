@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <numbers>
 #include <optional>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -20,13 +21,35 @@ namespace rtype::client {
 using PlayerNames = std::unordered_map<std::uint32_t, std::string>;
 using BossState = std::optional<protocol::BossStateMessage>;
 
-// Player 1 keeps the drawing's own colours; the others recolour the same plane.
 inline constexpr gui::GuiColor PlayerTints[] = {
     {255, 255, 255, 255}, // player 1: unused, original colours
     {226, 72, 60, 255},   // player 2: red
     {64, 176, 92, 255},   // player 3: green
     {236, 184, 40, 255},  // player 4: yellow
 };
+
+inline constexpr float DissolvePortion = 0.8F;
+
+inline void addDeathParticles(gui::RenderScene& scene, gui::GuiPosition center, float width,
+                              float height, std::uint32_t seed, float progress, gui::GuiColor color)
+{
+    constexpr int Count = 16;
+    std::minstd_rand random(seed);
+    std::uniform_real_distribution<float> unit(0.0F, 1.0F);
+    for (int i = 0; i < Count; i++) {
+        const float x = unit(random) - 0.5F;
+        const float y = unit(random) - 0.5F;
+        const float speed = 0.5F + unit(random);
+        gui::ParticleDraw particle;
+        particle.position = {center.x + x * width + 70.0F * speed * progress,
+                             center.y + y * height - 40.0F * speed * progress};
+        particle.size = 5.0F * (1.0F - progress);
+        particle.color = color;
+        particle.color.alpha =
+            static_cast<std::uint8_t>(static_cast<float>(color.alpha) * (1.0F - progress));
+        scene.particles.push_back(particle);
+    }
+}
 
 inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
                             const PlayerNames& names, float animationSeconds = 0.0F,
@@ -98,12 +121,36 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
             case SpriteMotion::None:
                 break;
             }
+            if (registry.hasComponent<Dying>(entity)) {
+                const float t = std::clamp(
+                    registry.getComponent<Dying>(entity).elapsed / DeathDuration, 0.0F, 1.0F);
+                draw.dissolve = std::clamp(t / DissolvePortion, 0.0F, 1.0F);
+                const gui::GuiColor dust = draw.ink == gui::SpriteInk::TintedPencil
+                                               ? draw.tint
+                                               : gui::GuiColor{70, 68, 72, 200};
+                addDeathParticles(scene, center, sprite.width, sprite.height, net.id, t, dust);
+            }
+            if (sprite.hitFlashRemaining > 0.0F) {
+                const float progress =
+                    std::clamp(1.0F - sprite.hitFlashRemaining / HitFlashDuration, 0.0F, 1.0F);
+                const float fade = 1.0F - progress;
+                const float pulse = 0.5F + 0.5F * std::cos(progress * HitFlashBlinks * 2.0F *
+                                                           std::numbers::pi_v<float>);
+                draw.flash = HitFlashStrength * pulse * fade;
+                const float scale = 1.0F + HitPopScale * fade * fade;
+                draw.destinationRect.width = sprite.width * scale;
+                draw.destinationRect.height = sprite.height * scale;
+                draw.origin = {draw.destinationRect.width / 2.0F,
+                               draw.destinationRect.height / 2.0F};
+            }
             scene.sprites.push_back(std::move(draw));
         });
 
     registry.each<PlayerSlot, engine::Position, Extrapolation, Sprite>(
-        [&](engine::Entity, PlayerSlot& slot, engine::Position& position, Extrapolation& motion,
-            Sprite& sprite) {
+        [&](engine::Entity entity, PlayerSlot& slot, engine::Position& position,
+            Extrapolation& motion, Sprite& sprite) {
+            if (registry.hasComponent<Dying>(entity))
+                return;
             const auto it = names.find(static_cast<std::uint32_t>(slot.index) + 1);
             gui::TextDraw text;
             text.text = it != names.end() ? it->second : "Player";
@@ -114,8 +161,6 @@ inline void addWorldSprites(gui::RenderScene& scene, engine::Registry& registry,
         });
 }
 
-// The boss health bar, under the ceiling, in world units. A thin mark shows where each later
-// phase starts. While the boss flies in (phase 0) the bar fills up and a warning blinks.
 inline void addBossBar(gui::RenderScene& scene, const protocol::BossStateMessage& boss,
                        float animationSeconds)
 {
@@ -128,7 +173,6 @@ inline void addBossBar(gui::RenderScene& scene, const protocol::BossStateMessage
     const bool enraged = boss.has(protocol::BossStateMessage::Enraged);
 
     const float fraction = static_cast<float>(boss.health) / static_cast<float>(boss.maxHealth);
-    // Dark frame, then the empty bar, then the fill: high-contrast in every colour-vision mode.
     scene.sceneRectangles.push_back(
         {{{Left - Border, Top - Border}, Width + 2.F * Border, Height + 2.F * Border},
          {15, 15, 20, 230}});
