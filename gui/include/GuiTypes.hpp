@@ -73,6 +73,15 @@ struct SpriteDraw
     SpriteInk ink = SpriteInk::Original;
     bool flipY = false;
     float flash = 0.0F;
+    float dissolve = 0.0F; // 0 = intact, 1 = fully disintegrated
+};
+
+// Small square of dust, in world coordinates (scaled with the world like sprites).
+struct ParticleDraw
+{
+    GuiPosition position; // centre
+    float size = 3.0F;
+    GuiColor color{30, 30, 35, 255};
 };
 
 struct TextDraw
@@ -294,6 +303,7 @@ struct RenderScene
 {
     GuiColor clearColor{0, 0, 0, 255};
     std::vector<SpriteDraw> sprites;
+    std::vector<ParticleDraw> particles;
     std::vector<TextDraw> sceneTexts;
     std::vector<TextDraw> overlayTexts;
     BackgroundConfig background;

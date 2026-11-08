@@ -24,6 +24,11 @@ enum class SpriteMotion
     EnemyFire
 };
 
+inline constexpr float HitFlashDuration = 0.30F;
+inline constexpr float HitFlashBlinks = 2.0F;
+inline constexpr float HitFlashStrength = 0.75F;
+inline constexpr float HitPopScale = 0.15F;
+
 struct Sprite
 {
     std::string textureId;
@@ -34,6 +39,7 @@ struct Sprite
     SpriteMotion motion = SpriteMotion::None;
     float shotPoseRemaining = 0.0F;
     bool flipY = false;
+    float hitFlashRemaining = 0.0F;
 };
 
 struct NetworkId
@@ -52,5 +58,12 @@ struct Extrapolation
     float offsetX = 0.F;
     float offsetY = 0.F;
 };
+
+struct Dying
+{
+    float elapsed = 0.F;
+};
+
+inline constexpr float DeathDuration = 0.8F;
 
 } // namespace rtype::client
